@@ -1,6 +1,6 @@
 [submodule "External/UDPMeshLib"]
 	path = External/UDPMeshLib
-	url = https://github.com/godarklight/UDPMeshLib.git
+	url = https://github.com/Phreak420/UDPMeshLib.git
 [submodule "External/ConfigNodeParser"]
 	path = External/ConfigNodeParser
 	url = https://github.com/godarklight/ConfigNodeParser.git
