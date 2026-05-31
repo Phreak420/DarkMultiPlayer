@@ -6,7 +6,7 @@ namespace DarkMultiPlayerCommon
 {
     public class Compression
     {
-        private static byte[] CompressionBuffer = new byte[Common.MAX_MESSAGE_SIZE];
+        private const int BUFFER_SIZE = 8192;
         public const int COMPRESSION_THRESHOLD = 4096;
         public static bool compressionEnabled = false;
 
@@ -175,88 +175,52 @@ namespace DarkMultiPlayerCommon
 
         public static byte[] Compress(byte[] inputBytes)
         {
-            int compressSize = 0;
-            lock (CompressionBuffer)
+            using (MemoryStream ms = new MemoryStream())
             {
-                using (MemoryStream ms = new MemoryStream(CompressionBuffer))
+                using (GZipStream gs = new GZipStream(ms, CompressionMode.Compress, true))
                 {
-                    using (GZipStream gs = new GZipStream(ms, CompressionMode.Compress, true))
-                    {
-                        gs.Write(inputBytes, 0, inputBytes.Length);
-                    }
-                    compressSize = (int)ms.Position;
+                    gs.Write(inputBytes, 0, inputBytes.Length);
                 }
+                return ms.ToArray();
             }
-            byte[] returnBytes = new byte[compressSize];
-            Array.Copy(CompressionBuffer, 0, returnBytes, 0, compressSize);
-            return returnBytes;
         }
 
         public static ByteArray Compress(ByteArray inputBytes)
         {
-            int compressSize = 0;
-            lock (CompressionBuffer)
+            using (MemoryStream ms = new MemoryStream())
             {
-                using (MemoryStream ms = new MemoryStream(CompressionBuffer))
+                using (GZipStream gs = new GZipStream(ms, CompressionMode.Compress, true))
                 {
-                    using (GZipStream gs = new GZipStream(ms, CompressionMode.Compress, true))
-                    {
-                        gs.Write(inputBytes.data, 0, inputBytes.Length);
-                    }
-                    compressSize = (int)ms.Position;
+                    gs.Write(inputBytes.data, 0, inputBytes.Length);
                 }
+                ByteArray returnBytes = ByteRecycler.GetObject((int)ms.Length);
+                Array.Copy(ms.GetBuffer(), 0, returnBytes.data, 0, returnBytes.Length);
+                return returnBytes;
             }
-            ByteArray returnBytes = ByteRecycler.GetObject(compressSize);
-            Array.Copy(CompressionBuffer, 0, returnBytes.data, 0, compressSize);
-            return returnBytes;
         }
 
         public static byte[] Decompress(byte[] inputBytes)
         {
-
-            byte[] returnBytes = null;
-            lock (CompressionBuffer)
+            using (MemoryStream inputStream = new MemoryStream(inputBytes))
+            using (GZipStream gs = new GZipStream(inputStream, CompressionMode.Decompress))
+            using (MemoryStream outputStream = new MemoryStream())
             {
-                int totalRead = 0;
-
-                using (MemoryStream ms = new MemoryStream(inputBytes))
-                {
-                    using (GZipStream gs = new GZipStream(ms, CompressionMode.Decompress))
-                    {
-                        int thisRead;
-                        while ((thisRead = gs.Read(CompressionBuffer, totalRead, 4096)) > 0)
-                        {
-                            totalRead += thisRead;
-                        }
-                    }
-                    returnBytes = new byte[totalRead];
-                    Array.Copy(CompressionBuffer, 0, returnBytes, 0, totalRead);
-                }
+                gs.CopyTo(outputStream, BUFFER_SIZE);
+                return outputStream.ToArray();
             }
-            return returnBytes;
         }
 
         public static ByteArray Decompress(ByteArray inputBytes)
         {
-            ByteArray returnBytes = null;
-            lock (CompressionBuffer)
+            using (MemoryStream inputStream = new MemoryStream(inputBytes.data, 0, inputBytes.Length))
+            using (GZipStream gs = new GZipStream(inputStream, CompressionMode.Decompress))
+            using (MemoryStream outputStream = new MemoryStream())
             {
-                int totalRead = 0;
-                using (MemoryStream ms = new MemoryStream(inputBytes.data, 0, inputBytes.Length))
-                {
-                    using (GZipStream gs = new GZipStream(ms, CompressionMode.Decompress))
-                    {
-                        int thisRead;
-                        while ((thisRead = gs.Read(CompressionBuffer, totalRead, 4096)) > 0)
-                        {
-                            totalRead += thisRead;
-                        }
-                    }
-                }
-                returnBytes = ByteRecycler.GetObject(totalRead);
-                Array.Copy(CompressionBuffer, 0, returnBytes.data, 0, totalRead);
+                gs.CopyTo(outputStream, BUFFER_SIZE);
+                ByteArray returnBytes = ByteRecycler.GetObject((int)outputStream.Length);
+                Array.Copy(outputStream.GetBuffer(), 0, returnBytes.data, 0, returnBytes.Length);
+                return returnBytes;
             }
-            return returnBytes;
         }
     }
 }

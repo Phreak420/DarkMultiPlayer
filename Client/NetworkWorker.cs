@@ -760,7 +760,7 @@ namespace DarkMultiPlayer
                                 }
                                 else
                                 {
-                                    if (messageLength < Common.MAX_MESSAGE_SIZE)
+                                    if (Common.IsValidMessageSize(messageLength))
                                     {
                                         isReceivingMessage = true;
                                         receiveMessage.data = ByteRecycler.GetObject(messageLength);
@@ -1911,11 +1911,25 @@ namespace DarkMultiPlayer
                 //New split message
                 using (MessageReader mr = new MessageReader(messageData.data))
                 {
+                    int splitMessageType = mr.Read<int>();
+                    int splitMessageLength = mr.Read<int>();
+                    if (!IsValidSplitMessage(splitMessageType, splitMessageLength))
+                    {
+                        Disconnect("Disconnected from non-DMP server");
+                        return;
+                    }
                     receiveSplitMessage = new ServerMessage();
-                    receiveSplitMessage.type = (ServerMessageType)mr.Read<int>();
-                    receiveSplitMessage.data = ByteRecycler.GetObject(mr.Read<int>());
+                    receiveSplitMessage.type = (ServerMessageType)splitMessageType;
+                    receiveSplitMessage.data = ByteRecycler.GetObject(splitMessageLength);
                     receiveSplitMessageBytesLeft = receiveSplitMessage.data.Length;
                     ByteArray firstSplitData = mr.Read<ByteArray>();
+                    if (!IsValidSplitChunk(firstSplitData.Length))
+                    {
+                        ByteRecycler.ReleaseObject(firstSplitData);
+                        ResetSplitMessage();
+                        Disconnect("Disconnected from non-DMP server");
+                        return;
+                    }
                     Array.Copy(firstSplitData.data, 0, receiveSplitMessage.data.data, 0, firstSplitData.Length);
                     receiveSplitMessageBytesLeft -= firstSplitData.Length;
                     ByteRecycler.ReleaseObject(firstSplitData);
@@ -1925,6 +1939,12 @@ namespace DarkMultiPlayer
             else
             {
                 //Continued split message
+                if (!IsValidSplitChunk(messageData.Length))
+                {
+                    ResetSplitMessage();
+                    Disconnect("Disconnected from non-DMP server");
+                    return;
+                }
                 Array.Copy(messageData.data, 0, receiveSplitMessage.data.data, receiveSplitMessage.data.Length - receiveSplitMessageBytesLeft, messageData.Length);
                 receiveSplitMessageBytesLeft -= messageData.Length;
             }
@@ -1935,6 +1955,31 @@ namespace DarkMultiPlayer
                 receiveSplitMessage = null;
                 isReceivingSplitMessage = false;
             }
+        }
+
+        private bool IsValidSplitMessage(int messageType, int messageLength)
+        {
+            if (messageType < 0 || messageType > (Enum.GetNames(typeof(ServerMessageType)).Length - 1))
+            {
+                return false;
+            }
+            return Common.IsValidMessageSize(messageLength);
+        }
+
+        private bool IsValidSplitChunk(int chunkLength)
+        {
+            return chunkLength > 0 && chunkLength <= receiveSplitMessageBytesLeft;
+        }
+
+        private void ResetSplitMessage()
+        {
+            if (receiveSplitMessage != null && receiveSplitMessage.data != null)
+            {
+                ByteRecycler.ReleaseObject(receiveSplitMessage.data);
+            }
+            receiveSplitMessage = null;
+            receiveSplitMessageBytesLeft = 0;
+            isReceivingSplitMessage = false;
         }
 
         private void HandleConnectionEnd(ByteArray messageData)
@@ -2603,4 +2648,3 @@ namespace DarkMultiPlayer
         public int port;
     }
 }
-

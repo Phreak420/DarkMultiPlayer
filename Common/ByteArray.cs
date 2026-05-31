@@ -10,7 +10,7 @@ namespace DarkMultiPlayerCommon
         public ByteArray(int size)
         {
             data = new byte[size];
-            size = 0;
+            this.size = size;
             temporary = false;
         }
 

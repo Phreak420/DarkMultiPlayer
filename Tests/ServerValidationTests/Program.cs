@@ -22,6 +22,11 @@ namespace ServerValidationTests
             Run("Lock release mutates locks for owner", LockReleaseMutatesLocksForOwner);
             Run("Lock acquire spoof does not mutate locks", LockAcquireSpoofDoesNotMutateLocks);
             Run("Lock release spoof does not mutate locks", LockReleaseSpoofDoesNotMutateLocks);
+            Run("Compression round-trips byte arrays", CompressionRoundTripsByteArrays);
+            Run("Compression round-trips recycled byte arrays", CompressionRoundTripsRecycledByteArrays);
+            Run("Message size validation rejects invalid lengths", MessageSizeValidationRejectsInvalidLengths);
+            Run("Split message rejects oversized declared length", SplitMessageRejectsOversizedDeclaredLength);
+            Run("Split message rejects oversized first chunk", SplitMessageRejectsOversizedFirstChunk);
 
             if (failures == 0)
             {
@@ -194,6 +199,102 @@ namespace ServerValidationTests
             Assert(DarkMultiPlayerServer.LockSystem.fetch.GetLockList()["control-vessel-test"] == "Bob", "spoofed lock release mutated lock state");
         }
 
+        private static void CompressionRoundTripsByteArrays()
+        {
+            bool previousCompressionEnabled = Compression.compressionEnabled;
+            Compression.compressionEnabled = true;
+            try
+            {
+                byte[] input = RepeatingBytes(Compression.COMPRESSION_THRESHOLD * 2);
+                byte[] compressed = Compression.CompressIfNeeded(input);
+                byte[] decompressed = Compression.DecompressIfNeeded(compressed);
+                Assert(Compression.ByteCompare(input, decompressed), "byte[] compression round-trip changed data");
+            }
+            finally
+            {
+                Compression.compressionEnabled = previousCompressionEnabled;
+            }
+        }
+
+        private static void CompressionRoundTripsRecycledByteArrays()
+        {
+            bool previousCompressionEnabled = Compression.compressionEnabled;
+            Compression.compressionEnabled = true;
+            ByteArray input = ByteRecycler.GetObject(Compression.COMPRESSION_THRESHOLD * 2);
+            ByteArray compressed = null;
+            ByteArray decompressed = null;
+            try
+            {
+                byte[] source = RepeatingBytes(input.Length);
+                Array.Copy(source, input.data, source.Length);
+                compressed = Compression.CompressIfNeeded(input);
+                decompressed = Compression.DecompressIfNeeded(compressed);
+                Assert(decompressed.Length == source.Length, "ByteArray compression round-trip changed length");
+                for (int i = 0; i < source.Length; i++)
+                {
+                    if (decompressed.data[i] != source[i])
+                    {
+                        throw new Exception("ByteArray compression round-trip changed data at byte " + i);
+                    }
+                }
+            }
+            finally
+            {
+                Compression.compressionEnabled = previousCompressionEnabled;
+                ByteRecycler.ReleaseObject(input);
+                if (compressed != null)
+                {
+                    ByteRecycler.ReleaseObject(compressed);
+                }
+                if (decompressed != null)
+                {
+                    ByteRecycler.ReleaseObject(decompressed);
+                }
+            }
+        }
+
+        private static void MessageSizeValidationRejectsInvalidLengths()
+        {
+            Assert(!Common.IsValidMessageSize(-1), "negative message length was accepted");
+            Assert(!Common.IsValidMessageSize(0), "zero message length was accepted as an allocation size");
+            Assert(!Common.IsValidMessageSize(Common.MAX_MESSAGE_SIZE), "maximum boundary message length was accepted");
+            Assert(Common.IsValidMessageSize(Common.MAX_MESSAGE_SIZE - 1), "largest valid message length was rejected");
+        }
+
+        private static void SplitMessageRejectsOversizedDeclaredLength()
+        {
+            ClientObject client = CreateClient("Alice");
+
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>((int)ClientMessageType.CHAT_MESSAGE);
+                mw.Write<int>(Common.MAX_MESSAGE_SIZE);
+                mw.Write<byte[]>(new byte[] { 1 });
+                DarkMultiPlayerServer.Messages.SplitMessage.HandleSplitMessage(client, mw.GetMessageBytes());
+            }
+
+            AssertConnectionEndQueued(client);
+            Assert(client.receiveSplitMessage == null, "oversized split message allocated a receive buffer");
+            Assert(!client.isReceivingSplitMessage, "oversized split message left split receive state active");
+        }
+
+        private static void SplitMessageRejectsOversizedFirstChunk()
+        {
+            ClientObject client = CreateClient("Alice");
+
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>((int)ClientMessageType.CHAT_MESSAGE);
+                mw.Write<int>(1);
+                mw.Write<byte[]>(new byte[] { 1, 2 });
+                DarkMultiPlayerServer.Messages.SplitMessage.HandleSplitMessage(client, mw.GetMessageBytes());
+            }
+
+            AssertConnectionEndQueued(client);
+            Assert(client.receiveSplitMessage == null, "invalid split chunk left a receive buffer");
+            Assert(!client.isReceivingSplitMessage, "invalid split chunk left split receive state active");
+        }
+
         private static string CreateUniverse()
         {
             string universe = Path.Combine(Path.GetTempPath(), "dmp-validation-tests-" + Guid.NewGuid().ToString("N"));
@@ -216,6 +317,16 @@ namespace ServerValidationTests
         private static byte[] PngBytes()
         {
             return new byte[] { 137, 80, 78, 71, 13, 10, 26, 10, 1 };
+        }
+
+        private static byte[] RepeatingBytes(int length)
+        {
+            byte[] bytes = new byte[length];
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                bytes[i] = (byte)(i % 251);
+            }
+            return bytes;
         }
 
         private static void AssertConnectionEndQueued(ClientObject client)

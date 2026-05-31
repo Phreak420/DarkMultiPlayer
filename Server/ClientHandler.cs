@@ -420,7 +420,7 @@ namespace DarkMultiPlayerServer
                         }
                         else
                         {
-                            if (messageLength > 0 && messageLength < Common.MAX_MESSAGE_SIZE)
+                            if (Common.IsValidMessageSize(messageLength))
                             {
                                 client.isReceivingMessage = true;
                                 client.receiveMessage.data = new byte[messageLength];
@@ -922,4 +922,3 @@ namespace DarkMultiPlayerServer
         public bool compressionEnabled = false;
     }
 }
-
