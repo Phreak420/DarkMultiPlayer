@@ -12,9 +12,14 @@ namespace ServerValidationTests
 
         public static int Main()
         {
+            InitializeServerState();
+
             Run("Flag upload rejects unsafe names", FlagUploadRejectsUnsafeNames);
             Run("Flag delete rejects unsafe names", FlagDeleteRejectsUnsafeNames);
+            Run("Kerbal proto saves safe names", KerbalProtoSavesSafeNames);
             Run("Kerbal proto rejects unsafe names", KerbalProtoRejectsUnsafeNames);
+            Run("Lock acquire mutates locks for owner", LockAcquireMutatesLocksForOwner);
+            Run("Lock release mutates locks for owner", LockReleaseMutatesLocksForOwner);
             Run("Lock acquire spoof does not mutate locks", LockAcquireSpoofDoesNotMutateLocks);
             Run("Lock release spoof does not mutate locks", LockReleaseSpoofDoesNotMutateLocks);
 
@@ -23,6 +28,12 @@ namespace ServerValidationTests
                 Console.WriteLine("All server validation tests passed.");
             }
             return failures;
+        }
+
+        private static void InitializeServerState()
+        {
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-config-" + Guid.NewGuid().ToString("N"));
+            Settings.Reset();
         }
 
         private static void Run(string name, Action test)
@@ -77,6 +88,24 @@ namespace ServerValidationTests
             Assert(File.Exists(outsideFile), "unsafe flag delete removed a file outside the player flag directory");
         }
 
+        private static void KerbalProtoSavesSafeNames()
+        {
+            string universe = CreateUniverse();
+            string kerbalFile = Path.Combine(universe, "Kerbals", "Jebediah Kerman.txt");
+            ClientObject sender = CreateClient("Alice");
+
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<double>(0);
+                mw.Write<string>("Jebediah Kerman");
+                mw.Write<byte[]>(new byte[] { 1, 2, 3 });
+                DarkMultiPlayerServer.Messages.KerbalProto.HandleKerbalProto(sender, mw.GetMessageBytes());
+            }
+
+            Assert(File.Exists(kerbalFile), "safe kerbal proto was not saved");
+            Assert(File.ReadAllBytes(kerbalFile).Length == 3, "safe kerbal proto saved unexpected data");
+        }
+
         private static void KerbalProtoRejectsUnsafeNames()
         {
             string universe = CreateUniverse();
@@ -93,6 +122,40 @@ namespace ServerValidationTests
 
             AssertConnectionEndQueued(client);
             Assert(!File.Exists(outsideFile), "unsafe kerbal name wrote outside the kerbal directory");
+        }
+
+        private static void LockAcquireMutatesLocksForOwner()
+        {
+            DarkMultiPlayerServer.LockSystem.Reset();
+            ClientObject client = CreateClient("Alice");
+
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>((int)LockMessageType.ACQUIRE);
+                mw.Write<string>("Alice");
+                mw.Write<string>("control-vessel-test");
+                mw.Write<bool>(false);
+                DarkMultiPlayerServer.Messages.LockSystem.HandleLockSystemMessage(client, mw.GetMessageBytes());
+            }
+
+            Assert(DarkMultiPlayerServer.LockSystem.fetch.GetLockList()["control-vessel-test"] == "Alice", "owner lock acquire did not mutate lock state");
+        }
+
+        private static void LockReleaseMutatesLocksForOwner()
+        {
+            DarkMultiPlayerServer.LockSystem.Reset();
+            DarkMultiPlayerServer.LockSystem.fetch.AcquireLock("control-vessel-test", "Alice", false);
+            ClientObject client = CreateClient("Alice");
+
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>((int)LockMessageType.RELEASE);
+                mw.Write<string>("Alice");
+                mw.Write<string>("control-vessel-test");
+                DarkMultiPlayerServer.Messages.LockSystem.HandleLockSystemMessage(client, mw.GetMessageBytes());
+            }
+
+            Assert(!DarkMultiPlayerServer.LockSystem.fetch.GetLockList().ContainsKey("control-vessel-test"), "owner lock release did not mutate lock state");
         }
 
         private static void LockAcquireSpoofDoesNotMutateLocks()
