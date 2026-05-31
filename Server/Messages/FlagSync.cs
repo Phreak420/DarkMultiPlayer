@@ -9,6 +9,8 @@ namespace DarkMultiPlayerServer.Messages
 {
     public class FlagSync
     {
+        private static readonly byte[] PngHeader = { 137, 80, 78, 71, 13, 10, 26, 10 };
+
         public static void HandleFlagSync(ClientObject client, byte[] messageData)
         {
             string flagPath = Path.Combine(Server.universeDirectory, "Flags");
@@ -107,68 +109,99 @@ namespace DarkMultiPlayerServer.Messages
                         break;
                     case FlagMessageType.DELETE_FILE:
                         {
-                            string flagName = mr.Read<string>();
-                            string playerFlagPath = Path.Combine(flagPath, client.playerName);
-                            if (Directory.Exists(playerFlagPath))
+                            if (!TryReadSafeFlagName(mr, out string flagName))
                             {
-                                string flagFile = Path.Combine(playerFlagPath, flagName);
-                                if (File.Exists(flagFile))
-                                {
-                                    File.Delete(flagFile);
-                                }
-                                if (Directory.GetFiles(playerFlagPath).Length == 0)
-                                {
-                                    Directory.Delete(playerFlagPath);
-                                }
+                                SendInvalidFlagName(client);
+                                return;
                             }
-                            ServerMessage newMessage = new ServerMessage();
-                            newMessage.type = ServerMessageType.FLAG_SYNC;
-                            using (MessageWriter mw = new MessageWriter())
-                            {
-                                mw.Write<int>((int)FlagMessageType.DELETE_FILE);
-                                mw.Write<string>(flagName);
-                                newMessage.data = mw.GetMessageBytes();
-                            }
-                            ClientHandler.SendToAll(client, newMessage, false);
+                            DeleteFlag(client, flagPath, flagName);
                         }
                         break;
                     case FlagMessageType.UPLOAD_FILE:
                         {
-                            string flagName = mr.Read<string>();
-                            byte[] flagData = mr.Read<byte[]>();
-                            // Do not save null files
-                            if (flagData.Length > 0)
+                            if (!TryReadSafeFlagName(mr, out string flagName))
                             {
-                                // Check if the specified file is a valid PNG file
-                                byte[] pngSequence = { 137, 80, 78, 71, 13, 10, 26, 10 };
-                                if (pngSequence.SequenceEqual(flagData.Take(pngSequence.Length)))
-                                {
-                                    string playerFlagPath = Path.Combine(flagPath, client.playerName);
-
-                                    if (!Directory.Exists(playerFlagPath))
-                                        Directory.CreateDirectory(playerFlagPath);
-
-                                    DarkLog.Debug("Saving flag " + flagName + " from " + client.playerName);
-                                    File.WriteAllBytes(Path.Combine(playerFlagPath, flagName), flagData);
-
-                                    ServerMessage newMessage = new ServerMessage();
-                                    newMessage.type = ServerMessageType.FLAG_SYNC;
-                                    using (MessageWriter mw = new MessageWriter())
-                                    {
-                                        mw.Write<int>((int)FlagMessageType.FLAG_DATA);
-                                        mw.Write<string>(client.playerName);
-                                        mw.Write<string>(flagName);
-                                        mw.Write<byte[]>(flagData);
-                                    }
-
-                                    ClientHandler.SendToAll(client, newMessage, false);
-                                }
+                                SendInvalidFlagName(client);
+                                return;
                             }
+                            byte[] flagData = mr.Read<byte[]>();
+                            UploadFlag(client, flagPath, flagName, flagData);
                         }
                         break;
                 }
             }
         }
+
+        private static bool TryReadSafeFlagName(MessageReader mr, out string flagName)
+        {
+            flagName = mr.Read<string>();
+            return SafeFile.IsNameSafe(flagName);
+        }
+
+        private static void SendInvalidFlagName(ClientObject client)
+        {
+            Messages.ConnectionEnd.SendConnectionEnd(client, "Kicked for an invalid flag name");
+        }
+
+        private static void DeleteFlag(ClientObject client, string flagPath, string flagName)
+        {
+            string playerFlagPath = Path.Combine(flagPath, client.playerName);
+            if (Directory.Exists(playerFlagPath))
+            {
+                string flagFile = Path.Combine(playerFlagPath, flagName);
+                if (File.Exists(flagFile))
+                {
+                    File.Delete(flagFile);
+                }
+                if (Directory.GetFiles(playerFlagPath).Length == 0)
+                {
+                    Directory.Delete(playerFlagPath);
+                }
+            }
+
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.FLAG_SYNC;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>((int)FlagMessageType.DELETE_FILE);
+                mw.Write<string>(flagName);
+                newMessage.data = mw.GetMessageBytes();
+            }
+            ClientHandler.SendToAll(client, newMessage, false);
+        }
+
+        private static void UploadFlag(ClientObject client, string flagPath, string flagName, byte[] flagData)
+        {
+            // Do not save null files
+            if (flagData.Length == 0)
+            {
+                return;
+            }
+            // Check if the specified file is a valid PNG file
+            if (!PngHeader.SequenceEqual(flagData.Take(PngHeader.Length)))
+            {
+                return;
+            }
+
+            string playerFlagPath = Path.Combine(flagPath, client.playerName);
+
+            if (!Directory.Exists(playerFlagPath))
+                Directory.CreateDirectory(playerFlagPath);
+
+            DarkLog.Debug("Saving flag " + flagName + " from " + client.playerName);
+            File.WriteAllBytes(Path.Combine(playerFlagPath, flagName), flagData);
+
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.FLAG_SYNC;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>((int)FlagMessageType.FLAG_DATA);
+                mw.Write<string>(client.playerName);
+                mw.Write<string>(flagName);
+                mw.Write<byte[]>(flagData);
+            }
+
+            ClientHandler.SendToAll(client, newMessage, false);
+        }
     }
 }
-

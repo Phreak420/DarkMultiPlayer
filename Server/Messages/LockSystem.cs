@@ -44,6 +44,7 @@ namespace DarkMultiPlayerServer.Messages
                             if (playerName != client.playerName)
                             {
                                 Messages.ConnectionEnd.SendConnectionEnd(client, "Kicked for sending a lock message for another player");
+                                return;
                             }
                             bool lockResult = DarkMultiPlayerServer.LockSystem.fetch.AcquireLock(lockName, playerName, force);
                             using (MessageWriter mw = new MessageWriter())
@@ -73,6 +74,7 @@ namespace DarkMultiPlayerServer.Messages
                             if (playerName != client.playerName)
                             {
                                 Messages.ConnectionEnd.SendConnectionEnd(client, "Kicked for sending a lock message for another player");
+                                return;
                             }
                             bool lockResult = DarkMultiPlayerServer.LockSystem.fetch.ReleaseLock(lockName, playerName);
                             if (!lockResult)
@@ -107,4 +109,3 @@ namespace DarkMultiPlayerServer.Messages
         }
     }
 }
-

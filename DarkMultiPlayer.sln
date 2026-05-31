@@ -9,6 +9,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "Client\Client.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csproj", "{DFE22827-067A-471F-B947-B2C2E5BD3CAF}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{7AD46484-7584-46DB-B926-E59DE12EAB95}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerValidationTests", "Tests\ServerValidationTests\ServerValidationTests.csproj", "{83BE35A6-A59B-4D58-A25F-A92D4CA3C4DD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +34,12 @@ Global
 		{DFE22827-067A-471F-B947-B2C2E5BD3CAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DFE22827-067A-471F-B947-B2C2E5BD3CAF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DFE22827-067A-471F-B947-B2C2E5BD3CAF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{83BE35A6-A59B-4D58-A25F-A92D4CA3C4DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{83BE35A6-A59B-4D58-A25F-A92D4CA3C4DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{83BE35A6-A59B-4D58-A25F-A92D4CA3C4DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{83BE35A6-A59B-4D58-A25F-A92D4CA3C4DD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{83BE35A6-A59B-4D58-A25F-A92D4CA3C4DD} = {7AD46484-7584-46DB-B926-E59DE12EAB95}
 	EndGlobalSection
 EndGlobal

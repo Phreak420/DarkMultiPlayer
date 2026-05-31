@@ -15,6 +15,11 @@ namespace DarkMultiPlayerServer.Messages
                 //Don't care about subspace / send time.
                 mr.Read<double>();
                 string kerbalName = mr.Read<string>();
+                if (!SafeFile.IsNameSafe(kerbalName))
+                {
+                    Messages.ConnectionEnd.SendConnectionEnd(client, "Kicked for an invalid kerbal name");
+                    return;
+                }
                 DarkLog.Debug("Saving kerbal " + kerbalName + " from " + client.playerName);
                 byte[] kerbalData = mr.Read<byte[]>();
                 lock (Server.universeSizeLock)
@@ -30,4 +35,3 @@ namespace DarkMultiPlayerServer.Messages
 
     }
 }
-
