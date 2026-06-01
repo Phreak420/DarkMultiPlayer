@@ -11,6 +11,11 @@ The original DarkMultiPlayer sandbox remains the foundation. This experiment sho
 credit godarklight and the original contributors, avoid presenting the fork as official, and keep
 compatibility-sensitive `DarkMultiPlayer`/`DMP` naming intact.
 
+This document tracks the stock-friendly Agency Mode implementation. The broader MMO Edition
+platform plan, including Vanilla Mode and future optional mod-aware MMO Campaign Mode, is tracked
+in [mmo-edition-roadmap.md](mmo-edition-roadmap.md). That compatibility roadmap should extend this
+plan, not replace it.
+
 The default behavior must stay unchanged. Experimental controls should be hidden unless the
 server advertises this mode, and server owners should be able to disable the feature completely.
 

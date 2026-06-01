@@ -48,9 +48,29 @@ Current and planned MMO Edition work:
 - [ ] Add story and event-driven campaigns controlled by server configuration.
 - [ ] Add seasonal campaign archives, historical statistics, and Hall of Fame records.
 - [ ] Improve player identity visibility and migration without breaking existing auth.
+- [ ] Add gameplay profiles for Vanilla Mode, Agency Mode, and optional MMO Campaign Mode.
+- [ ] Add optional compatibility hooks for colony, mapping, construction, tourism,
+  infrastructure, and hard-mode survival mods.
 
 More detail is tracked in
 [Documentation/server-agency-progression.md](Documentation/server-agency-progression.md).
+
+## Gameplay Profiles
+
+DarkMultiPlayer: MMO Edition should be a platform, not a forced modpack. The long-term design is
+to let server owners choose how much progression they want:
+
+- Vanilla Mode: mostly original DMP-style multiplayer.
+- Agency Mode: stock-friendly server-controlled science, funds, contracts, and progression.
+- MMO Campaign Mode: optional deeper integration with supported mods.
+
+Future optional compatibility targets include MKS/OKS, SCANsat, Extraplanetary Launchpads,
+Tourism Overhaul, Kerbal Konstructs, and Kerbalism. These are roadmap targets, not current
+required dependencies. Kerbalism-style hard-mode mechanics should never be mandatory in the
+default MMO profile.
+
+The broader platform roadmap is tracked in
+[Documentation/mmo-edition-roadmap.md](Documentation/mmo-edition-roadmap.md).
 
 ## Compatibility Policy
 
