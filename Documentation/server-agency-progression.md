@@ -89,11 +89,13 @@ Implemented setting: `agencyProgressionEnabled`.
 
 ### Phase 2: Read-Only Agency State
 
-- Define an agency progression data model on the server.
-- Load a simple server-authored quest file from config.
-- Send read-only objective summaries to clients.
-- Show objective status in the hidden client UI.
-- Keep all objectives informational; no acceptance or completion effects.
+- [x] Define an agency progression data model on the server.
+- [x] Load a simple server-authored quest file from config.
+- [x] Send read-only objective summaries to clients.
+- [x] Show objective status in the hidden client UI.
+- [x] Keep all objectives informational; no acceptance or completion effects.
+
+Implemented config file: `Config/AgencyProgression.json`.
 
 ### Phase 3: Objective Evidence
 

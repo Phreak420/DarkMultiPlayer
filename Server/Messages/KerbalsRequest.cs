@@ -19,6 +19,7 @@ namespace DarkMultiPlayerServer.Messages
                 ClientHandler.SendToAll(client, joinMessage, true);
             }
             Messages.ServerSettings.SendServerSettings(client);
+            Messages.AgencyProgression.SendAgencyProgression(client);
             Messages.WarpControl.SendSetSubspace(client);
             Messages.WarpControl.SendAllSubspaces(client);
             Messages.PlayerColor.SendAllPlayerColors(client);
@@ -69,4 +70,3 @@ namespace DarkMultiPlayerServer.Messages
         }
     }
 }
-

@@ -502,7 +502,7 @@ namespace DarkMultiPlayer
             }
             if (selectedTab == OptionsTab.AGENCY)
             {
-                GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 84));
+                GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 250));
                 groupY = 0;
 
                 GUI.Box(new Rect(0, groupY, windowRect.width - 20, 20), "Server Agency", sectionHeaderStyle);
@@ -516,7 +516,38 @@ namespace DarkMultiPlayer
                 }
                 groupY += 24;
 
-                GUI.Label(new Rect(0, groupY, windowRect.width - 20, 36), "Agency progression is experimental and server controlled.", noteStyle);
+                if (dmpGame.displayAgencyProgression)
+                {
+                    string packName = dmpGame.agencyProgressionWorker.PackName;
+                    if (string.IsNullOrEmpty(packName))
+                    {
+                        packName = "Server Agency";
+                    }
+                    GUI.Label(new Rect(0, groupY, windowRect.width - 20, 20), packName, sectionHeaderStyle);
+                    groupY += 24;
+
+                    AgencyObjectiveSummary[] objectives = dmpGame.agencyProgressionWorker.Objectives;
+                    if (objectives.Length == 0)
+                    {
+                        GUI.Label(new Rect(0, groupY, windowRect.width - 20, 36), "No agency objectives are available from this server.", noteStyle);
+                    }
+                    else
+                    {
+                        int maxObjectives = Math.Min(objectives.Length, 4);
+                        for (int i = 0; i < maxObjectives; i++)
+                        {
+                            AgencyObjectiveSummary objective = objectives[i];
+                            GUI.Label(new Rect(0, groupY, windowRect.width - 20, 20), objective.title + " [" + objective.status + "]", descriptorStyle);
+                            groupY += 20;
+                            GUI.Label(new Rect(0, groupY, windowRect.width - 20, 34), objective.description, noteStyle);
+                            groupY += 38;
+                        }
+                    }
+                }
+                else
+                {
+                    GUI.Label(new Rect(0, groupY, windowRect.width - 20, 36), "Agency progression is experimental and server controlled.", noteStyle);
+                }
 
                 GUI.EndGroup();
             }

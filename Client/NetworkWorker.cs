@@ -1088,6 +1088,9 @@ namespace DarkMultiPlayer
                     case ServerMessageType.MODPACK_DATA:
                         HandleModpackData(message.data);
                         break;
+                    case ServerMessageType.AGENCY_PROGRESS:
+                        dmpGame.agencyProgressionWorker.HandleAgencyProgression(message.data);
+                        break;
                 default:
                         DarkLog.Debug("Unhandled message type " + message.type);
                         break;

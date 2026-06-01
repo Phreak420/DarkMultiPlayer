@@ -27,6 +27,9 @@ namespace ServerValidationTests
             Run("Message size validation rejects invalid lengths", MessageSizeValidationRejectsInvalidLengths);
             Run("Split message rejects oversized declared length", SplitMessageRejectsOversizedDeclaredLength);
             Run("Split message rejects oversized first chunk", SplitMessageRejectsOversizedFirstChunk);
+            Run("Agency progression disabled clears objectives", AgencyProgressionDisabledClearsObjectives);
+            Run("Agency progression enabled creates default objectives", AgencyProgressionEnabledCreatesDefaultObjectives);
+            Run("Agency progression skips invalid objective IDs", AgencyProgressionSkipsInvalidObjectiveIds);
 
             if (failures == 0)
             {
@@ -293,6 +296,41 @@ namespace ServerValidationTests
             AssertConnectionEndQueued(client);
             Assert(client.receiveSplitMessage == null, "invalid split chunk left a receive buffer");
             Assert(!client.isReceivingSplitMessage, "invalid split chunk left split receive state active");
+        }
+
+        private static void AgencyProgressionDisabledClearsObjectives()
+        {
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-agency-" + Guid.NewGuid().ToString("N"));
+
+            AgencyProgression.Load(false);
+
+            Assert(AgencyProgression.Objectives.Length == 0, "disabled agency progression loaded objectives");
+            Assert(!File.Exists(Path.Combine(Server.configDirectory, "AgencyProgression.json")), "disabled agency progression created a config file");
+        }
+
+        private static void AgencyProgressionEnabledCreatesDefaultObjectives()
+        {
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-agency-" + Guid.NewGuid().ToString("N"));
+
+            AgencyProgression.Load(true);
+
+            Assert(File.Exists(Path.Combine(Server.configDirectory, "AgencyProgression.json")), "enabled agency progression did not create a default config file");
+            Assert(AgencyProgression.PackName == "Server Agency", "default agency pack name was not loaded");
+            Assert(AgencyProgression.Objectives.Length == 2, "default agency objectives were not loaded");
+        }
+
+        private static void AgencyProgressionSkipsInvalidObjectiveIds()
+        {
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-agency-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"\",\"title\":\"Bad\",\"description\":\"Ignored\",\"status\":\"Available\",\"scope\":\"Personal\"},{\"id\":\"valid-objective\",\"title\":\"Valid\",\"description\":\"Kept\",\"status\":\"Available\",\"scope\":\"Server\"}]}");
+
+            AgencyProgression.Load(true);
+
+            Assert(AgencyProgression.Objectives.Length == 1, "invalid agency objective id was not skipped");
+            Assert(AgencyProgression.Objectives[0].id == "valid-objective", "valid agency objective was not loaded");
         }
 
         private static string CreateUniverse()

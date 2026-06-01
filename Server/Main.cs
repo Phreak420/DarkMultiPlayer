@@ -214,6 +214,7 @@ namespace DarkMultiPlayerServer
                 {
                     DarkLog.Normal("Experimental server agency progression is enabled.");
                 }
+                AgencyProgression.Load(Settings.settingsStore.agencyProgressionEnabled);
 
                 if (Settings.settingsStore.gameDifficulty == GameDifficulty.CUSTOM)
                 {
