@@ -108,6 +108,7 @@ Implemented config file: `Config/AgencyProgression.json`.
 - [x] Rate-limit and size-limit evidence messages.
 - [x] Validate evidence type and evidence IDs server-side.
 - [x] Store evidence separately from rewards so mistakes are easy to inspect and roll back.
+- [x] Add server-side evidence query helpers for objective matching.
 - [ ] Add additional evidence types.
 
 Implemented evidence log: `Universe/AgencyEvidence/<player>.log`.
@@ -142,6 +143,86 @@ Implemented evidence log: `Universe/AgencyEvidence/<player>.log`.
 - Should storyline progress be per-player, per-group, global, or configurable per objective?
 - What is the smallest evidence model that feels useful without trusting clients too much?
 - How should server owners write quests: text config, JSON, YAML-like config, or KSP `ConfigNode`?
+
+## Player Identity And Authentication Roadmap
+
+Current DMP authentication is not plain username only. The client sends a player name, public key,
+and a signature over a server challenge. The server stores the first public key it sees for a
+player name under `Universe/Players/<player>.txt`, then requires future handshakes for that name
+to prove possession of the matching private key.
+
+This is a useful baseline, but identity is still name-centered:
+
+- Player records, admins, whitelist entries, groups, permissions, locks, and many universe files
+  mostly refer to player names.
+- A player who moves to a new PC must preserve or restore their keypair files.
+- The keypair is backed up under the KSP save folder, but the UI does not make identity export or
+  migration obvious.
+- There is no stable user-facing identity label separate from the display name.
+
+Future identity work should be phased and backwards-compatible:
+
+### Phase A: Identity Visibility
+
+- Show the current public identity fingerprint in a client UI panel.
+- Add a "copy identity" action that copies a short fingerprint or export token.
+- Add clear text explaining that this identity is needed to keep server ownership/admin/group
+  access when moving installs.
+- Do not change handshake behavior yet.
+
+### Phase B: Stable Player UUID
+
+- Add a generated `playerUuid` to client settings.
+- Keep the existing RSA challenge-response authentication.
+- Send the UUID during handshake as optional protocol data after existing fields.
+- Let old clients and old servers continue using the current name/key behavior.
+- Store server-side identity metadata as a new record, such as:
+  - UUID
+  - current display name
+  - public key fingerprint
+  - first seen time
+  - last seen time
+  - previous display names
+
+The UUID should be silent during normal play but copyable/exportable by the user. It should not be
+treated as a secret by itself; possession of the private key should remain the proof of identity.
+
+### Phase C: Name-Independent Authorization
+
+- Move admin, whitelist, groups, and permissions toward UUID or public-key fingerprint identity.
+- Keep player names as display labels.
+- Add migration tooling that maps existing name-based records to identity records the first time a
+  player connects with a UUID.
+- Preserve old name-based files for rollback until the migration is proven.
+
+### Phase D: Recovery And Migration Tools
+
+- Add a client-side export/import flow for identity files.
+- Add server admin commands to inspect identities, attach a new key to an existing UUID, rename a
+  display name, and revoke compromised identities.
+- Require explicit admin action for account recovery so players cannot claim another player's
+  progress by copying a name.
+
+### Phase E: Optional Stronger Trust Models
+
+Longer term, servers may optionally support:
+
+- Server-issued identity recovery codes.
+- Per-server account linking.
+- Admin-approved first join.
+- External authentication plugins.
+
+These should remain optional. Public DMP servers may want stronger identity controls, while small
+private servers should not be forced into account management complexity.
+
+Identity upgrade principles:
+
+- Preserve current name/key login compatibility.
+- Never silently break existing player ownership or admin state.
+- Treat display names as mutable labels, not permanent identity.
+- Keep private keys local and never send them to the server.
+- Make identity export obvious enough that moving to a new PC is not a support trap.
+- Keep all migrations auditable and reversible.
 
 ## Initial Bias
 

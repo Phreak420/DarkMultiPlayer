@@ -131,6 +131,46 @@ namespace DarkMultiPlayerServer
             return true;
         }
 
+        public static AgencyEvidenceRecord[] GetEvidenceRecords()
+        {
+            string evidenceDirectory = Path.Combine(Server.universeDirectory, "AgencyEvidence");
+            if (!Directory.Exists(evidenceDirectory))
+            {
+                return new AgencyEvidenceRecord[0];
+            }
+
+            List<AgencyEvidenceRecord> records = new List<AgencyEvidenceRecord>();
+            foreach (string evidenceFile in Directory.GetFiles(evidenceDirectory, "*.log"))
+            {
+                records.AddRange(ReadEvidenceFile(evidenceFile));
+            }
+            return records.ToArray();
+        }
+
+        public static AgencyEvidenceRecord[] GetEvidenceRecords(string playerName)
+        {
+            if (!SafeFile.IsNameSafe(playerName))
+            {
+                return new AgencyEvidenceRecord[0];
+            }
+
+            string evidenceFile = Path.Combine(Server.universeDirectory, "AgencyEvidence", playerName + ".log");
+            return ReadEvidenceFile(evidenceFile);
+        }
+
+        public static AgencyEvidenceRecord[] FindEvidence(AgencyEvidenceType evidenceType, string evidenceId)
+        {
+            List<AgencyEvidenceRecord> matches = new List<AgencyEvidenceRecord>();
+            foreach (AgencyEvidenceRecord record in GetEvidenceRecords())
+            {
+                if (record.evidenceType == evidenceType && record.evidenceId == evidenceId)
+                {
+                    matches.Add(record);
+                }
+            }
+            return matches.ToArray();
+        }
+
         private static bool IsEvidenceIdSafe(string evidenceId)
         {
             if (string.IsNullOrEmpty(evidenceId) || evidenceId.Length > MaxEvidenceIdLength)
@@ -153,6 +193,66 @@ namespace DarkMultiPlayerServer
                 lastEvidenceReceiveTicks[playerName] = now;
                 return false;
             }
+        }
+
+        private static AgencyEvidenceRecord[] ReadEvidenceFile(string evidenceFile)
+        {
+            if (!File.Exists(evidenceFile))
+            {
+                return new AgencyEvidenceRecord[0];
+            }
+
+            List<AgencyEvidenceRecord> records = new List<AgencyEvidenceRecord>();
+            foreach (string line in File.ReadAllLines(evidenceFile))
+            {
+                AgencyEvidenceRecord record;
+                if (TryParseEvidenceRecord(line, out record))
+                {
+                    records.Add(record);
+                }
+            }
+            return records.ToArray();
+        }
+
+        private static bool TryParseEvidenceRecord(string line, out AgencyEvidenceRecord record)
+        {
+            record = null;
+            if (string.IsNullOrEmpty(line))
+            {
+                return false;
+            }
+
+            string[] parts = line.Split('\t');
+            if (parts.Length != 5)
+            {
+                return false;
+            }
+
+            DateTime receivedAtUtc;
+            AgencyEvidenceType evidenceType;
+            double gameTime;
+            if (!DateTime.TryParse(parts[0], null, System.Globalization.DateTimeStyles.RoundtripKind, out receivedAtUtc))
+            {
+                return false;
+            }
+            if (!Enum.TryParse(parts[2], out evidenceType))
+            {
+                return false;
+            }
+            if (!double.TryParse(parts[4], out gameTime))
+            {
+                return false;
+            }
+
+            record = new AgencyEvidenceRecord
+            {
+                receivedAtUtc = receivedAtUtc,
+                playerName = parts[1],
+                evidenceType = evidenceType,
+                evidenceId = parts[3],
+                gameTime = gameTime
+            };
+            return true;
         }
 
         private static AgencyProgressionFile ReadAgencyFile(string agencyFile)
@@ -244,6 +344,15 @@ namespace DarkMultiPlayerServer
 
         [DataMember]
         public string scope;
+    }
+
+    public class AgencyEvidenceRecord
+    {
+        public DateTime receivedAtUtc;
+        public string playerName;
+        public AgencyEvidenceType evidenceType;
+        public string evidenceId;
+        public double gameTime;
     }
 
 }

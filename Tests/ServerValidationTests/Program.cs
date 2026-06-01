@@ -35,6 +35,7 @@ namespace ServerValidationTests
             Run("Agency science evidence records audit log", AgencyScienceEvidenceRecordsAuditLog);
             Run("Agency vessel evidence records audit log", AgencyVesselEvidenceRecordsAuditLog);
             Run("Agency docking evidence records audit log", AgencyDockingEvidenceRecordsAuditLog);
+            Run("Agency evidence query returns records", AgencyEvidenceQueryReturnsRecords);
             Run("Agency evidence rejects invalid IDs", AgencyEvidenceRejectsInvalidIds);
 
             if (failures == 0)
@@ -408,6 +409,24 @@ namespace ServerValidationTests
             string evidenceLog = File.ReadAllText(evidenceFile);
             Assert(evidenceLog.Contains("VESSEL_DOCKED"), "docking evidence log did not include evidence type");
             Assert(evidenceLog.Contains("docked-Kerbin"), "docking evidence log did not include evidence id");
+        }
+
+        private static void AgencyEvidenceQueryReturnsRecords()
+        {
+            CreateUniverse();
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            ClientObject client = CreateClient("Eve");
+
+            SendAgencyEvidence(client, AgencyEvidenceType.SCIENCE_RECEIVED, "temperatureScan@MunInSpaceLow");
+
+            AgencyEvidenceRecord[] playerRecords = AgencyProgression.GetEvidenceRecords("Eve");
+            Assert(playerRecords.Length == 1, "player evidence query returned unexpected record count");
+            Assert(playerRecords[0].playerName == "Eve", "player evidence query returned wrong player name");
+            Assert(playerRecords[0].evidenceType == AgencyEvidenceType.SCIENCE_RECEIVED, "player evidence query returned wrong evidence type");
+            Assert(playerRecords[0].evidenceId == "temperatureScan@MunInSpaceLow", "player evidence query returned wrong evidence id");
+
+            AgencyEvidenceRecord[] matches = AgencyProgression.FindEvidence(AgencyEvidenceType.SCIENCE_RECEIVED, "temperatureScan@MunInSpaceLow");
+            Assert(matches.Length == 1, "evidence search returned unexpected match count");
         }
 
         private static void AgencyEvidenceRejectsInvalidIds()
