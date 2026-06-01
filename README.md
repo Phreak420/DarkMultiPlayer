@@ -1,32 +1,115 @@
-# DarkMultiPlayer
+# DarkMultiPlayer: MMO Edition
 
-DarkMultiPlayer is a multiplayer mod for Kerbal Space Program. It supports subspace style (and master controlled warp) warping and career mode, with an easy to edit server database.
+DarkMultiPlayer: MMO Edition is a maintained fork of godarklight's DarkMultiPlayer project.
+This fork preserves the original multiplayer sandbox while expanding it with server-driven
+progression, agency contracts, shared objectives, economy systems, and MMO-style long-term
+engagement.
 
-The DarkMultiPlayer client and server are cross platform, see [Install](#install).
+This is not presented as the official continuation of DarkMultiPlayer. It exists because
+godarklight and the original contributors built a remarkable multiplayer foundation for Kerbal
+Space Program, and this fork is intended to build carefully on that work while keeping existing
+servers, saves, clients, and tooling in mind.
+
+## Attribution
+
+DarkMultiPlayer was originally created and maintained by godarklight with contributions from the
+DarkMultiPlayer community. The original project made multiplayer KSP practical through subspace
+sync, vessel sharing, server ownership tools, mod control, career/science support, and years of
+compatibility work.
+
+All credit for the original architecture, protocol, gameplay model, and community history belongs
+to godarklight and the original DarkMultiPlayer contributors. DarkMultiPlayer: MMO Edition should
+be understood as a fork that depends on and honors that foundation.
+
+The original license and copyright notices are preserved in [LICENCE.txt](LICENCE.txt).
+
+## Project Goals
+
+The near-term goal is to keep DarkMultiPlayer's sandbox multiplayer experience intact while adding
+optional MMO-focused server systems. These systems should be disabled by default, controlled by
+server owners, and implemented without disruptive package, namespace, save, protocol, or CKAN
+renaming unless a future compatibility plan explicitly calls for it.
+
+Current and planned MMO Edition work:
+
+- [x] ~~Preserve the original DMP multiplayer sandbox as the default experience.~~
+- [x] ~~Add an experimental server flag for agency progression.~~
+- [x] ~~Expose a hidden client Agency UI only when the server enables it.~~
+- [x] ~~Load server-authored agency objectives from configuration.~~
+- [x] ~~Collect bounded objective evidence from clients and audit it server-side.~~
+- [x] ~~Complete matching personal and server-scoped objectives.~~
+- [x] ~~Award server-approved science, funds, and reputation rewards.~~
+- [x] ~~Add admin inspection, reward replay, and reward revoke commands.~~
+- [ ] Expand evidence types for more mission and infrastructure milestones.
+- [ ] Add richer objective chains and unlock rules.
+- [ ] Add server-driven agency contracts or contract-like player experiences.
+- [ ] Support global community objectives that many players can contribute toward.
+- [ ] Add shared economy/resource pressure with bounded, recoverable safety rules.
+- [ ] Add story and event-driven campaigns controlled by server configuration.
+- [ ] Add seasonal campaign archives, historical statistics, and Hall of Fame records.
+- [ ] Improve player identity visibility and migration without breaking existing auth.
+
+More detail is tracked in
+[Documentation/server-agency-progression.md](Documentation/server-agency-progression.md).
+
+## Compatibility Policy
+
+Compatibility is a core goal of this fork.
+
+- Runtime namespaces, protocol identifiers, save paths, and server file names still use
+  `DarkMultiPlayer`/`DMP` where changing them could break existing installs.
+- CKAN packaging is intentionally untouched for now.
+- Existing servers should continue to behave like normal DarkMultiPlayer servers when
+  `agencyProgressionEnabled = False`.
+- Experimental MMO systems should stay optional and auditable.
 
 ## Install
+
 ### Client
-* Download the [DMPClient zip](https://spacedock.info/mod/10) and extract to `[KSP root folder]/GameData`
-* Download [DMPUpdater](http://godarklight.privatedns.org/dmp/downloads/dmpupdater/), place the program on your KSP folder and run it.
+
+- Download or build the client bundle and extract `GameData/DarkMultiPlayer` into your KSP
+  install's `GameData` folder.
+- Existing DarkMultiPlayer install paths are intentionally preserved for compatibility.
 
 ### Server
-The DarkMultiPlayer server is cross platform, meaning you can run it on any platform that supports .NET.
-In Linux or macOS, you must have [Mono](http://mono-project.com) installed to be able to run the server.
-* Download the [DMPServer zip](https://spacedock.info/mod/11/DarkMultiPlayer%20Server)
-* Download [DMPUpdater](http://godarklight.privatedns.org/dmp/downloads/dmpupdater/), place the program on your server folder and run it.
-  - NOTE: you must have a previous server version in the folder for DMPUpdater to work.
 
-You can configure your server by editing `Config/Settings.txt`.  
-If your server's game difficulty is set to `CUSTOM`, you can alter gameplay settings by editing `Config/GameplaySettings.txt`.
+The DarkMultiPlayer server is cross platform. Use the server build that matches your host platform,
+then configure it by editing `Config/Settings.txt`.
+
+If your server's game difficulty is set to `CUSTOM`, gameplay settings can be changed in
+`Config/GameplaySettings.txt`.
+
+For the MMO Edition agency experiment, set:
+
+```txt
+agencyProgressionEnabled = True
+```
+
+The feature remains disabled by default.
 
 ## Compiling
-- Copy the assemblies from `[KSP root folder]/KSP_Data/Managed` to `External/KSPManaged`:
-Run msbuild /p:Configuration=Release (or build with your preferred IDE) to build the plugin and the .NET Framework version of the server. This single build is completely cross platform.
-Navigate to DotNet/Server/ and either run `dotnet publish -c release -f netcoreapp3.1` to build for only your OS, or `./compile.sh` to build for every OS
+
+- Copy the KSP managed assemblies from `[KSP root folder]/KSP_Data/Managed` to
+  `External/KSPManaged`.
+- Build the solution in Release mode with your preferred .NET/MSBuild tooling.
+- The client targets KSP's .NET Framework runtime; the server can also be published as a modern
+  .NET self-contained executable for a specific OS.
 
 ## Mod Control
-Read `DMPModControl.txt`, it's commented. The file can be copied from a development KMPServer (The one where you can use SHA sums, not the one with the !md5 section) as the file format is the same.
 
-If you are running a private server, it's safe enough to just add the missing parts.
+Read `DMPModControl.txt`; it is commented. The file can be copied from a development KMPServer,
+as the file format is the same.
 
-You can get the DMP client to make a `DMPModControl.txt` file specific for your GameData directory by pressing `Options -> Advanced -> Mod Control -> Generate`. The whitelist option will only allow you to connect with the mods in your GameData directory. The blacklist option will allow you to connect with any mods.
+If you are running a private server, it is usually safe enough to add missing parts as needed.
+
+The DMP client can generate a `DMPModControl.txt` file for your `GameData` directory from
+`Options -> Advanced -> Mod Control -> Generate`. Whitelist mode only allows clients with the
+listed mods. Blacklist mode allows clients with any mods except the blocked entries.
+
+## Documentation
+
+- [Agency progression roadmap](Documentation/server-agency-progression.md)
+- [Agency gameplay test checklist](Documentation/server-agency-gameplay-tests.md)
+- [MMO Edition roadmap](Documentation/mmo-edition-roadmap.md)
+- [Subspace locking notes](Documentation/subspace-locking.txt)
+- [Network message format notes](Documentation/network-message-format.txt)

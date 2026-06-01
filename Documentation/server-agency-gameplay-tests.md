@@ -1,6 +1,9 @@
-# Server Agency Gameplay Test Checklist
+# DarkMultiPlayer: MMO Edition Agency Gameplay Test Checklist
 
 Use the `experiment/server-agency-contracts` build for these tests.
+
+These tests cover the optional MMO Edition agency progression experiment. Existing
+`DarkMultiPlayer` install paths and DMP naming remain unchanged for compatibility.
 
 ## Test Setup
 

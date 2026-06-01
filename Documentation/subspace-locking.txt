@@ -1,3 +1,4 @@
+DarkMultiPlayer: MMO Edition preserves DarkMultiPlayer's original subspace synchronization model.
 DarkMultiPlayer uses a basic NTP clock algorithm as per http://en.wikipedia.org/wiki/Network_Time_Protocol#Clock_synchronization_algorithm.
 
 ===The client knows the exact server time by doing this===

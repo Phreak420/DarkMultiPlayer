@@ -1,10 +1,15 @@
-# Server Agency Progression Experiment
+# DarkMultiPlayer: MMO Edition Server Agency Progression Experiment
 
 Branch: `experiment/server-agency-contracts`
 
-This branch explores an optional server-controlled progression layer where a DarkMultiPlayer
-server can act as the space agency: offering goals, awarding science/funds/reputation, and
-unlocking later stages of a server-authored storyline.
+This branch explores an optional server-controlled progression layer for DarkMultiPlayer: MMO
+Edition, a maintained fork of godarklight's original DarkMultiPlayer project. The server can act
+as the space agency: offering goals, awarding science/funds/reputation, and unlocking later stages
+of a server-authored storyline.
+
+The original DarkMultiPlayer sandbox remains the foundation. This experiment should continue to
+credit godarklight and the original contributors, avoid presenting the fork as official, and keep
+compatibility-sensitive `DarkMultiPlayer`/`DMP` naming intact.
 
 The default behavior must stay unchanged. Experimental controls should be hidden unless the
 server advertises this mode, and server owners should be able to disable the feature completely.

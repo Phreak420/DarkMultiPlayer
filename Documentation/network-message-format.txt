@@ -1,4 +1,5 @@
-This heavily depends on my MessageWriter/Reader serialiser: https://github.com/godarklight/BinarySerialiser
+DarkMultiPlayer: MMO Edition preserves the original DMP network message format for compatibility.
+This heavily depends on godarklight's MessageWriter/Reader serialiser: https://github.com/godarklight/BinarySerialiser
 
 All TCP messages include an int (4 byte) header for type, and an int (4 byte) for length, written by MessageWriter.
 All DMP messages are built without a MessageWriter header, it gets added during the send.
@@ -160,4 +161,4 @@ PING_REPLY:
 long - client send time
 long server send time.
 
-TODO: Actually write documentation on how my message writer works. The code is here anyway, this is how I built the MessageWriter.dll file: https://github.com/godarklight/BinarySerialiser
+TODO: Actually write documentation on how the message writer works. The original serializer code is here: https://github.com/godarklight/BinarySerialiser
