@@ -33,6 +33,7 @@ namespace ServerValidationTests
             Run("Agency evidence disabled is ignored", AgencyEvidenceDisabledIsIgnored);
             Run("Agency evidence enabled records audit log", AgencyEvidenceEnabledRecordsAuditLog);
             Run("Agency science evidence records audit log", AgencyScienceEvidenceRecordsAuditLog);
+            Run("Agency vessel evidence records audit log", AgencyVesselEvidenceRecordsAuditLog);
             Run("Agency evidence rejects invalid IDs", AgencyEvidenceRejectsInvalidIds);
 
             if (failures == 0)
@@ -376,6 +377,21 @@ namespace ServerValidationTests
             string evidenceLog = File.ReadAllText(evidenceFile);
             Assert(evidenceLog.Contains("SCIENCE_RECEIVED"), "science evidence log did not include evidence type");
             Assert(evidenceLog.Contains("crewReport@KerbinSrfLandedLaunchPad"), "science evidence log did not include evidence id");
+        }
+
+        private static void AgencyVesselEvidenceRecordsAuditLog()
+        {
+            string universe = CreateUniverse();
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            ClientObject client = CreateClient("Carol");
+
+            SendAgencyEvidence(client, AgencyEvidenceType.VESSEL_ORBITED, "orbit-Kerbin");
+
+            string evidenceFile = Path.Combine(universe, "AgencyEvidence", "Carol.log");
+            Assert(File.Exists(evidenceFile), "vessel agency evidence did not create an audit log");
+            string evidenceLog = File.ReadAllText(evidenceFile);
+            Assert(evidenceLog.Contains("VESSEL_ORBITED"), "vessel evidence log did not include evidence type");
+            Assert(evidenceLog.Contains("orbit-Kerbin"), "vessel evidence log did not include evidence id");
         }
 
         private static void AgencyEvidenceRejectsInvalidIds()

@@ -6,9 +6,12 @@ namespace DarkMultiPlayer
 {
     public class AgencyProgressionWorker
     {
+        private const int MaxEvidenceIdLength = 128;
         private readonly List<AgencyObjectiveSummary> objectives = new List<AgencyObjectiveSummary>();
+        private readonly HashSet<string> sentEvidenceIds = new HashSet<string>();
         private readonly DMPGame dmpGame;
         private readonly NetworkWorker networkWorker;
+        private readonly NamedAction updateAction;
 
         public string PackName { get; private set; }
 
@@ -16,6 +19,8 @@ namespace DarkMultiPlayer
         {
             this.dmpGame = dmpGame;
             this.networkWorker = networkWorker;
+            updateAction = new NamedAction(Update);
+            dmpGame.updateEvent.Add(updateAction);
             GameEvents.OnTechnologyResearched.Add(OnTechnologyResearched);
             GameEvents.OnScienceRecieved.Add(OnScienceRecieved);
         }
@@ -71,12 +76,43 @@ namespace DarkMultiPlayer
 
         public void Stop()
         {
+            dmpGame.updateEvent.Remove(updateAction);
             GameEvents.OnTechnologyResearched.Remove(OnTechnologyResearched);
             GameEvents.OnScienceRecieved.Remove(OnScienceRecieved);
             lock (objectives)
             {
                 objectives.Clear();
                 PackName = null;
+            }
+            sentEvidenceIds.Clear();
+        }
+
+        private void Update()
+        {
+            if (!dmpGame.serverAgencyProgressionEnabled || !HighLogic.LoadedSceneIsFlight || !FlightGlobals.ready || FlightGlobals.fetch == null || FlightGlobals.fetch.activeVessel == null)
+            {
+                return;
+            }
+
+            Vessel activeVessel = FlightGlobals.fetch.activeVessel;
+            if (activeVessel.mainBody == null)
+            {
+                return;
+            }
+
+            string bodyName = activeVessel.mainBody.bodyName;
+            if (string.IsNullOrEmpty(bodyName))
+            {
+                return;
+            }
+
+            if (activeVessel.situation == Vessel.Situations.ORBITING)
+            {
+                SendEvidenceOnce(AgencyEvidenceType.VESSEL_ORBITED, BuildEvidenceId("orbit", bodyName));
+            }
+            if (activeVessel.situation == Vessel.Situations.LANDED || activeVessel.situation == Vessel.Situations.SPLASHED)
+            {
+                SendEvidenceOnce(AgencyEvidenceType.VESSEL_LANDED, BuildEvidenceId("landed", bodyName));
             }
         }
 
@@ -86,7 +122,7 @@ namespace DarkMultiPlayer
             {
                 return;
             }
-            networkWorker.SendAgencyEvidence(AgencyEvidenceType.TECHNOLOGY_RESEARCHED, data.host.techID);
+            SendEvidenceOnce(AgencyEvidenceType.TECHNOLOGY_RESEARCHED, data.host.techID);
         }
 
         private void OnScienceRecieved(float science, ScienceSubject subject, ProtoVessel vessel, bool reverseEngineered)
@@ -95,7 +131,42 @@ namespace DarkMultiPlayer
             {
                 return;
             }
-            networkWorker.SendAgencyEvidence(AgencyEvidenceType.SCIENCE_RECEIVED, subject.id);
+            SendEvidenceOnce(AgencyEvidenceType.SCIENCE_RECEIVED, subject.id);
+        }
+
+        private void SendEvidenceOnce(AgencyEvidenceType evidenceType, string evidenceId)
+        {
+            if (string.IsNullOrEmpty(evidenceId))
+            {
+                return;
+            }
+            string evidenceKey = evidenceType.ToString() + ":" + evidenceId;
+            if (sentEvidenceIds.Contains(evidenceKey))
+            {
+                return;
+            }
+            sentEvidenceIds.Add(evidenceKey);
+            networkWorker.SendAgencyEvidence(evidenceType, evidenceId);
+        }
+
+        private string BuildEvidenceId(string prefix, string value)
+        {
+            string evidenceId = prefix + "-" + value;
+            char[] chars = evidenceId.ToCharArray();
+            for (int i = 0; i < chars.Length; i++)
+            {
+                char c = chars[i];
+                if (c < 32 || c == '<' || c == '>' || c == ':' || c == '"' || c == '/' || c == '\\' || c == '|' || c == '?' || c == '*' || c == '$')
+                {
+                    chars[i] = '_';
+                }
+            }
+            evidenceId = new string(chars).Trim();
+            if (evidenceId.Length > MaxEvidenceIdLength)
+            {
+                evidenceId = evidenceId.Substring(0, MaxEvidenceIdLength);
+            }
+            return evidenceId;
         }
     }
 
