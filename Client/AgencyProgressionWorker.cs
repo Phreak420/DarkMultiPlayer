@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using DarkMultiPlayerCommon;
 using MessageStream2;
@@ -89,7 +90,14 @@ namespace DarkMultiPlayer
                 float science = mr.Read<float>();
                 float reputation = mr.Read<float>();
 
-                ApplyAgencyReward(objectiveId, funds, science, reputation);
+                try
+                {
+                    ApplyAgencyReward(objectiveId, funds, science, reputation);
+                }
+                catch (Exception e)
+                {
+                    DarkLog.Debug("Failed to apply agency reward for " + objectiveId + ", exception: " + e);
+                }
             }
         }
 
@@ -213,7 +221,7 @@ namespace DarkMultiPlayer
             {
                 ResearchAndDevelopment.Instance.AddScience(science, TransactionReasons.ContractReward);
             }
-            if (reputation != 0)
+            if (reputation != 0 && Reputation.Instance != null)
             {
                 Reputation.Instance.AddReputation(reputation, TransactionReasons.ContractReward);
             }
