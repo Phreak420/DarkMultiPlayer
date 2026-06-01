@@ -101,13 +101,13 @@ Implemented config file: `Config/AgencyProgression.json`.
 
 - [x] Add client reports for bounded evidence types, starting with:
   - technology node researched
+  - science subject received
 - [x] Rate-limit and size-limit evidence messages.
 - [x] Validate evidence type and evidence IDs server-side.
 - [x] Store evidence separately from rewards so mistakes are easy to inspect and roll back.
 - [ ] Add additional evidence types:
   - vessel reached orbit around body
   - vessel landed on body
-  - science subject recovered/transmitted
   - vessel docked with another vessel
 
 Implemented evidence log: `Universe/AgencyEvidence/<player>.log`.

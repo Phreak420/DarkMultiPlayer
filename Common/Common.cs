@@ -776,7 +776,8 @@ namespace DarkMultiPlayerCommon
 
     public enum AgencyEvidenceType
     {
-        TECHNOLOGY_RESEARCHED
+        TECHNOLOGY_RESEARCHED,
+        SCIENCE_RECEIVED
     }
 
     public enum MeshMessageType

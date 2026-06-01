@@ -32,6 +32,7 @@ namespace ServerValidationTests
             Run("Agency progression skips invalid objective IDs", AgencyProgressionSkipsInvalidObjectiveIds);
             Run("Agency evidence disabled is ignored", AgencyEvidenceDisabledIsIgnored);
             Run("Agency evidence enabled records audit log", AgencyEvidenceEnabledRecordsAuditLog);
+            Run("Agency science evidence records audit log", AgencyScienceEvidenceRecordsAuditLog);
             Run("Agency evidence rejects invalid IDs", AgencyEvidenceRejectsInvalidIds);
 
             if (failures == 0)
@@ -360,6 +361,21 @@ namespace ServerValidationTests
             string evidenceLog = File.ReadAllText(evidenceFile);
             Assert(evidenceLog.Contains("TECHNOLOGY_RESEARCHED"), "agency evidence log did not include evidence type");
             Assert(evidenceLog.Contains("basicRocketry"), "agency evidence log did not include evidence id");
+        }
+
+        private static void AgencyScienceEvidenceRecordsAuditLog()
+        {
+            string universe = CreateUniverse();
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            ClientObject client = CreateClient("Bob");
+
+            SendAgencyEvidence(client, AgencyEvidenceType.SCIENCE_RECEIVED, "crewReport@KerbinSrfLandedLaunchPad");
+
+            string evidenceFile = Path.Combine(universe, "AgencyEvidence", "Bob.log");
+            Assert(File.Exists(evidenceFile), "science agency evidence did not create an audit log");
+            string evidenceLog = File.ReadAllText(evidenceFile);
+            Assert(evidenceLog.Contains("SCIENCE_RECEIVED"), "science evidence log did not include evidence type");
+            Assert(evidenceLog.Contains("crewReport@KerbinSrfLandedLaunchPad"), "science evidence log did not include evidence id");
         }
 
         private static void AgencyEvidenceRejectsInvalidIds()

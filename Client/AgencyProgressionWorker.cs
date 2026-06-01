@@ -17,6 +17,7 @@ namespace DarkMultiPlayer
             this.dmpGame = dmpGame;
             this.networkWorker = networkWorker;
             GameEvents.OnTechnologyResearched.Add(OnTechnologyResearched);
+            GameEvents.OnScienceRecieved.Add(OnScienceRecieved);
         }
 
         public AgencyObjectiveSummary[] Objectives
@@ -71,6 +72,7 @@ namespace DarkMultiPlayer
         public void Stop()
         {
             GameEvents.OnTechnologyResearched.Remove(OnTechnologyResearched);
+            GameEvents.OnScienceRecieved.Remove(OnScienceRecieved);
             lock (objectives)
             {
                 objectives.Clear();
@@ -85,6 +87,15 @@ namespace DarkMultiPlayer
                 return;
             }
             networkWorker.SendAgencyEvidence(AgencyEvidenceType.TECHNOLOGY_RESEARCHED, data.host.techID);
+        }
+
+        private void OnScienceRecieved(float science, ScienceSubject subject, ProtoVessel vessel, bool reverseEngineered)
+        {
+            if (!dmpGame.serverAgencyProgressionEnabled || subject == null || string.IsNullOrEmpty(subject.id))
+            {
+                return;
+            }
+            networkWorker.SendAgencyEvidence(AgencyEvidenceType.SCIENCE_RECEIVED, subject.id);
         }
     }
 
