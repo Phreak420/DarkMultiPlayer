@@ -4,13 +4,17 @@ using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
+using DarkMultiPlayerCommon;
 
 namespace DarkMultiPlayerServer
 {
     public static class AgencyProgression
     {
         private const int MaxObjectives = 100;
+        private const int MaxEvidenceIdLength = 128;
+        private static readonly TimeSpan EvidenceRateLimit = TimeSpan.FromSeconds(1);
         private static readonly List<AgencyObjective> objectives = new List<AgencyObjective>();
+        private static readonly Dictionary<string, long> lastEvidenceReceiveTicks = new Dictionary<string, long>();
 
         public static string PackName { get; private set; }
 
@@ -31,6 +35,10 @@ namespace DarkMultiPlayerServer
             {
                 objectives.Clear();
                 PackName = string.Empty;
+            }
+            lock (lastEvidenceReceiveTicks)
+            {
+                lastEvidenceReceiveTicks.Clear();
             }
 
             if (!enabled)
@@ -85,6 +93,66 @@ namespace DarkMultiPlayerServer
             }
 
             DarkLog.Normal("Loaded agency progression pack '" + PackName + "' with " + Objectives.Length + " objectives.");
+        }
+
+        public static bool RecordEvidence(ClientObject client, int evidenceType, string evidenceId, double gameTime)
+        {
+            if (!Settings.settingsStore.agencyProgressionEnabled)
+            {
+                return false;
+            }
+            if (!Enum.IsDefined(typeof(AgencyEvidenceType), evidenceType))
+            {
+                Messages.ConnectionEnd.SendConnectionEnd(client, "Kicked for an invalid agency evidence type");
+                return false;
+            }
+            if (!IsEvidenceIdSafe(evidenceId))
+            {
+                Messages.ConnectionEnd.SendConnectionEnd(client, "Kicked for an invalid agency evidence id");
+                return false;
+            }
+            if (IsRateLimited(client.playerName))
+            {
+                DarkLog.Debug("Ignored rate-limited agency evidence from " + client.playerName);
+                return false;
+            }
+
+            string evidenceDirectory = Path.Combine(Server.universeDirectory, "AgencyEvidence");
+            Directory.CreateDirectory(evidenceDirectory);
+            string evidenceFile = Path.Combine(evidenceDirectory, client.playerName + ".log");
+            string evidenceTypeName = ((AgencyEvidenceType)evidenceType).ToString();
+            string record = DateTime.UtcNow.ToString("o") + "\t" + client.playerName + "\t" + evidenceTypeName + "\t" + evidenceId + "\t" + gameTime.ToString("R") + Environment.NewLine;
+
+            lock (Server.universeSizeLock)
+            {
+                File.AppendAllText(evidenceFile, record);
+            }
+            DarkLog.Debug("Recorded agency evidence " + evidenceTypeName + ":" + evidenceId + " from " + client.playerName);
+            return true;
+        }
+
+        private static bool IsEvidenceIdSafe(string evidenceId)
+        {
+            if (string.IsNullOrEmpty(evidenceId) || evidenceId.Length > MaxEvidenceIdLength)
+            {
+                return false;
+            }
+            return SafeFile.IsNameSafe(evidenceId);
+        }
+
+        private static bool IsRateLimited(string playerName)
+        {
+            long now = DateTime.UtcNow.Ticks;
+            lock (lastEvidenceReceiveTicks)
+            {
+                long lastReceive;
+                if (lastEvidenceReceiveTicks.TryGetValue(playerName, out lastReceive) && now - lastReceive < EvidenceRateLimit.Ticks)
+                {
+                    return true;
+                }
+                lastEvidenceReceiveTicks[playerName] = now;
+                return false;
+            }
         }
 
         private static AgencyProgressionFile ReadAgencyFile(string agencyFile)
@@ -177,4 +245,5 @@ namespace DarkMultiPlayerServer
         [DataMember]
         public string scope;
     }
+
 }

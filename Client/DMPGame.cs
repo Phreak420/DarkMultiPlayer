@@ -68,7 +68,7 @@ namespace DarkMultiPlayer
             this.posistionStatistics = new PosistionStatistics();
             this.vesselRangeBumper = new VesselRangeBumper(this);
             this.networkWorker = new NetworkWorker(this, dmpSettings, connectionWindow, modWorker, configNodeSerializer, profiler, vesselRangeBumper);
-            this.agencyProgressionWorker = new AgencyProgressionWorker();
+            this.agencyProgressionWorker = new AgencyProgressionWorker(this, networkWorker);
             this.adminSystem = new AdminSystem(dmpSettings);
             this.flagSyncer = new FlagSyncer(this, dmpSettings, networkWorker);
             this.lockSystem = new LockSystem(dmpSettings, networkWorker);

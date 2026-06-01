@@ -2476,6 +2476,27 @@ namespace DarkMultiPlayer
             QueueOutgoingMessage(newMessage, true);
         }
 
+        public void SendAgencyEvidence(AgencyEvidenceType evidenceType, string evidenceId)
+        {
+            if (!dmpGame.serverAgencyProgressionEnabled)
+            {
+                return;
+            }
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.AGENCY_EVIDENCE;
+            int newMessageLength = 0;
+            using (MessageWriter mw = new MessageWriter(messageWriterBuffer))
+            {
+                mw.Write<int>((int)evidenceType);
+                mw.Write<string>(evidenceId);
+                mw.Write<double>(Planetarium.GetUniversalTime());
+                newMessageLength = (int)mw.GetMessageLength();
+            }
+            newMessage.data = ByteRecycler.GetObject(newMessageLength);
+            Array.Copy(messageWriterBuffer, 0, newMessage.data.data, 0, newMessageLength);
+            QueueOutgoingMessage(newMessage, false);
+        }
+
         public void SendKerbalProtoMessage(string kerbalName, ByteArray kerbalBytes)
         {
             bool dataOK = false;

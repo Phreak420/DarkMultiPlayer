@@ -99,15 +99,18 @@ Implemented config file: `Config/AgencyProgression.json`.
 
 ### Phase 3: Objective Evidence
 
-- Add client reports for bounded evidence types, such as:
+- [x] Add client reports for bounded evidence types, starting with:
+  - technology node researched
+- [x] Rate-limit and size-limit evidence messages.
+- [x] Validate evidence type and evidence IDs server-side.
+- [x] Store evidence separately from rewards so mistakes are easy to inspect and roll back.
+- [ ] Add additional evidence types:
   - vessel reached orbit around body
   - vessel landed on body
   - science subject recovered/transmitted
-  - technology node researched
   - vessel docked with another vessel
-- Rate-limit and size-limit evidence messages.
-- Validate player, vessel, body, and objective IDs server-side.
-- Store evidence separately from rewards so mistakes are easy to inspect and roll back.
+
+Implemented evidence log: `Universe/AgencyEvidence/<player>.log`.
 
 ### Phase 4: Server-Awarded Rewards
 

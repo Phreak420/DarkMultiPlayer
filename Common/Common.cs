@@ -771,6 +771,12 @@ namespace DarkMultiPlayerCommon
         SPLIT_MESSAGE,
         CONNECTION_END,
         MODPACK_DATA,
+        AGENCY_EVIDENCE,
+    }
+
+    public enum AgencyEvidenceType
+    {
+        TECHNOLOGY_RESEARCHED
     }
 
     public enum MeshMessageType

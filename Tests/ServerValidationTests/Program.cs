@@ -30,6 +30,9 @@ namespace ServerValidationTests
             Run("Agency progression disabled clears objectives", AgencyProgressionDisabledClearsObjectives);
             Run("Agency progression enabled creates default objectives", AgencyProgressionEnabledCreatesDefaultObjectives);
             Run("Agency progression skips invalid objective IDs", AgencyProgressionSkipsInvalidObjectiveIds);
+            Run("Agency evidence disabled is ignored", AgencyEvidenceDisabledIsIgnored);
+            Run("Agency evidence enabled records audit log", AgencyEvidenceEnabledRecordsAuditLog);
+            Run("Agency evidence rejects invalid IDs", AgencyEvidenceRejectsInvalidIds);
 
             if (failures == 0)
             {
@@ -333,6 +336,43 @@ namespace ServerValidationTests
             Assert(AgencyProgression.Objectives[0].id == "valid-objective", "valid agency objective was not loaded");
         }
 
+        private static void AgencyEvidenceDisabledIsIgnored()
+        {
+            string universe = CreateUniverse();
+            Settings.settingsStore.agencyProgressionEnabled = false;
+            ClientObject client = CreateClient("Alice");
+
+            SendAgencyEvidence(client, AgencyEvidenceType.TECHNOLOGY_RESEARCHED, "basicRocketry");
+
+            Assert(!Directory.Exists(Path.Combine(universe, "AgencyEvidence")), "disabled agency evidence created evidence directory");
+        }
+
+        private static void AgencyEvidenceEnabledRecordsAuditLog()
+        {
+            string universe = CreateUniverse();
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            ClientObject client = CreateClient("Alice");
+
+            SendAgencyEvidence(client, AgencyEvidenceType.TECHNOLOGY_RESEARCHED, "basicRocketry");
+
+            string evidenceFile = Path.Combine(universe, "AgencyEvidence", "Alice.log");
+            Assert(File.Exists(evidenceFile), "enabled agency evidence did not create an audit log");
+            string evidenceLog = File.ReadAllText(evidenceFile);
+            Assert(evidenceLog.Contains("TECHNOLOGY_RESEARCHED"), "agency evidence log did not include evidence type");
+            Assert(evidenceLog.Contains("basicRocketry"), "agency evidence log did not include evidence id");
+        }
+
+        private static void AgencyEvidenceRejectsInvalidIds()
+        {
+            CreateUniverse();
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            ClientObject client = CreateClient("Alice");
+
+            SendAgencyEvidence(client, AgencyEvidenceType.TECHNOLOGY_RESEARCHED, "../bad");
+
+            AssertConnectionEndQueued(client);
+        }
+
         private static string CreateUniverse()
         {
             string universe = Path.Combine(Path.GetTempPath(), "dmp-validation-tests-" + Guid.NewGuid().ToString("N"));
@@ -365,6 +405,17 @@ namespace ServerValidationTests
                 bytes[i] = (byte)(i % 251);
             }
             return bytes;
+        }
+
+        private static void SendAgencyEvidence(ClientObject client, AgencyEvidenceType evidenceType, string evidenceId)
+        {
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>((int)evidenceType);
+                mw.Write<string>(evidenceId);
+                mw.Write<double>(1234.5);
+                DarkMultiPlayerServer.Messages.AgencyEvidence.HandleAgencyEvidence(client, mw.GetMessageBytes());
+            }
         }
 
         private static void AssertConnectionEndQueued(ClientObject client)
