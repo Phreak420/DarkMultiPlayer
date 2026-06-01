@@ -42,5 +42,21 @@ namespace DarkMultiPlayerServer.Messages
             }
             ClientHandler.SendToClient(client, newMessage, true);
         }
+
+        public static void SendAgencyProgressionToAll()
+        {
+            if (!Settings.settingsStore.agencyProgressionEnabled)
+            {
+                return;
+            }
+
+            foreach (ClientObject client in ClientHandler.GetClients())
+            {
+                if (client.authenticated)
+                {
+                    SendAgencyProgression(client);
+                }
+            }
+        }
     }
 }

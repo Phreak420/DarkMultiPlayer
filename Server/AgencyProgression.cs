@@ -12,8 +12,10 @@ namespace DarkMultiPlayerServer
     {
         private const int MaxObjectives = 100;
         private const int MaxEvidenceIdLength = 128;
+        private const string CompleteStatus = "Complete";
         private static readonly TimeSpan EvidenceRateLimit = TimeSpan.FromSeconds(1);
         private static readonly List<AgencyObjective> objectives = new List<AgencyObjective>();
+        private static readonly Dictionary<string, AgencyObjectiveCompletion> completions = new Dictionary<string, AgencyObjectiveCompletion>();
         private static readonly Dictionary<string, long> lastEvidenceReceiveTicks = new Dictionary<string, long>();
 
         public static string PackName { get; private set; }
@@ -35,6 +37,10 @@ namespace DarkMultiPlayerServer
             {
                 objectives.Clear();
                 PackName = string.Empty;
+            }
+            lock (completions)
+            {
+                completions.Clear();
             }
             lock (lastEvidenceReceiveTicks)
             {
@@ -60,6 +66,8 @@ namespace DarkMultiPlayerServer
                 return;
             }
 
+            LoadCompletions();
+
             PackName = CleanText(agencyFileData.packName, "Server Agency");
             if (agencyFileData.objectives == null)
             {
@@ -81,13 +89,18 @@ namespace DarkMultiPlayerServer
                         DarkLog.Error("Skipped agency progression objective with an empty id.");
                         continue;
                     }
+                    AgencyObjectiveCompletion completion = GetCompletion(objective.id);
                     objectives.Add(new AgencyObjective
                     {
                         id = CleanText(objective.id, string.Empty),
                         title = CleanText(objective.title, objective.id),
                         description = CleanText(objective.description, string.Empty),
-                        status = CleanText(objective.status, "Available"),
-                        scope = CleanText(objective.scope, "Personal")
+                        status = completion == null ? CleanText(objective.status, "Available") : CompleteStatus,
+                        scope = CleanText(objective.scope, "Personal"),
+                        evidenceType = CleanText(objective.evidenceType, string.Empty),
+                        evidenceId = CleanText(objective.evidenceId, string.Empty),
+                        completedBy = completion == null ? string.Empty : completion.completedBy,
+                        completedAtUtc = completion == null ? string.Empty : completion.completedAtUtc
                     });
                 }
             }
@@ -121,13 +134,25 @@ namespace DarkMultiPlayerServer
             Directory.CreateDirectory(evidenceDirectory);
             string evidenceFile = Path.Combine(evidenceDirectory, client.playerName + ".log");
             string evidenceTypeName = ((AgencyEvidenceType)evidenceType).ToString();
-            string record = DateTime.UtcNow.ToString("o") + "\t" + client.playerName + "\t" + evidenceTypeName + "\t" + evidenceId + "\t" + gameTime.ToString("R") + Environment.NewLine;
+            AgencyEvidenceRecord evidenceRecord = new AgencyEvidenceRecord
+            {
+                receivedAtUtc = DateTime.UtcNow,
+                playerName = client.playerName,
+                evidenceType = (AgencyEvidenceType)evidenceType,
+                evidenceId = evidenceId,
+                gameTime = gameTime
+            };
+            string record = FormatEvidenceRecord(evidenceRecord) + Environment.NewLine;
 
             lock (Server.universeSizeLock)
             {
                 File.AppendAllText(evidenceFile, record);
             }
             DarkLog.Debug("Recorded agency evidence " + evidenceTypeName + ":" + evidenceId + " from " + client.playerName);
+            if (CompleteMatchingObjectives(evidenceRecord))
+            {
+                DarkMultiPlayerServer.Messages.AgencyProgression.SendAgencyProgressionToAll();
+            }
             return true;
         }
 
@@ -171,6 +196,51 @@ namespace DarkMultiPlayerServer
             return matches.ToArray();
         }
 
+        private static bool CompleteMatchingObjectives(AgencyEvidenceRecord evidenceRecord)
+        {
+            bool completedAny = false;
+            lock (objectives)
+            {
+                foreach (AgencyObjective objective in objectives)
+                {
+                    if (objective.status == CompleteStatus || string.IsNullOrEmpty(objective.evidenceType) || string.IsNullOrEmpty(objective.evidenceId))
+                    {
+                        continue;
+                    }
+                    AgencyEvidenceType objectiveEvidenceType;
+                    if (!Enum.TryParse(objective.evidenceType, out objectiveEvidenceType))
+                    {
+                        continue;
+                    }
+                    if (objectiveEvidenceType != evidenceRecord.evidenceType || objective.evidenceId != evidenceRecord.evidenceId)
+                    {
+                        continue;
+                    }
+
+                    string completedAt = DateTime.UtcNow.ToString("o");
+                    objective.status = CompleteStatus;
+                    objective.completedBy = evidenceRecord.playerName;
+                    objective.completedAtUtc = completedAt;
+                    lock (completions)
+                    {
+                        completions[objective.id] = new AgencyObjectiveCompletion
+                        {
+                            objectiveId = objective.id,
+                            completedBy = evidenceRecord.playerName,
+                            completedAtUtc = completedAt
+                        };
+                    }
+                    completedAny = true;
+                    DarkLog.Normal("Agency objective complete: " + objective.id + " by " + evidenceRecord.playerName);
+                }
+            }
+            if (completedAny)
+            {
+                SaveCompletions();
+            }
+            return completedAny;
+        }
+
         private static bool IsEvidenceIdSafe(string evidenceId)
         {
             if (string.IsNullOrEmpty(evidenceId) || evidenceId.Length > MaxEvidenceIdLength)
@@ -193,6 +263,72 @@ namespace DarkMultiPlayerServer
                 lastEvidenceReceiveTicks[playerName] = now;
                 return false;
             }
+        }
+
+        private static string FormatEvidenceRecord(AgencyEvidenceRecord record)
+        {
+            return record.receivedAtUtc.ToString("o") + "\t" + record.playerName + "\t" + record.evidenceType.ToString() + "\t" + record.evidenceId + "\t" + record.gameTime.ToString("R");
+        }
+
+        private static AgencyObjectiveCompletion GetCompletion(string objectiveId)
+        {
+            lock (completions)
+            {
+                AgencyObjectiveCompletion completion;
+                completions.TryGetValue(objectiveId, out completion);
+                return completion;
+            }
+        }
+
+        private static string GetCompletionFile()
+        {
+            return Path.Combine(Server.universeDirectory, "AgencyProgression", "Objectives.log");
+        }
+
+        private static void LoadCompletions()
+        {
+            string completionFile = GetCompletionFile();
+            if (!File.Exists(completionFile))
+            {
+                return;
+            }
+
+            foreach (string line in File.ReadAllLines(completionFile))
+            {
+                if (string.IsNullOrEmpty(line))
+                {
+                    continue;
+                }
+                string[] parts = line.Split('\t');
+                if (parts.Length != 3 || string.IsNullOrEmpty(parts[0]))
+                {
+                    continue;
+                }
+                lock (completions)
+                {
+                    completions[parts[0]] = new AgencyObjectiveCompletion
+                    {
+                        objectiveId = parts[0],
+                        completedBy = parts[1],
+                        completedAtUtc = parts[2]
+                    };
+                }
+            }
+        }
+
+        private static void SaveCompletions()
+        {
+            string completionFile = GetCompletionFile();
+            Directory.CreateDirectory(Path.GetDirectoryName(completionFile));
+            List<string> lines = new List<string>();
+            lock (completions)
+            {
+                foreach (AgencyObjectiveCompletion completion in completions.Values)
+                {
+                    lines.Add(completion.objectiveId + "\t" + completion.completedBy + "\t" + completion.completedAtUtc);
+                }
+            }
+            File.WriteAllLines(completionFile, lines.ToArray());
         }
 
         private static AgencyEvidenceRecord[] ReadEvidenceFile(string evidenceFile)
@@ -285,7 +421,9 @@ namespace DarkMultiPlayerServer
                         title = "Reach Kerbin Orbit",
                         description = "Place a crewed or uncrewed vessel into a stable Kerbin orbit.",
                         status = "Available",
-                        scope = "Personal"
+                        scope = "Personal",
+                        evidenceType = AgencyEvidenceType.VESSEL_ORBITED.ToString(),
+                        evidenceId = "orbit-Kerbin"
                     },
                     new AgencyObjective
                     {
@@ -344,6 +482,15 @@ namespace DarkMultiPlayerServer
 
         [DataMember]
         public string scope;
+
+        [DataMember]
+        public string evidenceType;
+
+        [DataMember]
+        public string evidenceId;
+
+        public string completedBy;
+        public string completedAtUtc;
     }
 
     public class AgencyEvidenceRecord
@@ -353,6 +500,13 @@ namespace DarkMultiPlayerServer
         public AgencyEvidenceType evidenceType;
         public string evidenceId;
         public double gameTime;
+    }
+
+    public class AgencyObjectiveCompletion
+    {
+        public string objectiveId;
+        public string completedBy;
+        public string completedAtUtc;
     }
 
 }

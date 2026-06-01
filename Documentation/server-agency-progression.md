@@ -109,7 +109,10 @@ Implemented config file: `Config/AgencyProgression.json`.
 - [x] Validate evidence type and evidence IDs server-side.
 - [x] Store evidence separately from rewards so mistakes are easy to inspect and roll back.
 - [x] Add server-side evidence query helpers for objective matching.
+- [x] Complete matching objectives when configured evidence arrives.
 - [ ] Add additional evidence types.
+
+Objective definitions can now optionally include `evidenceType` and `evidenceId`.
 
 Implemented evidence log: `Universe/AgencyEvidence/<player>.log`.
 
