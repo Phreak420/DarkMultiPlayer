@@ -37,6 +37,7 @@ namespace ServerValidationTests
             Run("Agency docking evidence records audit log", AgencyDockingEvidenceRecordsAuditLog);
             Run("Agency evidence query returns records", AgencyEvidenceQueryReturnsRecords);
             Run("Agency evidence completes matching objective", AgencyEvidenceCompletesMatchingObjective);
+            Run("Agency prerequisites unlock objectives", AgencyPrerequisitesUnlockObjectives);
             Run("Agency personal objective state is per-player", AgencyPersonalObjectiveStateIsPerPlayer);
             Run("Agency objective completion queues reward", AgencyObjectiveCompletionQueuesReward);
             Run("Agency reward query returns records", AgencyRewardQueryReturnsRecords);
@@ -482,6 +483,35 @@ namespace ServerValidationTests
                 }
             }
             Assert(rewardQueued, "agency reward message was not queued for completing player");
+        }
+
+        private static void AgencyPrerequisitesUnlockObjectives()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-agency-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"orbit-kerbin\",\"title\":\"Orbit Kerbin\",\"description\":\"Reach orbit.\",\"status\":\"Available\",\"scope\":\"Server\",\"evidenceType\":\"VESSEL_ORBITED\",\"evidenceId\":\"orbit-Kerbin\"},{\"id\":\"land-mun\",\"title\":\"Land on Mun\",\"description\":\"Land after orbit.\",\"status\":\"Locked\",\"scope\":\"Server\",\"evidenceType\":\"VESSEL_LANDED\",\"evidenceId\":\"landed-Mun\",\"prerequisiteObjectiveIds\":[\"orbit-kerbin\"]}]}");
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            ClientObject carol = CreateClient("Carol");
+            ClientObject alice = CreateClient("Alice");
+            ClientObject bob = CreateClient("Bob");
+
+            AgencyProgression.Load(true);
+            SendAgencyEvidence(carol, AgencyEvidenceType.VESSEL_LANDED, "landed-Mun");
+
+            AgencyObjective[] objectives = AgencyProgression.Objectives;
+            Assert(objectives[1].status == "Locked", "prerequisite objective was not locked before prerequisite completion");
+
+            SendAgencyEvidence(alice, AgencyEvidenceType.VESSEL_ORBITED, "orbit-Kerbin");
+            objectives = AgencyProgression.Objectives;
+            Assert(objectives[0].status == "Complete", "prerequisite objective did not complete");
+            Assert(objectives[1].status == "Available", "dependent objective did not unlock after prerequisite completion");
+
+            SendAgencyEvidence(bob, AgencyEvidenceType.VESSEL_LANDED, "landed-Mun");
+            objectives = AgencyProgression.Objectives;
+            Assert(objectives[1].status == "Complete", "dependent objective did not complete after unlocking");
         }
 
         private static void AgencyPersonalObjectiveStateIsPerPlayer()

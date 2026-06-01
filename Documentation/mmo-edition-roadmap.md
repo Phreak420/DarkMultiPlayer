@@ -35,8 +35,9 @@ prominently and preserve original license and copyright notices.
 - [x] ~~Support personal and server-scoped objective completion.~~
 - [x] ~~Grant server-approved science, funds, and reputation rewards.~~
 - [x] ~~Add admin inspection, reward replay, and reward revoke commands.~~
+- [x] ~~Add prerequisite-based objective unlocks.~~
 - [ ] Expand objective evidence to cover more progression milestones.
-- [ ] Add objective prerequisites, chains, and unlock rules.
+- [ ] Add richer objective chains and unlock rules beyond completed-objective prerequisites.
 - [ ] Add server-driven agency contracts or contract-like client experiences.
 - [ ] Add global community objectives that multiple players can contribute toward.
 - [ ] Add shared economy and resource pressure with strong safety limits.

@@ -13,6 +13,8 @@ namespace DarkMultiPlayerServer
         private const int MaxObjectives = 100;
         private const int MaxEvidenceIdLength = 128;
         private const string CompleteStatus = "Complete";
+        private const string LockedStatus = "Locked";
+        private const string AvailableStatus = "Available";
         private static readonly TimeSpan EvidenceRateLimit = TimeSpan.FromSeconds(1);
         private static readonly List<AgencyObjective> objectives = new List<AgencyObjective>();
         private static readonly Dictionary<string, AgencyObjectiveCompletion> completions = new Dictionary<string, AgencyObjectiveCompletion>();
@@ -104,10 +106,11 @@ namespace DarkMultiPlayerServer
                         id = CleanText(objective.id, string.Empty),
                         title = CleanText(objective.title, objective.id),
                         description = CleanText(objective.description, string.Empty),
-                        status = completion == null ? CleanText(objective.status, "Available") : CompleteStatus,
+                        status = completion == null ? CleanText(objective.status, AvailableStatus) : CompleteStatus,
                         scope = scope,
                         evidenceType = CleanText(objective.evidenceType, string.Empty),
                         evidenceId = CleanText(objective.evidenceId, string.Empty),
+                        prerequisiteObjectiveIds = CleanPrerequisites(objective.prerequisiteObjectiveIds),
                         rewardFunds = objective.rewardFunds,
                         rewardScience = objective.rewardScience,
                         rewardReputation = objective.rewardReputation,
@@ -278,7 +281,12 @@ namespace DarkMultiPlayerServer
             {
                 foreach (AgencyObjective objective in objectives)
                 {
-                    if (objective.status == CompleteStatus || string.IsNullOrEmpty(objective.evidenceType) || string.IsNullOrEmpty(objective.evidenceId))
+                    string objectiveStatus = GetObjectiveStatus(objective, evidenceRecord.playerName);
+                    if (objectiveStatus == CompleteStatus || string.IsNullOrEmpty(objective.evidenceType) || string.IsNullOrEmpty(objective.evidenceId))
+                    {
+                        continue;
+                    }
+                    if (objectiveStatus == LockedStatus)
                     {
                         continue;
                     }
@@ -461,10 +469,11 @@ namespace DarkMultiPlayerServer
                     id = objective.id,
                     title = objective.title,
                     description = objective.description,
-                    status = completion == null ? objective.status : CompleteStatus,
+                    status = GetObjectiveStatus(objective, playerName),
                     scope = objective.scope,
                     evidenceType = objective.evidenceType,
                     evidenceId = objective.evidenceId,
+                    prerequisiteObjectiveIds = objective.prerequisiteObjectiveIds,
                     rewardFunds = objective.rewardFunds,
                     rewardScience = objective.rewardScience,
                     rewardReputation = objective.rewardReputation,
@@ -495,6 +504,46 @@ namespace DarkMultiPlayerServer
             return objective.rewardFunds != 0 || objective.rewardScience != 0 || objective.rewardReputation != 0;
         }
 
+        private static string GetObjectiveStatus(AgencyObjective objective, string playerName)
+        {
+            string completionPlayer = IsServerObjective(objective.scope) ? string.Empty : playerName;
+            if (GetCompletion(objective.id, completionPlayer) != null)
+            {
+                return CompleteStatus;
+            }
+            if (!PrerequisitesMet(objective, playerName))
+            {
+                return LockedStatus;
+            }
+            if (objective.prerequisiteObjectiveIds != null && objective.prerequisiteObjectiveIds.Length > 0 && string.Equals(objective.status, LockedStatus, StringComparison.OrdinalIgnoreCase))
+            {
+                return AvailableStatus;
+            }
+            return objective.status;
+        }
+
+        private static bool PrerequisitesMet(AgencyObjective objective, string playerName)
+        {
+            if (objective.prerequisiteObjectiveIds == null || objective.prerequisiteObjectiveIds.Length == 0)
+            {
+                return true;
+            }
+            foreach (string prerequisiteObjectiveId in objective.prerequisiteObjectiveIds)
+            {
+                AgencyObjective prerequisite = FindObjective(prerequisiteObjectiveId);
+                if (prerequisite == null)
+                {
+                    return false;
+                }
+                string prerequisitePlayer = IsServerObjective(prerequisite.scope) ? string.Empty : playerName;
+                if (GetCompletion(prerequisite.id, prerequisitePlayer) == null)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         private static bool IsServerObjective(string scope)
         {
             return string.Equals(scope, "Server", StringComparison.OrdinalIgnoreCase);
@@ -508,6 +557,27 @@ namespace DarkMultiPlayerServer
         private static bool IsAdminTargetSafe(string playerName, string objectiveId)
         {
             return SafeFile.IsNameSafe(playerName) && SafeFile.IsNameSafe(objectiveId);
+        }
+
+        private static string[] CleanPrerequisites(string[] prerequisites)
+        {
+            if (prerequisites == null || prerequisites.Length == 0)
+            {
+                return new string[0];
+            }
+            List<string> cleanPrerequisites = new List<string>();
+            foreach (string prerequisite in prerequisites)
+            {
+                if (SafeFile.IsNameSafe(prerequisite))
+                {
+                    cleanPrerequisites.Add(prerequisite);
+                }
+                else
+                {
+                    DarkLog.Error("Skipped unsafe agency prerequisite objective id '" + prerequisite + "'.");
+                }
+            }
+            return cleanPrerequisites.ToArray();
         }
 
         private static AgencyEvidenceRecord[] ReadEvidenceFile(string evidenceFile)
@@ -671,7 +741,8 @@ namespace DarkMultiPlayerServer
                         title = "Fly By the Mun",
                         description = "Send a vessel through the Mun's sphere of influence and return useful mission data.",
                         status = "Locked",
-                        scope = "Server"
+                        scope = "Server",
+                        prerequisiteObjectiveIds = new string[] { "reach-orbit" }
                     }
                 }
             };
@@ -728,6 +799,9 @@ namespace DarkMultiPlayerServer
 
         [DataMember]
         public string evidenceId;
+
+        [DataMember]
+        public string[] prerequisiteObjectiveIds;
 
         [DataMember]
         public double rewardFunds;

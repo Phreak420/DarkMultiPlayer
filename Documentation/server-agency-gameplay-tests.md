@@ -62,6 +62,21 @@ Use this small config to exercise objective completion and rewards quickly:
       "rewardFunds": 2500,
       "rewardScience": 3,
       "rewardReputation": 1
+    },
+    {
+      "id": "mun-landing-chain",
+      "title": "Land on the Mun",
+      "description": "Land on the Mun after proving Kerbin orbital capability.",
+      "status": "Locked",
+      "scope": "Server",
+      "evidenceType": "VESSEL_LANDED",
+      "evidenceId": "landed-Mun",
+      "prerequisiteObjectiveIds": [
+        "orbit-kerbin"
+      ],
+      "rewardFunds": 12000,
+      "rewardScience": 8,
+      "rewardReputation": 3
     }
   ]
 }
@@ -197,7 +212,25 @@ Expected:
 - If the player is online, revoke applies the negative compensation.
 - These commands do not delete evidence or objective completion history.
 
-### 10. Server Reload
+### 10. Objective Prerequisites
+
+1. Use the suggested test config.
+2. Open the Agency panel before completing `orbit-kerbin`.
+3. Confirm `mun-landing-chain` is locked.
+4. Land on the Mun before completing `orbit-kerbin`, if you are testing with an existing save.
+5. Complete `orbit-kerbin`.
+6. Reopen the Agency panel.
+7. Land on the Mun.
+
+Expected:
+
+- `mun-landing-chain` starts as `Locked`.
+- Matching Mun landing evidence does not complete it while locked.
+- Completing `orbit-kerbin` changes `mun-landing-chain` to `Available`.
+- Mun landing evidence after unlock completes `mun-landing-chain`.
+- Completion persists in `Universe/AgencyProgression/Objectives.log`.
+
+### 11. Server Reload
 
 1. Complete at least one objective.
 2. Run `/agency reload`.
@@ -209,7 +242,7 @@ Expected:
 - Objective status is resent to clients.
 - Server does not grant rewards again just because of reload.
 
-### 11. Restart Persistence
+### 12. Restart Persistence
 
 1. Complete at least one objective.
 2. Stop and restart the server.
@@ -221,7 +254,7 @@ Expected:
 - Evidence and reward audit files remain on disk.
 - Agency panel shows the persisted complete status.
 
-### 12. Existing Server Safety
+### 13. Existing Server Safety
 
 1. Use a normal DMP server config with `agencyProgressionEnabled = False`.
 2. Connect and perform normal DMP activities: chat, launch, sync vessel, disconnect.
@@ -235,6 +268,8 @@ Expected:
 ## Known Limits
 
 - Objective scope currently supports `Personal` and `Server`.
+- Objective prerequisites currently use completed objective IDs; richer boolean conditions and
+  objective chains are future work.
 - Rewards are personal to the player whose evidence completed the objective unless an admin
   intentionally replays or revokes a reward.
 - Generated stock KSP contracts are not implemented yet.

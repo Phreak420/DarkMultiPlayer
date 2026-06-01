@@ -40,8 +40,9 @@ Current and planned MMO Edition work:
 - [x] ~~Complete matching personal and server-scoped objectives.~~
 - [x] ~~Award server-approved science, funds, and reputation rewards.~~
 - [x] ~~Add admin inspection, reward replay, and reward revoke commands.~~
+- [x] ~~Add prerequisite-based objective unlocks.~~
 - [ ] Expand evidence types for more mission and infrastructure milestones.
-- [ ] Add richer objective chains and unlock rules.
+- [ ] Add richer objective chains and unlock rules beyond completed-objective prerequisites.
 - [ ] Add server-driven agency contracts or contract-like player experiences.
 - [ ] Support global community objectives that many players can contribute toward.
 - [ ] Add shared economy/resource pressure with bounded, recoverable safety rules.
