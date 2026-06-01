@@ -38,6 +38,7 @@ namespace ServerValidationTests
             Run("Agency evidence query returns records", AgencyEvidenceQueryReturnsRecords);
             Run("Agency evidence completes matching objective", AgencyEvidenceCompletesMatchingObjective);
             Run("Agency objective completion queues reward", AgencyObjectiveCompletionQueuesReward);
+            Run("Agency reward query returns records", AgencyRewardQueryReturnsRecords);
             Run("Agency evidence rejects invalid IDs", AgencyEvidenceRejectsInvalidIds);
 
             if (failures == 0)
@@ -478,6 +479,28 @@ namespace ServerValidationTests
                 }
             }
             Assert(rewardQueued, "agency reward message was not queued for completing player");
+        }
+
+        private static void AgencyRewardQueryReturnsRecords()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-agency-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"reward-query\",\"title\":\"Reward Query\",\"description\":\"Do science.\",\"status\":\"Available\",\"scope\":\"Personal\",\"evidenceType\":\"SCIENCE_RECEIVED\",\"evidenceId\":\"mysteryGoo@KerbinSrfLandedLaunchPad\",\"rewardFunds\":123,\"rewardScience\":4,\"rewardReputation\":5}]}");
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            ClientObject client = CreateClient("Heidi");
+
+            AgencyProgression.Load(true);
+            SendAgencyEvidence(client, AgencyEvidenceType.SCIENCE_RECEIVED, "mysteryGoo@KerbinSrfLandedLaunchPad");
+
+            AgencyRewardRecord[] rewardRecords = AgencyProgression.GetRewardRecords("Heidi");
+            Assert(rewardRecords.Length == 1, "reward query returned unexpected record count");
+            Assert(rewardRecords[0].objectiveId == "reward-query", "reward query returned wrong objective id");
+            Assert(rewardRecords[0].funds == 123, "reward query returned wrong funds");
+            Assert(rewardRecords[0].science == 4, "reward query returned wrong science");
+            Assert(rewardRecords[0].reputation == 5, "reward query returned wrong reputation");
         }
 
         private static void AgencyEvidenceRejectsInvalidIds()

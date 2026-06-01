@@ -199,6 +199,33 @@ namespace DarkMultiPlayerServer
             return matches.ToArray();
         }
 
+        public static AgencyRewardRecord[] GetRewardRecords()
+        {
+            string rewardDirectory = Path.Combine(Server.universeDirectory, "AgencyRewards");
+            if (!Directory.Exists(rewardDirectory))
+            {
+                return new AgencyRewardRecord[0];
+            }
+
+            List<AgencyRewardRecord> records = new List<AgencyRewardRecord>();
+            foreach (string rewardFile in Directory.GetFiles(rewardDirectory, "*.log"))
+            {
+                records.AddRange(ReadRewardFile(rewardFile));
+            }
+            return records.ToArray();
+        }
+
+        public static AgencyRewardRecord[] GetRewardRecords(string playerName)
+        {
+            if (!SafeFile.IsNameSafe(playerName))
+            {
+                return new AgencyRewardRecord[0];
+            }
+
+            string rewardFile = Path.Combine(Server.universeDirectory, "AgencyRewards", playerName + ".log");
+            return ReadRewardFile(rewardFile);
+        }
+
         private static bool CompleteMatchingObjectives(ClientObject client, AgencyEvidenceRecord evidenceRecord)
         {
             bool completedAny = false;
@@ -377,6 +404,25 @@ namespace DarkMultiPlayerServer
             return records.ToArray();
         }
 
+        private static AgencyRewardRecord[] ReadRewardFile(string rewardFile)
+        {
+            if (!File.Exists(rewardFile))
+            {
+                return new AgencyRewardRecord[0];
+            }
+
+            List<AgencyRewardRecord> records = new List<AgencyRewardRecord>();
+            foreach (string line in File.ReadAllLines(rewardFile))
+            {
+                AgencyRewardRecord record;
+                if (TryParseRewardRecord(line, out record))
+                {
+                    records.Add(record);
+                }
+            }
+            return records.ToArray();
+        }
+
         private static bool TryParseEvidenceRecord(string line, out AgencyEvidenceRecord record)
         {
             record = null;
@@ -414,6 +460,45 @@ namespace DarkMultiPlayerServer
                 evidenceType = evidenceType,
                 evidenceId = parts[3],
                 gameTime = gameTime
+            };
+            return true;
+        }
+
+        private static bool TryParseRewardRecord(string line, out AgencyRewardRecord record)
+        {
+            record = null;
+            if (string.IsNullOrEmpty(line))
+            {
+                return false;
+            }
+
+            string[] parts = line.Split('\t');
+            if (parts.Length != 6)
+            {
+                return false;
+            }
+
+            DateTime awardedAtUtc;
+            double funds;
+            float science;
+            float reputation;
+            if (!DateTime.TryParse(parts[0], null, System.Globalization.DateTimeStyles.RoundtripKind, out awardedAtUtc))
+            {
+                return false;
+            }
+            if (!double.TryParse(parts[3], out funds) || !float.TryParse(parts[4], out science) || !float.TryParse(parts[5], out reputation))
+            {
+                return false;
+            }
+
+            record = new AgencyRewardRecord
+            {
+                awardedAtUtc = awardedAtUtc,
+                playerName = parts[1],
+                objectiveId = parts[2],
+                funds = funds,
+                science = science,
+                reputation = reputation
             };
             return true;
         }
@@ -546,6 +631,16 @@ namespace DarkMultiPlayerServer
         public string objectiveId;
         public string completedBy;
         public string completedAtUtc;
+    }
+
+    public class AgencyRewardRecord
+    {
+        public DateTime awardedAtUtc;
+        public string playerName;
+        public string objectiveId;
+        public double funds;
+        public float science;
+        public float reputation;
     }
 
 }
