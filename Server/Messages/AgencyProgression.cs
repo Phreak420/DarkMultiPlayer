@@ -12,7 +12,7 @@ namespace DarkMultiPlayerServer.Messages
                 return;
             }
 
-            DarkMultiPlayerServer.AgencyObjective[] objectives = DarkMultiPlayerServer.AgencyProgression.Objectives;
+            DarkMultiPlayerServer.AgencyObjective[] objectives = DarkMultiPlayerServer.AgencyProgression.GetObjectivesForPlayer(client.playerName);
             string[] objectiveIds = new string[objectives.Length];
             string[] objectiveTitles = new string[objectives.Length];
             string[] objectiveDescriptions = new string[objectives.Length];

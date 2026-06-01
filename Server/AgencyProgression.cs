@@ -26,8 +26,16 @@ namespace DarkMultiPlayerServer
             {
                 lock (objectives)
                 {
-                    return objectives.ToArray();
+                    return BuildObjectiveView(string.Empty);
                 }
+            }
+        }
+
+        public static AgencyObjective[] GetObjectivesForPlayer(string playerName)
+        {
+            lock (objectives)
+            {
+                return BuildObjectiveView(playerName);
             }
         }
 
@@ -89,14 +97,15 @@ namespace DarkMultiPlayerServer
                         DarkLog.Error("Skipped agency progression objective with an empty id.");
                         continue;
                     }
-                    AgencyObjectiveCompletion completion = GetCompletion(objective.id);
+                    string scope = CleanText(objective.scope, "Personal");
+                    AgencyObjectiveCompletion completion = IsServerObjective(scope) ? GetCompletion(objective.id, string.Empty) : null;
                     objectives.Add(new AgencyObjective
                     {
                         id = CleanText(objective.id, string.Empty),
                         title = CleanText(objective.title, objective.id),
                         description = CleanText(objective.description, string.Empty),
                         status = completion == null ? CleanText(objective.status, "Available") : CompleteStatus,
-                        scope = CleanText(objective.scope, "Personal"),
+                        scope = scope,
                         evidenceType = CleanText(objective.evidenceType, string.Empty),
                         evidenceId = CleanText(objective.evidenceId, string.Empty),
                         rewardFunds = objective.rewardFunds,
@@ -226,6 +235,42 @@ namespace DarkMultiPlayerServer
             return ReadRewardFile(rewardFile);
         }
 
+        public static bool ReplayReward(string playerName, string objectiveId)
+        {
+            if (!IsAdminTargetSafe(playerName, objectiveId))
+            {
+                return false;
+            }
+
+            AgencyObjective objective = FindObjective(objectiveId);
+            if (objective == null || !HasCompletion(objective, playerName))
+            {
+                return false;
+            }
+            if (!ObjectiveHasReward(objective))
+            {
+                return false;
+            }
+
+            return RecordAndSendReward(playerName, objective.id, objective.rewardFunds, objective.rewardScience, objective.rewardReputation, true);
+        }
+
+        public static bool RevokeReward(string playerName, string objectiveId)
+        {
+            if (!IsAdminTargetSafe(playerName, objectiveId))
+            {
+                return false;
+            }
+
+            AgencyObjective objective = FindObjective(objectiveId);
+            if (objective == null || !ObjectiveHasReward(objective))
+            {
+                return false;
+            }
+
+            return RecordAndSendReward(playerName, objective.id, -objective.rewardFunds, -objective.rewardScience, -objective.rewardReputation, true);
+        }
+
         private static bool CompleteMatchingObjectives(ClientObject client, AgencyEvidenceRecord evidenceRecord)
         {
             bool completedAny = false;
@@ -247,22 +292,27 @@ namespace DarkMultiPlayerServer
                         continue;
                     }
 
+                    string completionPlayer = IsServerObjective(objective.scope) ? string.Empty : evidenceRecord.playerName;
+                    if (GetCompletion(objective.id, completionPlayer) != null)
+                    {
+                        continue;
+                    }
+
                     string completedAt = DateTime.UtcNow.ToString("o");
-                    objective.status = CompleteStatus;
-                    objective.completedBy = evidenceRecord.playerName;
-                    objective.completedAtUtc = completedAt;
                     lock (completions)
                     {
-                        completions[objective.id] = new AgencyObjectiveCompletion
+                        completions[BuildCompletionKey(objective.id, completionPlayer)] = new AgencyObjectiveCompletion
                         {
                             objectiveId = objective.id,
+                            scope = objective.scope,
+                            playerName = completionPlayer,
                             completedBy = evidenceRecord.playerName,
                             completedAtUtc = completedAt
                         };
                     }
                     completedAny = true;
                     DarkLog.Normal("Agency objective complete: " + objective.id + " by " + evidenceRecord.playerName);
-                    RecordAndSendReward(client, objective);
+                    RecordAndSendReward(client.playerName, objective.id, objective.rewardFunds, objective.rewardScience, objective.rewardReputation, true, client);
                 }
             }
             if (completedAny)
@@ -272,27 +322,28 @@ namespace DarkMultiPlayerServer
             return completedAny;
         }
 
-        private static void RecordAndSendReward(ClientObject client, AgencyObjective objective)
+        private static bool RecordAndSendReward(string playerName, string objectiveId, double funds, float science, float reputation, bool sendIfOnline, ClientObject connectedClient = null)
         {
-            if (objective.rewardFunds == 0 && objective.rewardScience == 0 && objective.rewardReputation == 0)
+            if (funds == 0 && science == 0 && reputation == 0)
             {
-                return;
+                return false;
             }
 
-            string playerName = client.playerName;
             string rewardDirectory = Path.Combine(Server.universeDirectory, "AgencyRewards");
             Directory.CreateDirectory(rewardDirectory);
             string rewardFile = Path.Combine(rewardDirectory, playerName + ".log");
-            string record = DateTime.UtcNow.ToString("o") + "\t" + playerName + "\t" + objective.id + "\t" + objective.rewardFunds.ToString("R") + "\t" + objective.rewardScience.ToString("R") + "\t" + objective.rewardReputation.ToString("R") + Environment.NewLine;
+            string record = DateTime.UtcNow.ToString("o") + "\t" + playerName + "\t" + objectiveId + "\t" + funds.ToString("R") + "\t" + science.ToString("R") + "\t" + reputation.ToString("R") + Environment.NewLine;
             lock (Server.universeSizeLock)
             {
                 File.AppendAllText(rewardFile, record);
             }
 
-            if (client != null && client.authenticated)
+            ClientObject client = connectedClient ?? ClientHandler.GetClientByName(playerName);
+            if (sendIfOnline && client != null && client.authenticated)
             {
-                DarkMultiPlayerServer.Messages.AgencyReward.SendAgencyReward(client, objective.id, objective.rewardFunds, objective.rewardScience, objective.rewardReputation);
+                DarkMultiPlayerServer.Messages.AgencyReward.SendAgencyReward(client, objectiveId, funds, science, reputation);
             }
+            return true;
         }
 
         private static bool IsEvidenceIdSafe(string evidenceId)
@@ -324,14 +375,20 @@ namespace DarkMultiPlayerServer
             return record.receivedAtUtc.ToString("o") + "\t" + record.playerName + "\t" + record.evidenceType.ToString() + "\t" + record.evidenceId + "\t" + record.gameTime.ToString("R");
         }
 
-        private static AgencyObjectiveCompletion GetCompletion(string objectiveId)
+        private static AgencyObjectiveCompletion GetCompletion(string objectiveId, string playerName)
         {
             lock (completions)
             {
                 AgencyObjectiveCompletion completion;
-                completions.TryGetValue(objectiveId, out completion);
+                completions.TryGetValue(BuildCompletionKey(objectiveId, playerName), out completion);
                 return completion;
             }
+        }
+
+        private static bool HasCompletion(AgencyObjective objective, string playerName)
+        {
+            string completionPlayer = IsServerObjective(objective.scope) ? string.Empty : playerName;
+            return GetCompletion(objective.id, completionPlayer) != null;
         }
 
         private static string GetCompletionFile()
@@ -354,17 +411,24 @@ namespace DarkMultiPlayerServer
                     continue;
                 }
                 string[] parts = line.Split('\t');
-                if (parts.Length != 3 || string.IsNullOrEmpty(parts[0]))
+                if ((parts.Length != 3 && parts.Length != 5) || string.IsNullOrEmpty(parts[0]))
                 {
                     continue;
                 }
+                string objectiveId = parts[0];
+                string scope = parts.Length == 5 ? parts[1] : "Server";
+                string playerName = parts.Length == 5 ? parts[2] : string.Empty;
+                string completedBy = parts.Length == 5 ? parts[3] : parts[1];
+                string completedAtUtc = parts.Length == 5 ? parts[4] : parts[2];
                 lock (completions)
                 {
-                    completions[parts[0]] = new AgencyObjectiveCompletion
+                    completions[BuildCompletionKey(objectiveId, playerName)] = new AgencyObjectiveCompletion
                     {
-                        objectiveId = parts[0],
-                        completedBy = parts[1],
-                        completedAtUtc = parts[2]
+                        objectiveId = objectiveId,
+                        scope = scope,
+                        playerName = playerName,
+                        completedBy = completedBy,
+                        completedAtUtc = completedAtUtc
                     };
                 }
             }
@@ -379,10 +443,71 @@ namespace DarkMultiPlayerServer
             {
                 foreach (AgencyObjectiveCompletion completion in completions.Values)
                 {
-                    lines.Add(completion.objectiveId + "\t" + completion.completedBy + "\t" + completion.completedAtUtc);
+                    lines.Add(completion.objectiveId + "\t" + completion.scope + "\t" + completion.playerName + "\t" + completion.completedBy + "\t" + completion.completedAtUtc);
                 }
             }
             File.WriteAllLines(completionFile, lines.ToArray());
+        }
+
+        private static AgencyObjective[] BuildObjectiveView(string playerName)
+        {
+            List<AgencyObjective> view = new List<AgencyObjective>();
+            foreach (AgencyObjective objective in objectives)
+            {
+                string completionPlayer = IsServerObjective(objective.scope) ? string.Empty : playerName;
+                AgencyObjectiveCompletion completion = GetCompletion(objective.id, completionPlayer);
+                view.Add(new AgencyObjective
+                {
+                    id = objective.id,
+                    title = objective.title,
+                    description = objective.description,
+                    status = completion == null ? objective.status : CompleteStatus,
+                    scope = objective.scope,
+                    evidenceType = objective.evidenceType,
+                    evidenceId = objective.evidenceId,
+                    rewardFunds = objective.rewardFunds,
+                    rewardScience = objective.rewardScience,
+                    rewardReputation = objective.rewardReputation,
+                    completedBy = completion == null ? string.Empty : completion.completedBy,
+                    completedAtUtc = completion == null ? string.Empty : completion.completedAtUtc
+                });
+            }
+            return view.ToArray();
+        }
+
+        private static AgencyObjective FindObjective(string objectiveId)
+        {
+            lock (objectives)
+            {
+                foreach (AgencyObjective objective in objectives)
+                {
+                    if (objective.id == objectiveId)
+                    {
+                        return objective;
+                    }
+                }
+            }
+            return null;
+        }
+
+        private static bool ObjectiveHasReward(AgencyObjective objective)
+        {
+            return objective.rewardFunds != 0 || objective.rewardScience != 0 || objective.rewardReputation != 0;
+        }
+
+        private static bool IsServerObjective(string scope)
+        {
+            return string.Equals(scope, "Server", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string BuildCompletionKey(string objectiveId, string playerName)
+        {
+            return objectiveId + "\t" + playerName;
+        }
+
+        private static bool IsAdminTargetSafe(string playerName, string objectiveId)
+        {
+            return SafeFile.IsNameSafe(playerName) && SafeFile.IsNameSafe(objectiveId);
         }
 
         private static AgencyEvidenceRecord[] ReadEvidenceFile(string evidenceFile)
@@ -629,6 +754,8 @@ namespace DarkMultiPlayerServer
     public class AgencyObjectiveCompletion
     {
         public string objectiveId;
+        public string scope;
+        public string playerName;
         public string completedBy;
         public string completedAtUtc;
     }

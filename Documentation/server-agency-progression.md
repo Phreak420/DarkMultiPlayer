@@ -122,20 +122,27 @@ Implemented evidence log: `Universe/AgencyEvidence/<player>.log`.
 - [x] Start with personal rewards only.
 - [x] Add audit logs for every reward event.
 - [x] Add admin commands to list agency state, evidence, and reward audit events.
-- [ ] Add admin commands to replay or revoke agency reward events.
+- [x] Add admin commands to replay or revoke agency reward events.
 
 Objective definitions can now optionally include `rewardFunds`, `rewardScience`, and
 `rewardReputation`.
 
 Implemented console commands: `/agency status`, `/agency reload`, `/agency objectives`,
-`/agency evidence [player]`, and `/agency rewards [player]`.
+`/agency evidence [player]`, `/agency rewards [player]`, `/agency replay <player> <objective>`,
+and `/agency revoke <player> <objective>`.
 
 ### Phase 5: Shared Storyline Progression
 
+- [x] Preserve personal objective completion per player while keeping server-scoped objectives
+  shared.
+- [x] Store objective completion records with scope/player metadata for future shared objective
+  extensions.
 - Add group/server-wide milestones that unlock later objectives.
 - Support opt-in shared projects such as stations, relays, and bases.
 - Let server owners choose whether completion is first-to-complete, all-players, team-based, or
   server-wide.
+
+Implemented scopes: `Personal` and `Server`.
 
 ### Phase 6: Contract Integration
 

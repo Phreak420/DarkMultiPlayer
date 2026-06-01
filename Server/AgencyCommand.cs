@@ -31,8 +31,14 @@ namespace DarkMultiPlayerServer
                 case "rewards":
                     ShowRewards(argument);
                     break;
+                case "replay":
+                    ReplayReward(argument);
+                    break;
+                case "revoke":
+                    RevokeReward(argument);
+                    break;
                 default:
-                    DarkLog.Normal("Usage: /agency [status|reload|objectives|evidence [player]|rewards [player]]");
+                    DarkLog.Normal("Usage: /agency [status|reload|objectives|evidence [player]|rewards [player]|replay <player> <objective>|revoke <player> <objective>]");
                     break;
             }
         }
@@ -97,6 +103,60 @@ namespace DarkMultiPlayerServer
                 AgencyRewardRecord record = records[i];
                 DarkLog.Normal(record.awardedAtUtc.ToString("u") + " " + record.playerName + " " + record.objectiveId + " funds=" + record.funds + " science=" + record.science + " reputation=" + record.reputation);
             }
+        }
+
+        private static void ReplayReward(string argument)
+        {
+            string playerName;
+            string objectiveId;
+            if (!TryReadPlayerObjective(argument, out playerName, out objectiveId))
+            {
+                DarkLog.Normal("Usage: /agency replay <player> <objective>");
+                return;
+            }
+
+            if (AgencyProgression.ReplayReward(playerName, objectiveId))
+            {
+                DarkLog.Normal("Replayed agency reward for " + playerName + " objective " + objectiveId + ".");
+            }
+            else
+            {
+                DarkLog.Normal("Agency reward replay failed. Check that the player/objective are valid, the objective is complete, and it has rewards.");
+            }
+        }
+
+        private static void RevokeReward(string argument)
+        {
+            string playerName;
+            string objectiveId;
+            if (!TryReadPlayerObjective(argument, out playerName, out objectiveId))
+            {
+                DarkLog.Normal("Usage: /agency revoke <player> <objective>");
+                return;
+            }
+
+            if (AgencyProgression.RevokeReward(playerName, objectiveId))
+            {
+                DarkLog.Normal("Queued agency reward revocation for " + playerName + " objective " + objectiveId + ".");
+            }
+            else
+            {
+                DarkLog.Normal("Agency reward revocation failed. Check that the player/objective are valid and the objective has rewards.");
+            }
+        }
+
+        private static bool TryReadPlayerObjective(string argument, out string playerName, out string objectiveId)
+        {
+            playerName = string.Empty;
+            objectiveId = string.Empty;
+            if (string.IsNullOrEmpty(argument) || !argument.Contains(" "))
+            {
+                return false;
+            }
+            int split = argument.IndexOf(" ", StringComparison.Ordinal);
+            playerName = argument.Substring(0, split).Trim();
+            objectiveId = argument.Substring(split + 1).Trim();
+            return !string.IsNullOrEmpty(playerName) && !string.IsNullOrEmpty(objectiveId);
         }
     }
 }

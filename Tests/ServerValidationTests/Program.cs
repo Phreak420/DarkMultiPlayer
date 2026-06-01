@@ -37,8 +37,11 @@ namespace ServerValidationTests
             Run("Agency docking evidence records audit log", AgencyDockingEvidenceRecordsAuditLog);
             Run("Agency evidence query returns records", AgencyEvidenceQueryReturnsRecords);
             Run("Agency evidence completes matching objective", AgencyEvidenceCompletesMatchingObjective);
+            Run("Agency personal objective state is per-player", AgencyPersonalObjectiveStateIsPerPlayer);
             Run("Agency objective completion queues reward", AgencyObjectiveCompletionQueuesReward);
             Run("Agency reward query returns records", AgencyRewardQueryReturnsRecords);
+            Run("Agency reward replay records duplicate reward", AgencyRewardReplayRecordsDuplicateReward);
+            Run("Agency reward revoke records negative reward", AgencyRewardRevokeRecordsNegativeReward);
             Run("Agency evidence rejects invalid IDs", AgencyEvidenceRejectsInvalidIds);
 
             if (failures == 0)
@@ -481,6 +484,26 @@ namespace ServerValidationTests
             Assert(rewardQueued, "agency reward message was not queued for completing player");
         }
 
+        private static void AgencyPersonalObjectiveStateIsPerPlayer()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-agency-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"personal-orbit\",\"title\":\"Personal Orbit\",\"description\":\"Reach orbit.\",\"status\":\"Available\",\"scope\":\"Personal\",\"evidenceType\":\"VESSEL_ORBITED\",\"evidenceId\":\"orbit-Kerbin\"}]}");
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            ClientObject alice = CreateClient("Alice");
+
+            AgencyProgression.Load(true);
+            SendAgencyEvidence(alice, AgencyEvidenceType.VESSEL_ORBITED, "orbit-Kerbin");
+
+            AgencyObjective[] aliceObjectives = AgencyProgression.GetObjectivesForPlayer("Alice");
+            AgencyObjective[] bobObjectives = AgencyProgression.GetObjectivesForPlayer("Bob");
+            Assert(aliceObjectives[0].status == "Complete", "personal objective did not complete for matching player");
+            Assert(bobObjectives[0].status == "Available", "personal objective completed for another player");
+        }
+
         private static void AgencyRewardQueryReturnsRecords()
         {
             CreateUniverse();
@@ -501,6 +524,44 @@ namespace ServerValidationTests
             Assert(rewardRecords[0].funds == 123, "reward query returned wrong funds");
             Assert(rewardRecords[0].science == 4, "reward query returned wrong science");
             Assert(rewardRecords[0].reputation == 5, "reward query returned wrong reputation");
+        }
+
+        private static void AgencyRewardReplayRecordsDuplicateReward()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-agency-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"replay-test\",\"title\":\"Replay Test\",\"description\":\"Do science.\",\"status\":\"Available\",\"scope\":\"Personal\",\"evidenceType\":\"SCIENCE_RECEIVED\",\"evidenceId\":\"crewReport@KerbinSrfLandedLaunchPad\",\"rewardFunds\":100,\"rewardScience\":2,\"rewardReputation\":3}]}");
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            ClientObject client = CreateClient("Ivan");
+
+            AgencyProgression.Load(true);
+            SendAgencyEvidence(client, AgencyEvidenceType.SCIENCE_RECEIVED, "crewReport@KerbinSrfLandedLaunchPad");
+
+            Assert(AgencyProgression.ReplayReward("Ivan", "replay-test"), "reward replay failed");
+            AgencyRewardRecord[] rewardRecords = AgencyProgression.GetRewardRecords("Ivan");
+            Assert(rewardRecords.Length == 2, "reward replay did not record a second reward event");
+            Assert(rewardRecords[1].funds == 100 && rewardRecords[1].science == 2 && rewardRecords[1].reputation == 3, "reward replay recorded wrong values");
+        }
+
+        private static void AgencyRewardRevokeRecordsNegativeReward()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-agency-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"revoke-test\",\"title\":\"Revoke Test\",\"description\":\"Do science.\",\"status\":\"Available\",\"scope\":\"Personal\",\"evidenceType\":\"SCIENCE_RECEIVED\",\"evidenceId\":\"mysteryGoo@KerbinSrfLandedLaunchPad\",\"rewardFunds\":150,\"rewardScience\":4,\"rewardReputation\":5}]}");
+            Settings.settingsStore.agencyProgressionEnabled = true;
+
+            AgencyProgression.Load(true);
+
+            Assert(AgencyProgression.RevokeReward("Judy", "revoke-test"), "reward revoke failed");
+            AgencyRewardRecord[] rewardRecords = AgencyProgression.GetRewardRecords("Judy");
+            Assert(rewardRecords.Length == 1, "reward revoke did not record one reward event");
+            Assert(rewardRecords[0].funds == -150 && rewardRecords[0].science == -4 && rewardRecords[0].reputation == -5, "reward revoke did not record negative values");
         }
 
         private static void AgencyEvidenceRejectsInvalidIds()
