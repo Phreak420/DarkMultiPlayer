@@ -118,10 +118,13 @@ Implemented evidence log: `Universe/AgencyEvidence/<player>.log`.
 
 ### Phase 4: Server-Awarded Rewards
 
-- Grant server-approved science/funds/reputation rewards.
-- Start with personal rewards only.
-- Add audit logs for every reward event.
-- Add admin commands to list, replay, or revoke agency reward events.
+- [x] Grant server-approved science/funds/reputation rewards.
+- [x] Start with personal rewards only.
+- [x] Add audit logs for every reward event.
+- [ ] Add admin commands to list, replay, or revoke agency reward events.
+
+Objective definitions can now optionally include `rewardFunds`, `rewardScience`, and
+`rewardReputation`.
 
 ### Phase 5: Shared Storyline Progression
 

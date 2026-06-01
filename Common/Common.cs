@@ -826,6 +826,7 @@ namespace DarkMultiPlayerCommon
         CONNECTION_END,
         MODPACK_DATA,
         AGENCY_PROGRESS,
+        AGENCY_REWARD,
     }
 
     public enum ConnectionStatus

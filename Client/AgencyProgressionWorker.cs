@@ -75,6 +75,24 @@ namespace DarkMultiPlayer
             }
         }
 
+        public void HandleAgencyReward(ByteArray messageData)
+        {
+            if (!dmpGame.serverAgencyProgressionEnabled)
+            {
+                return;
+            }
+
+            using (MessageReader mr = new MessageReader(messageData.data))
+            {
+                string objectiveId = mr.Read<string>();
+                double funds = mr.Read<double>();
+                float science = mr.Read<float>();
+                float reputation = mr.Read<float>();
+
+                ApplyAgencyReward(objectiveId, funds, science, reputation);
+            }
+        }
+
         public void Stop()
         {
             dmpGame.updateEvent.Remove(updateAction);
@@ -183,6 +201,24 @@ namespace DarkMultiPlayer
                 evidenceId = evidenceId.Substring(0, MaxEvidenceIdLength);
             }
             return evidenceId;
+        }
+
+        private void ApplyAgencyReward(string objectiveId, double funds, float science, float reputation)
+        {
+            if (funds != 0 && Funding.Instance != null)
+            {
+                Funding.Instance.AddFunds(funds, TransactionReasons.ContractReward);
+            }
+            if (science != 0 && ResearchAndDevelopment.Instance != null)
+            {
+                ResearchAndDevelopment.Instance.AddScience(science, TransactionReasons.ContractReward);
+            }
+            if (reputation != 0)
+            {
+                Reputation.Instance.AddReputation(reputation, TransactionReasons.ContractReward);
+            }
+            ScreenMessages.PostScreenMessage("Agency objective complete: " + objectiveId, 5f, ScreenMessageStyle.UPPER_CENTER);
+            DarkLog.Debug("Applied agency reward for " + objectiveId + ": funds=" + funds + ", science=" + science + ", reputation=" + reputation);
         }
     }
 

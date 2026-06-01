@@ -37,6 +37,7 @@ namespace ServerValidationTests
             Run("Agency docking evidence records audit log", AgencyDockingEvidenceRecordsAuditLog);
             Run("Agency evidence query returns records", AgencyEvidenceQueryReturnsRecords);
             Run("Agency evidence completes matching objective", AgencyEvidenceCompletesMatchingObjective);
+            Run("Agency objective completion queues reward", AgencyObjectiveCompletionQueuesReward);
             Run("Agency evidence rejects invalid IDs", AgencyEvidenceRejectsInvalidIds);
 
             if (failures == 0)
@@ -449,6 +450,34 @@ namespace ServerValidationTests
             Assert(objectives[0].status == "Complete", "matching evidence did not complete objective");
             Assert(objectives[0].completedBy == "Frank", "completed objective did not record completing player");
             Assert(File.Exists(Path.Combine(universe, "AgencyProgression", "Objectives.log")), "objective completion log was not written");
+        }
+
+        private static void AgencyObjectiveCompletionQueuesReward()
+        {
+            string universe = CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-agency-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"science-test\",\"title\":\"Science Test\",\"description\":\"Do science.\",\"status\":\"Available\",\"scope\":\"Personal\",\"evidenceType\":\"SCIENCE_RECEIVED\",\"evidenceId\":\"crewReport@KerbinSrfLandedLaunchPad\",\"rewardFunds\":1000,\"rewardScience\":2.5,\"rewardReputation\":1}]}");
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            ClientObject client = CreateClient("Grace");
+
+            AgencyProgression.Load(true);
+            SendAgencyEvidence(client, AgencyEvidenceType.SCIENCE_RECEIVED, "crewReport@KerbinSrfLandedLaunchPad");
+
+            Assert(File.Exists(Path.Combine(universe, "AgencyRewards", "Grace.log")), "agency reward audit log was not written");
+            bool rewardQueued = false;
+            ServerMessage message;
+            while (client.sendMessageQueueHigh.TryDequeue(out message))
+            {
+                if (message.type == ServerMessageType.AGENCY_REWARD)
+                {
+                    rewardQueued = true;
+                    break;
+                }
+            }
+            Assert(rewardQueued, "agency reward message was not queued for completing player");
         }
 
         private static void AgencyEvidenceRejectsInvalidIds()

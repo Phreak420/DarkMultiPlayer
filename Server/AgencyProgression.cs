@@ -99,6 +99,9 @@ namespace DarkMultiPlayerServer
                         scope = CleanText(objective.scope, "Personal"),
                         evidenceType = CleanText(objective.evidenceType, string.Empty),
                         evidenceId = CleanText(objective.evidenceId, string.Empty),
+                        rewardFunds = objective.rewardFunds,
+                        rewardScience = objective.rewardScience,
+                        rewardReputation = objective.rewardReputation,
                         completedBy = completion == null ? string.Empty : completion.completedBy,
                         completedAtUtc = completion == null ? string.Empty : completion.completedAtUtc
                     });
@@ -149,7 +152,7 @@ namespace DarkMultiPlayerServer
                 File.AppendAllText(evidenceFile, record);
             }
             DarkLog.Debug("Recorded agency evidence " + evidenceTypeName + ":" + evidenceId + " from " + client.playerName);
-            if (CompleteMatchingObjectives(evidenceRecord))
+            if (CompleteMatchingObjectives(client, evidenceRecord))
             {
                 DarkMultiPlayerServer.Messages.AgencyProgression.SendAgencyProgressionToAll();
             }
@@ -196,7 +199,7 @@ namespace DarkMultiPlayerServer
             return matches.ToArray();
         }
 
-        private static bool CompleteMatchingObjectives(AgencyEvidenceRecord evidenceRecord)
+        private static bool CompleteMatchingObjectives(ClientObject client, AgencyEvidenceRecord evidenceRecord)
         {
             bool completedAny = false;
             lock (objectives)
@@ -232,6 +235,7 @@ namespace DarkMultiPlayerServer
                     }
                     completedAny = true;
                     DarkLog.Normal("Agency objective complete: " + objective.id + " by " + evidenceRecord.playerName);
+                    RecordAndSendReward(client, objective);
                 }
             }
             if (completedAny)
@@ -239,6 +243,29 @@ namespace DarkMultiPlayerServer
                 SaveCompletions();
             }
             return completedAny;
+        }
+
+        private static void RecordAndSendReward(ClientObject client, AgencyObjective objective)
+        {
+            if (objective.rewardFunds == 0 && objective.rewardScience == 0 && objective.rewardReputation == 0)
+            {
+                return;
+            }
+
+            string playerName = client.playerName;
+            string rewardDirectory = Path.Combine(Server.universeDirectory, "AgencyRewards");
+            Directory.CreateDirectory(rewardDirectory);
+            string rewardFile = Path.Combine(rewardDirectory, playerName + ".log");
+            string record = DateTime.UtcNow.ToString("o") + "\t" + playerName + "\t" + objective.id + "\t" + objective.rewardFunds.ToString("R") + "\t" + objective.rewardScience.ToString("R") + "\t" + objective.rewardReputation.ToString("R") + Environment.NewLine;
+            lock (Server.universeSizeLock)
+            {
+                File.AppendAllText(rewardFile, record);
+            }
+
+            if (client != null && client.authenticated)
+            {
+                DarkMultiPlayerServer.Messages.AgencyReward.SendAgencyReward(client, objective.id, objective.rewardFunds, objective.rewardScience, objective.rewardReputation);
+            }
         }
 
         private static bool IsEvidenceIdSafe(string evidenceId)
@@ -423,7 +450,10 @@ namespace DarkMultiPlayerServer
                         status = "Available",
                         scope = "Personal",
                         evidenceType = AgencyEvidenceType.VESSEL_ORBITED.ToString(),
-                        evidenceId = "orbit-Kerbin"
+                        evidenceId = "orbit-Kerbin",
+                        rewardFunds = 5000,
+                        rewardScience = 5,
+                        rewardReputation = 2
                     },
                     new AgencyObjective
                     {
@@ -488,6 +518,15 @@ namespace DarkMultiPlayerServer
 
         [DataMember]
         public string evidenceId;
+
+        [DataMember]
+        public double rewardFunds;
+
+        [DataMember]
+        public float rewardScience;
+
+        [DataMember]
+        public float rewardReputation;
 
         public string completedBy;
         public string completedAtUtc;

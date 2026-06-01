@@ -1091,6 +1091,9 @@ namespace DarkMultiPlayer
                     case ServerMessageType.AGENCY_PROGRESS:
                         dmpGame.agencyProgressionWorker.HandleAgencyProgression(message.data);
                         break;
+                    case ServerMessageType.AGENCY_REWARD:
+                        dmpGame.agencyProgressionWorker.HandleAgencyReward(message.data);
+                        break;
                 default:
                         DarkLog.Debug("Unhandled message type " + message.type);
                         break;
