@@ -1300,6 +1300,15 @@ namespace DarkMultiPlayer
                 chatWorker.consoleIdentifier = mr.Read<string>();
                 dmpGame.serverDifficulty = (GameDifficulty)mr.Read<int>();
                 vesselWorker.safetyBubbleDistance = mr.Read<float>();
+                dmpGame.serverAgencyProgressionEnabled = mr.Read<bool>();
+                if (dmpGame.serverAgencyProgressionEnabled)
+                {
+                    DarkLog.Debug("Server agency progression is enabled by this server.");
+                }
+                else
+                {
+                    dmpGame.displayAgencyProgression = false;
+                }
                 if (dmpGame.serverDifficulty != GameDifficulty.CUSTOM)
                 {
                     dmpGame.serverParameters = GameParameters.GetDefaultParameters(Client.ConvertGameMode(dmpGame.gameMode), (GameParameters.Preset)dmpGame.serverDifficulty);

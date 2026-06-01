@@ -11,6 +11,8 @@ namespace DarkMultiPlayer
         public bool forceQuit;
         public GameMode gameMode;
         public bool serverAllowCheats = true;
+        public bool serverAgencyProgressionEnabled;
+        public bool displayAgencyProgression;
         // Server setting
         public GameDifficulty serverDifficulty;
         public GameParameters serverParameters;

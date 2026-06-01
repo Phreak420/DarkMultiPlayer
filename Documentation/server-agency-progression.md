@@ -79,11 +79,13 @@ the protocol is stable.
 
 ### Phase 1: Discovery and Gates
 
-- Add an experimental server setting, default `false`.
-- Add protocol fields for "server supports agency progression" without changing behavior.
-- Add a hidden client UI toggle/section that appears only when the server setting is enabled.
-- Log clear server/client startup messages when the experimental mode is enabled.
-- No resource rewards, no new contracts, no scenario mutation beyond settings sync.
+- [x] Add an experimental server setting, default `false`.
+- [x] Add protocol fields for "server supports agency progression" without changing behavior.
+- [x] Add a hidden client UI toggle/section that appears only when the server setting is enabled.
+- [x] Log clear server/client startup messages when the experimental mode is enabled.
+- [x] No resource rewards, no new contracts, no scenario mutation beyond settings sync.
+
+Implemented setting: `agencyProgressionEnabled`.
 
 ### Phase 2: Read-Only Agency State
 

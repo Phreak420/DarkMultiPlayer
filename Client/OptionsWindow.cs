@@ -8,7 +8,8 @@ namespace DarkMultiPlayer
         PLAYER,
         CACHE,
         CONTROLS,
-        ADVANCED
+        ADVANCED,
+        AGENCY
     }
 
     public class OptionsWindow
@@ -211,6 +212,10 @@ namespace DarkMultiPlayer
             //Player color
             GUI.DragWindow(moveRect);
             GUI.Box(new Rect(2, 20, windowRect.width - 4, 20), string.Empty, sectionHeaderStyle);
+            if (selectedTab == OptionsTab.AGENCY && (dmpGame == null || !dmpGame.serverAgencyProgressionEnabled))
+            {
+                selectedTab = OptionsTab.ADVANCED;
+            }
             selectedTab = (OptionsTab)GUILayout.Toolbar((int)selectedTab, GetOptionsTabStrings(), toolbarBtnStyle);
 
             int windowY = 17;
@@ -495,6 +500,26 @@ namespace DarkMultiPlayer
                 groupY += 22;
                 GUI.EndGroup();
             }
+            if (selectedTab == OptionsTab.AGENCY)
+            {
+                GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 84));
+                groupY = 0;
+
+                GUI.Box(new Rect(0, groupY, windowRect.width - 20, 20), "Server Agency", sectionHeaderStyle);
+                groupY += 24;
+
+                bool displayAgencyProgression = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), dmpGame.displayAgencyProgression, "Show Agency Panel");
+                if (displayAgencyProgression != dmpGame.displayAgencyProgression)
+                {
+                    dmpGame.displayAgencyProgression = displayAgencyProgression;
+                    DarkLog.Debug("Agency progression panel display set to " + displayAgencyProgression);
+                }
+                groupY += 24;
+
+                GUI.Label(new Rect(0, groupY, windowRect.width - 20, 36), "Agency progression is experimental and server controlled.", noteStyle);
+
+                GUI.EndGroup();
+            }
         }
 
         private void CheckWindowLock()
@@ -552,6 +577,7 @@ namespace DarkMultiPlayer
                 if (enumVal == OptionsTab.PLAYER) stringList.Add("Player");
                 if (enumVal == OptionsTab.CACHE) stringList.Add("Cache");
                 if (enumVal == OptionsTab.CONTROLS) stringList.Add("Keys");
+                if (enumVal == OptionsTab.AGENCY && dmpGame != null && dmpGame.serverAgencyProgressionEnabled) stringList.Add("Agency");
                 if (enumVal == OptionsTab.ADVANCED) stringList.Add("Advanced");
             }
             return stringList.ToArray();
@@ -565,4 +591,3 @@ namespace DarkMultiPlayer
         }
     }
 }
-
