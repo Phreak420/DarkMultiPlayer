@@ -104,11 +104,11 @@ Implemented config file: `Config/AgencyProgression.json`.
   - science subject received
   - vessel reached orbit around body
   - vessel landed or splashed down on body
+  - vessel docked with another vessel
 - [x] Rate-limit and size-limit evidence messages.
 - [x] Validate evidence type and evidence IDs server-side.
 - [x] Store evidence separately from rewards so mistakes are easy to inspect and roll back.
-- [ ] Add additional evidence types:
-  - vessel docked with another vessel
+- [ ] Add additional evidence types.
 
 Implemented evidence log: `Universe/AgencyEvidence/<player>.log`.
 

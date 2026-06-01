@@ -23,6 +23,7 @@ namespace DarkMultiPlayer
             dmpGame.updateEvent.Add(updateAction);
             GameEvents.OnTechnologyResearched.Add(OnTechnologyResearched);
             GameEvents.OnScienceRecieved.Add(OnScienceRecieved);
+            GameEvents.onPartCouple.Add(OnVesselDocked);
         }
 
         public AgencyObjectiveSummary[] Objectives
@@ -79,6 +80,7 @@ namespace DarkMultiPlayer
             dmpGame.updateEvent.Remove(updateAction);
             GameEvents.OnTechnologyResearched.Remove(OnTechnologyResearched);
             GameEvents.OnScienceRecieved.Remove(OnScienceRecieved);
+            GameEvents.onPartCouple.Remove(OnVesselDocked);
             lock (objectives)
             {
                 objectives.Clear();
@@ -132,6 +134,20 @@ namespace DarkMultiPlayer
                 return;
             }
             SendEvidenceOnce(AgencyEvidenceType.SCIENCE_RECEIVED, subject.id);
+        }
+
+        private void OnVesselDocked(GameEvents.FromToAction<Part, Part> partAction)
+        {
+            if (!dmpGame.serverAgencyProgressionEnabled || partAction.from == null || partAction.from.vessel == null || partAction.from.vessel.mainBody == null)
+            {
+                return;
+            }
+            string bodyName = partAction.from.vessel.mainBody.bodyName;
+            if (string.IsNullOrEmpty(bodyName))
+            {
+                return;
+            }
+            SendEvidenceOnce(AgencyEvidenceType.VESSEL_DOCKED, BuildEvidenceId("docked", bodyName));
         }
 
         private void SendEvidenceOnce(AgencyEvidenceType evidenceType, string evidenceId)

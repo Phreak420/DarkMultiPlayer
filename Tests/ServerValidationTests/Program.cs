@@ -34,6 +34,7 @@ namespace ServerValidationTests
             Run("Agency evidence enabled records audit log", AgencyEvidenceEnabledRecordsAuditLog);
             Run("Agency science evidence records audit log", AgencyScienceEvidenceRecordsAuditLog);
             Run("Agency vessel evidence records audit log", AgencyVesselEvidenceRecordsAuditLog);
+            Run("Agency docking evidence records audit log", AgencyDockingEvidenceRecordsAuditLog);
             Run("Agency evidence rejects invalid IDs", AgencyEvidenceRejectsInvalidIds);
 
             if (failures == 0)
@@ -392,6 +393,21 @@ namespace ServerValidationTests
             string evidenceLog = File.ReadAllText(evidenceFile);
             Assert(evidenceLog.Contains("VESSEL_ORBITED"), "vessel evidence log did not include evidence type");
             Assert(evidenceLog.Contains("orbit-Kerbin"), "vessel evidence log did not include evidence id");
+        }
+
+        private static void AgencyDockingEvidenceRecordsAuditLog()
+        {
+            string universe = CreateUniverse();
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            ClientObject client = CreateClient("Dana");
+
+            SendAgencyEvidence(client, AgencyEvidenceType.VESSEL_DOCKED, "docked-Kerbin");
+
+            string evidenceFile = Path.Combine(universe, "AgencyEvidence", "Dana.log");
+            Assert(File.Exists(evidenceFile), "docking agency evidence did not create an audit log");
+            string evidenceLog = File.ReadAllText(evidenceFile);
+            Assert(evidenceLog.Contains("VESSEL_DOCKED"), "docking evidence log did not include evidence type");
+            Assert(evidenceLog.Contains("docked-Kerbin"), "docking evidence log did not include evidence id");
         }
 
         private static void AgencyEvidenceRejectsInvalidIds()
