@@ -149,3 +149,202 @@ Start with a server ledger and read-only UI. Do not generate stock contracts fir
 scenario sync path is useful but broad, and KSP contracts are single-player state with many
 side-effects. A DMP-owned quest ledger gives us a safer rollback path and lets the server act as
 the authority before we integrate deeper with KSP's contract UI.
+
+## Future Engagement and Campaign Director Roadmap
+
+This section describes long-term extension points that can build on the existing agency
+progression model. It does not replace the current implementation roadmap. The immediate priority
+remains evidence collection, objective completion, rewards, and administration. Future systems
+must stay optional, backwards-compatible, and gated behind `agencyProgressionEnabled` or a more
+specific child setting.
+
+### Campaign / Story Arc Framework
+
+Agency progression should eventually support server-authored campaigns that give a multiplayer
+server a persistent direction without hardcoding specific stories into DMP. Examples of campaign
+themes server owners may define include:
+
+- Kerbin resource crisis.
+- Colony survival initiative.
+- Duna colonization effort.
+- Asteroid defense program.
+- Deep space exploration initiative.
+
+The framework should treat those as data, not code. A campaign definition should describe its
+name, premise, phases, objectives, unlock rules, event hooks, rewards, and safety limits through
+configuration files. DMP should provide the generic campaign engine, validation, sync, audit, and
+admin tooling. Server owners should provide the story content.
+
+### Global Community Objectives
+
+The objective system should support community-wide progress in addition to personal objectives.
+Future objective scopes may include personal, team, agency, server-wide, and opt-in shared
+objectives. Multiple players should be able to contribute evidence and progress toward one shared
+objective without overwriting each other's work.
+
+Examples of community objectives:
+
+- Build relay networks.
+- Deliver resources to stations, depots, or colonies.
+- Establish colonies or surface bases.
+- Discover anomalies.
+- Reach specific celestial bodies.
+- Construct infrastructure such as stations, refueling depots, launch sites, or deep-space relays.
+
+The server should own contribution accounting. Clients may report evidence, but the server should
+decide whether that evidence contributes to an objective, how much progress it grants, and whether
+the contribution is personal, team-wide, or global.
+
+### Campaign Phases
+
+Campaigns should support phased progression. A phase is a group of objectives with shared unlock
+conditions, narrative context, and optional reward rules. Completing one phase can unlock later
+phases while preserving the evidence and audit history that led to the unlock.
+
+Example phase chain:
+
+- Phase 1: Survey Duna.
+- Phase 2: Land crew.
+- Phase 3: Establish colony.
+- Phase 4: Create self-sustaining infrastructure.
+
+Phases should be data-driven. A campaign file should be able to express phase ordering,
+prerequisites, optional side objectives, hidden future objectives, and server-wide unlocks without
+requiring a new DMP build.
+
+### Event System
+
+A future campaign director may support temporary server events. Events should be optional,
+configurable, auditable, and bounded. They should add urgency or variety without destabilizing a
+server's long-term progression.
+
+Examples:
+
+- Asteroid threats.
+- Solar storms.
+- Communication outages.
+- Resource shortages.
+- Emergency evacuation contracts.
+
+Events should have explicit start conditions, duration, effects, objective hooks, and recovery
+paths. They should be able to trigger new objectives or modify existing objective rewards, but
+they should not bypass the same validation and audit rules used by normal agency progression.
+
+### Persistent Server Progression
+
+The architecture should leave room for persistent server-level progression that is separate from
+any single player's save state. Future concepts may include:
+
+- Global science pools.
+- Global reputation.
+- Agency milestones.
+- Historical achievements.
+- Hall of Fame statistics.
+
+These systems should be implemented as server-owned ledgers with clear sync points to clients.
+They should not require rewriting current evidence or objective records. Evidence should remain
+the raw audit trail, objective state should remain derived server state, and rewards/progression
+should remain separately auditable.
+
+### Agency / Team / Corporation Support
+
+Future campaigns may support player organizations. The initial architecture should avoid assuming
+that every objective is either personal or global.
+
+Possible future features:
+
+- Player agencies, teams, or corporations.
+- Team objectives.
+- Agency rankings.
+- Cooperative objectives.
+- Competitive objectives.
+
+No implementation is required now. The main design consideration is to keep objective ownership,
+contribution records, reward recipients, and visibility rules explicit. A team objective should
+not be modeled as a personal objective with special cases scattered through the code.
+
+### Dynamic Economy Safety Principles
+
+Any future economy system must keep the server playable for returning players. Economic pressure
+can create interesting choices, but it should never punish players so aggressively that coming
+back to the server feels hopeless.
+
+Design principles:
+
+- Bound all economy modifiers.
+- Never allow irreversible economic collapse.
+- Avoid inactivity death spirals.
+- Pause, dampen, or stabilize economy systems during low activity periods.
+- Prefer recovery opportunities over punishment.
+- Generate attractive contracts when resources become scarce.
+- Provide admin override, reset, and repair tools.
+- Keep economy state observable and auditable.
+- Keep all economy systems optional and disabled by default until mature.
+
+Bad outcome:
+
+- Fuel prices increased 800% because nobody played for two weeks.
+
+Better outcome:
+
+- Fuel prices increased 15%, and the Agency is offering premium logistics contracts to replenish
+  reserves.
+
+Scarcity should usually create opportunities. If fuel, funds, reputation, or resources become
+strained, the campaign director should offer useful work that helps players recover rather than
+locking them out of meaningful play.
+
+### Seasonal Campaign Support
+
+Servers may eventually want campaigns that run for a fixed season and then archive their results.
+Seasonal support should preserve history wherever possible instead of simply deleting the past.
+
+Future seasonal features may include:
+
+- Seasons.
+- Campaign archives.
+- Historical statistics.
+- Hall of Fame records.
+- Optional campaign resets.
+
+Campaign resets should preserve historical achievements, audit records, player contribution
+totals, and notable milestones whenever possible. A reset should start a new campaign state, not
+erase the server's story.
+
+### Configuration-First Philosophy
+
+Campaign systems should be driven by configuration rather than code. Server owners should be able
+to design campaigns, objectives, events, rewards, and safety limits without recompiling DMP.
+
+Future configuration files may include:
+
+- Campaign definitions.
+- Objective chains.
+- Event definitions.
+- Reward tables.
+- Economy modifiers.
+- Safety limits.
+
+Configuration should be validated on server startup, and invalid campaign content should fail
+closed: log clear errors, skip unsafe entries, and keep the server playable. Future admin commands
+can reload campaign configuration, but reloads should use the same validation path as startup.
+
+### Implementation Guidance
+
+Recommended staged approach:
+
+- Current phase: evidence collection and objective completion.
+- Next phase: rewards and administration.
+- Later phase: campaigns and story arcs.
+- Later phase: events and global progression.
+- Later phase: economy and seasonal systems.
+
+The core extension points to preserve are:
+
+- Evidence remains raw, append-only, and auditable.
+- Objective state remains server-owned and derived from evidence plus campaign configuration.
+- Rewards remain separate from evidence and objective matching.
+- Campaigns remain optional and configuration-driven.
+- Dynamic economy systems remain bounded, observable, and recoverable.
+- Existing DMP sandbox, science, and career servers continue to work with
+  `agencyProgressionEnabled = false`.
