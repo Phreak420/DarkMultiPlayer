@@ -11,6 +11,7 @@ namespace DarkMultiPlayer
         private readonly List<AgencyObjectiveSummary> objectives = new List<AgencyObjectiveSummary>();
         private readonly HashSet<string> sentEvidenceIds = new HashSet<string>();
         private readonly Dictionary<Guid, string> vesselBodies = new Dictionary<Guid, string>();
+        private readonly Queue<AgencyRewardSummary> pendingRewards = new Queue<AgencyRewardSummary>();
         private readonly DMPGame dmpGame;
         private readonly NetworkWorker networkWorker;
         private readonly NamedAction updateAction;
@@ -106,13 +107,15 @@ namespace DarkMultiPlayer
                 float science = mr.Read<float>();
                 float reputation = mr.Read<float>();
 
-                try
+                lock (pendingRewards)
                 {
-                    ApplyAgencyReward(objectiveId, funds, science, reputation);
-                }
-                catch (Exception e)
-                {
-                    DarkLog.Debug("Failed to apply agency reward for " + objectiveId + ", exception: " + e);
+                    pendingRewards.Enqueue(new AgencyRewardSummary
+                    {
+                        objectiveId = objectiveId,
+                        funds = funds,
+                        science = science,
+                        reputation = reputation
+                    });
                 }
             }
         }
@@ -131,10 +134,16 @@ namespace DarkMultiPlayer
             }
             sentEvidenceIds.Clear();
             vesselBodies.Clear();
+            lock (pendingRewards)
+            {
+                pendingRewards.Clear();
+            }
         }
 
         private void Update()
         {
+            ApplyPendingRewards();
+
             if (!dmpGame.serverAgencyProgressionEnabled || !HighLogic.LoadedSceneIsFlight || !FlightGlobals.ready || FlightGlobals.fetch == null || FlightGlobals.fetch.activeVessel == null)
             {
                 return;
@@ -278,6 +287,30 @@ namespace DarkMultiPlayer
             return evidenceId;
         }
 
+        private void ApplyPendingRewards()
+        {
+            while (true)
+            {
+                AgencyRewardSummary reward;
+                lock (pendingRewards)
+                {
+                    if (pendingRewards.Count == 0)
+                    {
+                        return;
+                    }
+                    reward = pendingRewards.Dequeue();
+                }
+                try
+                {
+                    ApplyAgencyReward(reward.objectiveId, reward.funds, reward.science, reward.reputation);
+                }
+                catch (Exception e)
+                {
+                    DarkLog.Debug("Failed to apply agency reward for " + reward.objectiveId + ", exception: " + e);
+                }
+            }
+        }
+
         private void ApplyAgencyReward(string objectiveId, double funds, float science, float reputation)
         {
             if (funds != 0 && Funding.Instance != null)
@@ -311,5 +344,13 @@ namespace DarkMultiPlayer
         public double rewardFunds;
         public float rewardScience;
         public float rewardReputation;
+    }
+
+    public class AgencyRewardSummary
+    {
+        public string objectiveId;
+        public double funds;
+        public float science;
+        public float reputation;
     }
 }
