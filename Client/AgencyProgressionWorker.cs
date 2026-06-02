@@ -48,9 +48,11 @@ namespace DarkMultiPlayer
                 string[] descriptions = mr.Read<string[]>();
                 string[] statuses = mr.Read<string[]>();
                 string[] scopes = mr.Read<string[]>();
+                double[] progressValues = mr.Read<double[]>();
+                double[] progressTargets = mr.Read<double[]>();
 
                 int objectiveCount = ids.Length;
-                if (titles.Length != objectiveCount || descriptions.Length != objectiveCount || statuses.Length != objectiveCount || scopes.Length != objectiveCount)
+                if (titles.Length != objectiveCount || descriptions.Length != objectiveCount || statuses.Length != objectiveCount || scopes.Length != objectiveCount || progressValues.Length != objectiveCount || progressTargets.Length != objectiveCount)
                 {
                     DarkLog.Debug("Received invalid agency progression data from server.");
                     return;
@@ -68,7 +70,9 @@ namespace DarkMultiPlayer
                             title = titles[i],
                             description = descriptions[i],
                             status = statuses[i],
-                            scope = scopes[i]
+                            scope = scopes[i],
+                            progressValue = progressValues[i],
+                            progressTarget = progressTargets[i]
                         });
                     }
                 }
@@ -237,5 +241,7 @@ namespace DarkMultiPlayer
         public string description;
         public string status;
         public string scope;
+        public double progressValue;
+        public double progressTarget;
     }
 }

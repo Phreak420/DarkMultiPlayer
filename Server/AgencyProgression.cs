@@ -246,6 +246,67 @@ namespace DarkMultiPlayerServer
             return ReadRewardFile(rewardFile);
         }
 
+        public static AgencyObjectiveProgress[] GetProgressRecords()
+        {
+            lock (progress)
+            {
+                List<AgencyObjectiveProgress> records = new List<AgencyObjectiveProgress>();
+                foreach (AgencyObjectiveProgress progressRecord in progress.Values)
+                {
+                    records.Add(CloneProgress(progressRecord));
+                }
+                return records.ToArray();
+            }
+        }
+
+        public static AgencyObjectiveProgress[] GetProgressRecords(string playerName)
+        {
+            if (!SafeFile.IsNameSafe(playerName))
+            {
+                return new AgencyObjectiveProgress[0];
+            }
+
+            lock (progress)
+            {
+                List<AgencyObjectiveProgress> records = new List<AgencyObjectiveProgress>();
+                foreach (AgencyObjectiveProgress progressRecord in progress.Values)
+                {
+                    if (progressRecord.playerName == playerName)
+                    {
+                        records.Add(CloneProgress(progressRecord));
+                    }
+                }
+                return records.ToArray();
+            }
+        }
+
+        public static bool ResetProgress(string playerName, string objectiveId)
+        {
+            if (!IsProgressResetTargetSafe(playerName, objectiveId))
+            {
+                return false;
+            }
+
+            AgencyObjective objective = FindObjective(objectiveId);
+            if (objective == null || objective.progressTarget <= 0 || HasCompletion(objective, playerName))
+            {
+                return false;
+            }
+
+            string progressPlayer = IsServerObjective(objective.scope) ? string.Empty : playerName;
+            bool removed;
+            lock (progress)
+            {
+                removed = progress.Remove(BuildCompletionKey(objective.id, progressPlayer));
+            }
+            if (removed)
+            {
+                SaveProgress();
+                DarkMultiPlayerServer.Messages.AgencyProgression.SendAgencyProgressionToAll();
+            }
+            return removed;
+        }
+
         public static bool ReplayReward(string playerName, string objectiveId)
         {
             if (!IsAdminTargetSafe(playerName, objectiveId))
@@ -681,6 +742,24 @@ namespace DarkMultiPlayerServer
         private static bool IsAdminTargetSafe(string playerName, string objectiveId)
         {
             return SafeFile.IsNameSafe(playerName) && SafeFile.IsNameSafe(objectiveId);
+        }
+
+        private static bool IsProgressResetTargetSafe(string playerName, string objectiveId)
+        {
+            return (string.IsNullOrEmpty(playerName) || SafeFile.IsNameSafe(playerName)) && SafeFile.IsNameSafe(objectiveId);
+        }
+
+        private static AgencyObjectiveProgress CloneProgress(AgencyObjectiveProgress progressRecord)
+        {
+            return new AgencyObjectiveProgress
+            {
+                objectiveId = progressRecord.objectiveId,
+                scope = progressRecord.scope,
+                playerName = progressRecord.playerName,
+                progressValue = progressRecord.progressValue,
+                lastContributedBy = progressRecord.lastContributedBy,
+                updatedAtUtc = progressRecord.updatedAtUtc
+            };
         }
 
         private static string GetProgressFile()

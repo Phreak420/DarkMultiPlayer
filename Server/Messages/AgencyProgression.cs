@@ -18,6 +18,8 @@ namespace DarkMultiPlayerServer.Messages
             string[] objectiveDescriptions = new string[objectives.Length];
             string[] objectiveStatuses = new string[objectives.Length];
             string[] objectiveScopes = new string[objectives.Length];
+            double[] objectiveProgressValues = new double[objectives.Length];
+            double[] objectiveProgressTargets = new double[objectives.Length];
 
             for (int i = 0; i < objectives.Length; i++)
             {
@@ -26,6 +28,8 @@ namespace DarkMultiPlayerServer.Messages
                 objectiveDescriptions[i] = objectives[i].description;
                 objectiveStatuses[i] = objectives[i].status;
                 objectiveScopes[i] = objectives[i].scope;
+                objectiveProgressValues[i] = objectives[i].progressValue;
+                objectiveProgressTargets[i] = objectives[i].progressTarget;
             }
 
             ServerMessage newMessage = new ServerMessage();
@@ -38,6 +42,8 @@ namespace DarkMultiPlayerServer.Messages
                 mw.Write<string[]>(objectiveDescriptions);
                 mw.Write<string[]>(objectiveStatuses);
                 mw.Write<string[]>(objectiveScopes);
+                mw.Write<double[]>(objectiveProgressValues);
+                mw.Write<double[]>(objectiveProgressTargets);
                 newMessage.data = mw.GetMessageBytes();
             }
             ClientHandler.SendToClient(client, newMessage, true);

@@ -31,6 +31,12 @@ namespace DarkMultiPlayerServer
                 case "rewards":
                     ShowRewards(argument);
                     break;
+                case "progress":
+                    ShowProgress(argument);
+                    break;
+                case "resetprogress":
+                    ResetProgress(argument);
+                    break;
                 case "replay":
                     ReplayReward(argument);
                     break;
@@ -38,7 +44,7 @@ namespace DarkMultiPlayerServer
                     RevokeReward(argument);
                     break;
                 default:
-                    DarkLog.Normal("Usage: /agency [status|reload|objectives|evidence [player]|rewards [player]|replay <player> <objective>|revoke <player> <objective>]");
+                    DarkLog.Normal("Usage: /agency [status|reload|objectives|evidence [player]|rewards [player]|progress [player]|resetprogress <player|server> <objective>|replay <player> <objective>|revoke <player> <objective>]");
                     break;
             }
         }
@@ -63,6 +69,7 @@ namespace DarkMultiPlayerServer
             DarkLog.Normal("Agency pack: " + AgencyProgression.PackName);
             DarkLog.Normal("Objectives: " + complete + "/" + objectives.Length + " complete");
             DarkLog.Normal("Evidence records: " + AgencyProgression.GetEvidenceRecords().Length);
+            DarkLog.Normal("Progress records: " + AgencyProgression.GetProgressRecords().Length);
             DarkLog.Normal("Reward records: " + AgencyProgression.GetRewardRecords().Length);
         }
 
@@ -102,6 +109,47 @@ namespace DarkMultiPlayerServer
             {
                 AgencyRewardRecord record = records[i];
                 DarkLog.Normal(record.awardedAtUtc.ToString("u") + " " + record.playerName + " " + record.objectiveId + " funds=" + record.funds + " science=" + record.science + " reputation=" + record.reputation);
+            }
+        }
+
+        private static void ShowProgress(string playerName)
+        {
+            if (string.Equals(playerName, "server", StringComparison.OrdinalIgnoreCase))
+            {
+                playerName = string.Empty;
+            }
+            AgencyObjectiveProgress[] records = string.IsNullOrEmpty(playerName) ? AgencyProgression.GetProgressRecords() : AgencyProgression.GetProgressRecords(playerName);
+            DarkLog.Normal("Agency progress records: " + records.Length);
+            int start = Math.Max(0, records.Length - 10);
+            for (int i = start; i < records.Length; i++)
+            {
+                AgencyObjectiveProgress record = records[i];
+                string owner = string.IsNullOrEmpty(record.playerName) ? "server" : record.playerName;
+                DarkLog.Normal(record.updatedAtUtc + " " + owner + " " + record.objectiveId + " progress=" + record.progressValue + " lastBy=" + record.lastContributedBy);
+            }
+        }
+
+        private static void ResetProgress(string argument)
+        {
+            string playerName;
+            string objectiveId;
+            if (!TryReadPlayerObjective(argument, out playerName, out objectiveId))
+            {
+                DarkLog.Normal("Usage: /agency resetprogress <player|server> <objective>");
+                return;
+            }
+            if (string.Equals(playerName, "server", StringComparison.OrdinalIgnoreCase))
+            {
+                playerName = string.Empty;
+            }
+
+            if (AgencyProgression.ResetProgress(playerName, objectiveId))
+            {
+                DarkLog.Normal("Reset agency progress for " + (string.IsNullOrEmpty(playerName) ? "server" : playerName) + " objective " + objectiveId + ".");
+            }
+            else
+            {
+                DarkLog.Normal("Agency progress reset failed. Check that the objective is valid, incomplete, and has progress.");
             }
         }
 
@@ -156,7 +204,7 @@ namespace DarkMultiPlayerServer
             int split = argument.IndexOf(" ", StringComparison.Ordinal);
             playerName = argument.Substring(0, split).Trim();
             objectiveId = argument.Substring(split + 1).Trim();
-            return !string.IsNullOrEmpty(playerName) && !string.IsNullOrEmpty(objectiveId);
+            return !string.IsNullOrEmpty(objectiveId) && (!string.IsNullOrEmpty(playerName) || argument.StartsWith("server ", StringComparison.OrdinalIgnoreCase));
         }
     }
 }

@@ -539,6 +539,11 @@ namespace DarkMultiPlayer
                             AgencyObjectiveSummary objective = objectives[i];
                             GUI.Label(new Rect(0, groupY, windowRect.width - 20, 20), objective.title + " [" + objective.status + "]", descriptorStyle);
                             groupY += 20;
+                            if (objective.progressTarget > 0 && objective.progressValue > 0 && objective.progressValue < objective.progressTarget)
+                            {
+                                GUI.Label(new Rect(0, groupY, windowRect.width - 20, 20), "Progress: " + objective.progressValue.ToString("0.##") + " / " + objective.progressTarget.ToString("0.##"), noteStyle);
+                                groupY += 22;
+                            }
                             GUI.Label(new Rect(0, groupY, windowRect.width - 20, 34), objective.description, noteStyle);
                             groupY += 38;
                         }

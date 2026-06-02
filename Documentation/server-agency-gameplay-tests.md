@@ -143,6 +143,7 @@ Server console checks:
 - Run `/agency objectives`.
 - Run `/agency evidence <player>`.
 - Run `/agency rewards <player>`.
+- Run `/agency progress`.
 - Run `/agency replay <player> orbit-kerbin` only if you intentionally want to apply the reward
   again for recovery testing.
 - Run `/agency revoke <player> orbit-kerbin` only if you intentionally want to apply a negative
@@ -249,19 +250,37 @@ Expected:
 1. Use the suggested test config.
 2. Complete matching evidence for `kerbin-relay-network` with player A.
 3. Reopen the Agency panel.
-4. Complete matching evidence for `kerbin-relay-network` with player B.
-5. Reopen the Agency panel.
+4. Run `/agency progress`.
+5. Complete matching evidence for `kerbin-relay-network` with player B.
+6. Reopen the Agency panel.
 
 Expected:
 
 - After player A contributes, `kerbin-relay-network` shows `In Progress 1/2`.
+- The Agency panel shows a `Progress: 1 / 2` line for the partial objective.
 - Server writes `Universe/AgencyProgression/Progress.log`.
+- `/agency progress` lists the partial progress record.
 - No reward is granted before the target is reached.
 - After player B contributes, `kerbin-relay-network` changes to `Complete`.
 - Reward is granted to the player whose contribution reaches the target.
 - Completion persists in `Universe/AgencyProgression/Objectives.log`.
 
-### 12. Server Reload
+### 12. Admin Progress Reset
+
+1. Use the suggested test config.
+2. Complete matching evidence for `kerbin-relay-network` with player A only.
+3. Run `/agency progress`.
+4. Run `/agency resetprogress server kerbin-relay-network`.
+5. Reopen the Agency panel.
+
+Expected:
+
+- Before reset, `kerbin-relay-network` shows `In Progress 1/2`.
+- Reset removes the partial progress record.
+- The objective returns to `Available`.
+- No completion or reward is created by the reset.
+
+### 13. Server Reload
 
 1. Complete at least one objective.
 2. Run `/agency reload`.
@@ -273,7 +292,7 @@ Expected:
 - Objective status is resent to clients.
 - Server does not grant rewards again just because of reload.
 
-### 13. Restart Persistence
+### 14. Restart Persistence
 
 1. Complete at least one objective.
 2. Stop and restart the server.
@@ -285,7 +304,7 @@ Expected:
 - Evidence and reward audit files remain on disk.
 - Agency panel shows the persisted complete status.
 
-### 14. Existing Server Safety
+### 15. Existing Server Safety
 
 1. Use a normal DMP server config with `agencyProgressionEnabled = False`.
 2. Connect and perform normal DMP activities: chat, launch, sync vessel, disconnect.

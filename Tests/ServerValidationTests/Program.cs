@@ -39,6 +39,7 @@ namespace ServerValidationTests
             Run("Agency evidence completes matching objective", AgencyEvidenceCompletesMatchingObjective);
             Run("Agency prerequisites unlock objectives", AgencyPrerequisitesUnlockObjectives);
             Run("Agency shared progress completes objective", AgencySharedProgressCompletesObjective);
+            Run("Agency shared progress reloads and resets", AgencySharedProgressReloadsAndResets);
             Run("Agency personal objective state is per-player", AgencyPersonalObjectiveStateIsPerPlayer);
             Run("Agency objective completion queues reward", AgencyObjectiveCompletionQueuesReward);
             Run("Agency reward query returns records", AgencyRewardQueryReturnsRecords);
@@ -562,6 +563,34 @@ namespace ServerValidationTests
             Assert(objectives[0].status == "Complete", "shared progress objective did not complete at target");
             Assert(File.Exists(Path.Combine(universe, "AgencyRewards", "Bob.log")), "shared progress completion did not reward completing player");
             Assert(File.Exists(Path.Combine(universe, "AgencyProgression", "Objectives.log")), "shared progress completion log was not written");
+        }
+
+        private static void AgencySharedProgressReloadsAndResets()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-agency-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"relay-network\",\"title\":\"Build Relay Network\",\"description\":\"Contribute relay evidence.\",\"status\":\"Available\",\"scope\":\"Server\",\"evidenceType\":\"VESSEL_ORBITED\",\"evidenceId\":\"orbit-Kerbin\",\"progressTarget\":3,\"progressPerEvidence\":1}]}");
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            ClientObject alice = CreateClient("Alice");
+
+            AgencyProgression.Load(true);
+            SendAgencyEvidence(alice, AgencyEvidenceType.VESSEL_ORBITED, "orbit-Kerbin");
+
+            AgencyObjective[] objectives = AgencyProgression.Objectives;
+            Assert(objectives[0].status == "In Progress 1/3", "shared progress objective did not record partial progress");
+
+            AgencyProgression.Load(true);
+            objectives = AgencyProgression.Objectives;
+            Assert(objectives[0].status == "In Progress 1/3", "shared progress did not reload from disk");
+            Assert(AgencyProgression.GetProgressRecords().Length == 1, "shared progress query returned wrong record count after reload");
+
+            Assert(AgencyProgression.ResetProgress(string.Empty, "relay-network"), "shared progress reset failed");
+            objectives = AgencyProgression.Objectives;
+            Assert(objectives[0].status == "Available", "shared progress reset did not restore available status");
+            Assert(AgencyProgression.GetProgressRecords().Length == 0, "shared progress reset did not remove progress record");
         }
 
         private static void AgencyRewardQueryReturnsRecords()

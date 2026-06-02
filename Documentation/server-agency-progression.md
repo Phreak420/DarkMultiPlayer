@@ -133,13 +133,15 @@ Implemented evidence log: `Universe/AgencyEvidence/<player>.log`.
 - [x] Add audit logs for every reward event.
 - [x] Add admin commands to list agency state, evidence, and reward audit events.
 - [x] Add admin commands to replay or revoke agency reward events.
+- [x] Add admin commands to inspect and reset agency objective progress.
 
 Objective definitions can now optionally include `rewardFunds`, `rewardScience`, and
 `rewardReputation`.
 
 Implemented console commands: `/agency status`, `/agency reload`, `/agency objectives`,
-`/agency evidence [player]`, `/agency rewards [player]`, `/agency replay <player> <objective>`,
-and `/agency revoke <player> <objective>`.
+`/agency evidence [player]`, `/agency rewards [player]`, `/agency progress [player]`,
+`/agency resetprogress <player|server> <objective>`, `/agency replay <player> <objective>`, and
+`/agency revoke <player> <objective>`.
 
 ### Phase 5: Shared Storyline Progression
 
@@ -149,6 +151,7 @@ and `/agency revoke <player> <objective>`.
   extensions.
 - [x] Add objective prerequisites so completed milestones can unlock later objectives.
 - [x] Add basic progress targets so multiple players can contribute to shared objectives.
+- [x] Show objective progress values in the Agency UI for partially complete progress objectives.
 - Add group/server-wide milestones that unlock later objective chains.
 - Support opt-in shared projects such as stations, relays, and bases.
 - Let server owners choose whether completion is first-to-complete, all-players, team-based, or
