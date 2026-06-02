@@ -114,6 +114,8 @@ namespace DarkMultiPlayerServer
                         description = CleanText(objective.description, string.Empty),
                         status = completion == null ? CleanText(objective.status, AvailableStatus) : CompleteStatus,
                         scope = scope,
+                        contractType = CleanText(objective.contractType, "Milestone"),
+                        issuer = CleanText(objective.issuer, "Server Agency"),
                         evidenceType = CleanText(objective.evidenceType, string.Empty),
                         evidenceId = CleanText(objective.evidenceId, string.Empty),
                         prerequisiteObjectiveIds = CleanPrerequisites(objective.prerequisiteObjectiveIds),
@@ -614,6 +616,8 @@ namespace DarkMultiPlayerServer
                     description = objective.description,
                     status = GetObjectiveStatus(objective, playerName),
                     scope = objective.scope,
+                    contractType = objective.contractType,
+                    issuer = objective.issuer,
                     evidenceType = objective.evidenceType,
                     evidenceId = objective.evidenceId,
                     prerequisiteObjectiveIds = objective.prerequisiteObjectiveIds,
@@ -984,6 +988,8 @@ namespace DarkMultiPlayerServer
                         description = "Place a crewed or uncrewed vessel into a stable Kerbin orbit.",
                         status = "Available",
                         scope = "Personal",
+                        contractType = "Milestone",
+                        issuer = "Server Agency",
                         evidenceType = AgencyEvidenceType.VESSEL_ORBITED.ToString(),
                         evidenceId = "orbit-Kerbin",
                         rewardFunds = 5000,
@@ -997,6 +1003,8 @@ namespace DarkMultiPlayerServer
                         description = "Send a vessel through the Mun's sphere of influence and return useful mission data.",
                         status = "Locked",
                         scope = "Server",
+                        contractType = "Campaign",
+                        issuer = "Server Agency",
                         prerequisiteObjectiveIds = new string[] { "reach-orbit" }
                     }
                 }
@@ -1048,6 +1056,12 @@ namespace DarkMultiPlayerServer
 
         [DataMember]
         public string scope;
+
+        [DataMember]
+        public string contractType;
+
+        [DataMember]
+        public string issuer;
 
         [DataMember]
         public string evidenceType;

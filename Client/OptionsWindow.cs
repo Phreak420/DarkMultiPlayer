@@ -502,7 +502,7 @@ namespace DarkMultiPlayer
             }
             if (selectedTab == OptionsTab.AGENCY)
             {
-                GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 250));
+                GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 300));
                 groupY = 0;
 
                 GUI.Box(new Rect(0, groupY, windowRect.width - 20, 20), "Server Agency", sectionHeaderStyle);
@@ -533,15 +533,23 @@ namespace DarkMultiPlayer
                     }
                     else
                     {
-                        int maxObjectives = Math.Min(objectives.Length, 4);
+                        int maxObjectives = Math.Min(objectives.Length, 3);
                         for (int i = 0; i < maxObjectives; i++)
                         {
                             AgencyObjectiveSummary objective = objectives[i];
                             GUI.Label(new Rect(0, groupY, windowRect.width - 20, 20), objective.title + " [" + objective.status + "]", descriptorStyle);
                             groupY += 20;
+                            GUI.Label(new Rect(0, groupY, windowRect.width - 20, 20), BuildAgencyObjectiveMetadata(objective), noteStyle);
+                            groupY += 22;
                             if (objective.progressTarget > 0 && objective.progressValue > 0 && objective.progressValue < objective.progressTarget)
                             {
                                 GUI.Label(new Rect(0, groupY, windowRect.width - 20, 20), "Progress: " + objective.progressValue.ToString("0.##") + " / " + objective.progressTarget.ToString("0.##"), noteStyle);
+                                groupY += 22;
+                            }
+                            string rewardSummary = BuildAgencyRewardSummary(objective);
+                            if (!string.IsNullOrEmpty(rewardSummary))
+                            {
+                                GUI.Label(new Rect(0, groupY, windowRect.width - 20, 20), rewardSummary, noteStyle);
                                 groupY += 22;
                             }
                             GUI.Label(new Rect(0, groupY, windowRect.width - 20, 34), objective.description, noteStyle);
@@ -556,6 +564,41 @@ namespace DarkMultiPlayer
 
                 GUI.EndGroup();
             }
+        }
+
+        private string BuildAgencyObjectiveMetadata(AgencyObjectiveSummary objective)
+        {
+            string contractType = string.IsNullOrEmpty(objective.contractType) ? "Objective" : objective.contractType;
+            string scope = string.IsNullOrEmpty(objective.scope) ? "Server" : objective.scope;
+            string issuer = string.IsNullOrEmpty(objective.issuer) ? "Server Agency" : objective.issuer;
+            return contractType + " | " + scope + " | " + issuer;
+        }
+
+        private string BuildAgencyRewardSummary(AgencyObjectiveSummary objective)
+        {
+            string rewardSummary = string.Empty;
+            if (objective.rewardFunds != 0)
+            {
+                rewardSummary = "Funds " + objective.rewardFunds.ToString("0.##");
+            }
+            if (objective.rewardScience != 0)
+            {
+                rewardSummary = AppendAgencyReward(rewardSummary, "Science " + objective.rewardScience.ToString("0.##"));
+            }
+            if (objective.rewardReputation != 0)
+            {
+                rewardSummary = AppendAgencyReward(rewardSummary, "Rep " + objective.rewardReputation.ToString("0.##"));
+            }
+            return string.IsNullOrEmpty(rewardSummary) ? string.Empty : "Rewards: " + rewardSummary;
+        }
+
+        private string AppendAgencyReward(string rewardSummary, string reward)
+        {
+            if (string.IsNullOrEmpty(rewardSummary))
+            {
+                return reward;
+            }
+            return rewardSummary + ", " + reward;
         }
 
         private void CheckWindowLock()

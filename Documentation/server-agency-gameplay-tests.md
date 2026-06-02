@@ -33,6 +33,8 @@ Use this small config to exercise objective completion and rewards quickly:
       "description": "Place a vessel into Kerbin orbit.",
       "status": "Available",
       "scope": "Personal",
+      "contractType": "Milestone",
+      "issuer": "Server Agency",
       "evidenceType": "VESSEL_ORBITED",
       "evidenceId": "orbit-Kerbin",
       "rewardFunds": 5000,
@@ -45,6 +47,8 @@ Use this small config to exercise objective completion and rewards quickly:
       "description": "Recover or transmit a crew report from the launchpad.",
       "status": "Available",
       "scope": "Personal",
+      "contractType": "Science",
+      "issuer": "Research Division",
       "evidenceType": "SCIENCE_RECEIVED",
       "evidenceId": "crewReport@KerbinSrfLandedLaunchPad",
       "rewardFunds": 1000,
@@ -57,6 +61,8 @@ Use this small config to exercise objective completion and rewards quickly:
       "description": "Dock two vessels around Kerbin.",
       "status": "Available",
       "scope": "Personal",
+      "contractType": "Operations",
+      "issuer": "Mission Control",
       "evidenceType": "VESSEL_DOCKED",
       "evidenceId": "docked-Kerbin",
       "rewardFunds": 2500,
@@ -69,6 +75,8 @@ Use this small config to exercise objective completion and rewards quickly:
       "description": "Land on the Mun after proving Kerbin orbital capability.",
       "status": "Locked",
       "scope": "Server",
+      "contractType": "Campaign",
+      "issuer": "Server Agency",
       "evidenceType": "VESSEL_LANDED",
       "evidenceId": "landed-Mun",
       "prerequisiteObjectiveIds": [
@@ -84,6 +92,8 @@ Use this small config to exercise objective completion and rewards quickly:
       "description": "Have multiple players contribute Kerbin orbit evidence toward a shared relay objective.",
       "status": "Available",
       "scope": "Server",
+      "contractType": "Community",
+      "issuer": "Network Planning Office",
       "evidenceType": "VESSEL_ORBITED",
       "evidenceId": "orbit-Kerbin",
       "progressTarget": 2,
@@ -123,6 +133,7 @@ Expected:
 - `Agency` tab appears.
 - `Show Agency Panel` toggle appears.
 - Enabling the toggle shows the configured objective titles and statuses.
+- Visible objectives show contract type, scope, issuer, and reward summary when configured.
 
 ### 3. Objective Completion From Orbit Evidence
 

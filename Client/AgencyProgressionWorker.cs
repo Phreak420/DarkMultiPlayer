@@ -48,11 +48,16 @@ namespace DarkMultiPlayer
                 string[] descriptions = mr.Read<string[]>();
                 string[] statuses = mr.Read<string[]>();
                 string[] scopes = mr.Read<string[]>();
+                string[] contractTypes = mr.Read<string[]>();
+                string[] issuers = mr.Read<string[]>();
                 double[] progressValues = mr.Read<double[]>();
                 double[] progressTargets = mr.Read<double[]>();
+                double[] rewardFunds = mr.Read<double[]>();
+                float[] rewardScience = mr.Read<float[]>();
+                float[] rewardReputation = mr.Read<float[]>();
 
                 int objectiveCount = ids.Length;
-                if (titles.Length != objectiveCount || descriptions.Length != objectiveCount || statuses.Length != objectiveCount || scopes.Length != objectiveCount || progressValues.Length != objectiveCount || progressTargets.Length != objectiveCount)
+                if (titles.Length != objectiveCount || descriptions.Length != objectiveCount || statuses.Length != objectiveCount || scopes.Length != objectiveCount || contractTypes.Length != objectiveCount || issuers.Length != objectiveCount || progressValues.Length != objectiveCount || progressTargets.Length != objectiveCount || rewardFunds.Length != objectiveCount || rewardScience.Length != objectiveCount || rewardReputation.Length != objectiveCount)
                 {
                     DarkLog.Debug("Received invalid agency progression data from server.");
                     return;
@@ -71,8 +76,13 @@ namespace DarkMultiPlayer
                             description = descriptions[i],
                             status = statuses[i],
                             scope = scopes[i],
+                            contractType = contractTypes[i],
+                            issuer = issuers[i],
                             progressValue = progressValues[i],
-                            progressTarget = progressTargets[i]
+                            progressTarget = progressTargets[i],
+                            rewardFunds = rewardFunds[i],
+                            rewardScience = rewardScience[i],
+                            rewardReputation = rewardReputation[i]
                         });
                     }
                 }
@@ -241,7 +251,12 @@ namespace DarkMultiPlayer
         public string description;
         public string status;
         public string scope;
+        public string contractType;
+        public string issuer;
         public double progressValue;
         public double progressTarget;
+        public double rewardFunds;
+        public float rewardScience;
+        public float rewardReputation;
     }
 }

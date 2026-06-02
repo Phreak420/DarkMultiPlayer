@@ -30,6 +30,7 @@ namespace ServerValidationTests
             Run("Agency progression disabled clears objectives", AgencyProgressionDisabledClearsObjectives);
             Run("Agency progression enabled creates default objectives", AgencyProgressionEnabledCreatesDefaultObjectives);
             Run("Agency progression skips invalid objective IDs", AgencyProgressionSkipsInvalidObjectiveIds);
+            Run("Agency objective contract metadata loads", AgencyObjectiveContractMetadataLoads);
             Run("Agency evidence disabled is ignored", AgencyEvidenceDisabledIsIgnored);
             Run("Agency evidence enabled records audit log", AgencyEvidenceEnabledRecordsAuditLog);
             Run("Agency science evidence records audit log", AgencyScienceEvidenceRecordsAuditLog);
@@ -348,6 +349,25 @@ namespace ServerValidationTests
 
             Assert(AgencyProgression.Objectives.Length == 1, "invalid agency objective id was not skipped");
             Assert(AgencyProgression.Objectives[0].id == "valid-objective", "valid agency objective was not loaded");
+        }
+
+        private static void AgencyObjectiveContractMetadataLoads()
+        {
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-agency-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"contract-metadata\",\"title\":\"Metadata\",\"description\":\"Metadata test.\",\"status\":\"Available\",\"scope\":\"Server\",\"contractType\":\"Campaign\",\"issuer\":\"Mission Control\",\"rewardFunds\":25,\"rewardScience\":3,\"rewardReputation\":1}]}");
+
+            AgencyProgression.Load(true);
+
+            AgencyObjective[] objectives = AgencyProgression.Objectives;
+            Assert(objectives.Length == 1, "contract metadata test loaded unexpected objective count");
+            Assert(objectives[0].contractType == "Campaign", "contract type was not loaded");
+            Assert(objectives[0].issuer == "Mission Control", "issuer was not loaded");
+            Assert(objectives[0].rewardFunds == 25, "reward funds were not loaded");
+            Assert(objectives[0].rewardScience == 3, "reward science was not loaded");
+            Assert(objectives[0].rewardReputation == 1, "reward reputation was not loaded");
         }
 
         private static void AgencyEvidenceDisabledIsIgnored()

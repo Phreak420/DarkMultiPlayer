@@ -164,10 +164,15 @@ Objective definitions can now optionally include `prerequisiteObjectiveIds`, `pr
 
 ### Phase 6: Contract Integration
 
-- Decide whether to generate real KSP contracts, mirror KSP contracts in a DMP UI, or integrate
+- [x] Decide whether to generate real KSP contracts, mirror KSP contracts in a DMP UI, or integrate
   with Contract Configurator when installed.
+- [x] Start with DMP-owned contract-like objective presentation in the Agency UI.
+- [x] Show contract type, issuer, and reward summary for agency objectives.
 - Avoid hard dependency on Contract Configurator in the core mod.
 - Treat stock KSP contract state as client UI/experience, not as authoritative server truth.
+
+Phase 6 implementation bias: mirror server-authored objectives in the DMP Agency UI first. Real
+stock contracts and Contract Configurator support remain future optional integrations.
 
 ## Open Questions
 
