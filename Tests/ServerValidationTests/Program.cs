@@ -36,6 +36,7 @@ namespace ServerValidationTests
             Run("Agency science evidence records audit log", AgencyScienceEvidenceRecordsAuditLog);
             Run("Agency vessel evidence records audit log", AgencyVesselEvidenceRecordsAuditLog);
             Run("Agency docking evidence records audit log", AgencyDockingEvidenceRecordsAuditLog);
+            Run("Agency expanded vessel evidence records audit log", AgencyExpandedVesselEvidenceRecordsAuditLog);
             Run("Agency evidence query returns records", AgencyEvidenceQueryReturnsRecords);
             Run("Agency evidence completes matching objective", AgencyEvidenceCompletesMatchingObjective);
             Run("Agency prerequisites unlock objectives", AgencyPrerequisitesUnlockObjectives);
@@ -439,6 +440,24 @@ namespace ServerValidationTests
             string evidenceLog = File.ReadAllText(evidenceFile);
             Assert(evidenceLog.Contains("VESSEL_DOCKED"), "docking evidence log did not include evidence type");
             Assert(evidenceLog.Contains("docked-Kerbin"), "docking evidence log did not include evidence id");
+        }
+
+        private static void AgencyExpandedVesselEvidenceRecordsAuditLog()
+        {
+            string universe = CreateUniverse();
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            SendAgencyEvidence(CreateClient("ErinLaunch"), AgencyEvidenceType.VESSEL_LAUNCHED, "launched-Kerbin");
+            SendAgencyEvidence(CreateClient("ErinEscape"), AgencyEvidenceType.VESSEL_ESCAPED, "escaped-Kerbin");
+            SendAgencyEvidence(CreateClient("ErinEncounter"), AgencyEvidenceType.VESSEL_ENCOUNTERED, "encountered-Mun");
+            SendAgencyEvidence(CreateClient("ErinRecover"), AgencyEvidenceType.VESSEL_RECOVERED, "recovered-Kerbin");
+
+            AgencyEvidenceRecord[] records = AgencyProgression.GetEvidenceRecords();
+            Assert(records.Length == 4, "expanded vessel evidence query returned wrong record count");
+            Assert(AgencyProgression.FindEvidence(AgencyEvidenceType.VESSEL_LAUNCHED, "launched-Kerbin").Length == 1, "launch evidence was not recorded");
+            Assert(AgencyProgression.FindEvidence(AgencyEvidenceType.VESSEL_ESCAPED, "escaped-Kerbin").Length == 1, "escape evidence was not recorded");
+            Assert(AgencyProgression.FindEvidence(AgencyEvidenceType.VESSEL_ENCOUNTERED, "encountered-Mun").Length == 1, "encounter evidence was not recorded");
+            Assert(AgencyProgression.FindEvidence(AgencyEvidenceType.VESSEL_RECOVERED, "recovered-Kerbin").Length == 1, "recovery evidence was not recorded");
+            Assert(File.Exists(Path.Combine(universe, "AgencyEvidence", "ErinLaunch.log")), "expanded vessel evidence log was not written");
         }
 
         private static void AgencyEvidenceQueryReturnsRecords()

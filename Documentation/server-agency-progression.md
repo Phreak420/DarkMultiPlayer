@@ -115,16 +115,33 @@ Implemented config file: `Config/AgencyProgression.json`.
   - vessel reached orbit around body
   - vessel landed or splashed down on body
   - vessel docked with another vessel
+- [x] Add additional vessel milestone evidence:
+  - vessel launched from body
+  - vessel escaping body
+  - vessel encountered a new sphere of influence
+  - vessel recovered from body
 - [x] Rate-limit and size-limit evidence messages.
 - [x] Validate evidence type and evidence IDs server-side.
 - [x] Store evidence separately from rewards so mistakes are easy to inspect and roll back.
 - [x] Add server-side evidence query helpers for objective matching.
 - [x] Complete matching objectives when configured evidence arrives.
-- [ ] Add additional evidence types.
+- [ ] Add additional non-vessel evidence types.
 
 Objective definitions can now optionally include `evidenceType` and `evidenceId`.
 
 Implemented evidence log: `Universe/AgencyEvidence/<player>.log`.
+
+Implemented evidence IDs:
+
+- `TECHNOLOGY_RESEARCHED`: KSP technology node ID, such as `basicRocketry`.
+- `SCIENCE_RECEIVED`: KSP science subject ID, such as `crewReport@KerbinSrfLandedLaunchPad`.
+- `VESSEL_ORBITED`: `orbit-<body>`, such as `orbit-Kerbin`.
+- `VESSEL_LANDED`: `landed-<body>`, such as `landed-Mun`.
+- `VESSEL_DOCKED`: `docked-<body>`, such as `docked-Kerbin`.
+- `VESSEL_LAUNCHED`: `launched-<body>`, such as `launched-Kerbin`.
+- `VESSEL_ESCAPED`: `escaped-<body>`, such as `escaped-Kerbin`.
+- `VESSEL_ENCOUNTERED`: `encountered-<body>`, such as `encountered-Mun`.
+- `VESSEL_RECOVERED`: `recovered-<body>`, such as `recovered-Kerbin`.
 
 ### Phase 4: Server-Awarded Rewards
 

@@ -87,6 +87,20 @@ Use this small config to exercise objective completion and rewards quickly:
       "rewardReputation": 3
     },
     {
+      "id": "mun-encounter",
+      "title": "Encounter the Mun",
+      "description": "Enter the Mun's sphere of influence.",
+      "status": "Available",
+      "scope": "Personal",
+      "contractType": "Milestone",
+      "issuer": "Mission Control",
+      "evidenceType": "VESSEL_ENCOUNTERED",
+      "evidenceId": "encountered-Mun",
+      "rewardFunds": 3000,
+      "rewardScience": 2,
+      "rewardReputation": 1
+    },
+    {
       "id": "kerbin-relay-network",
       "title": "Build Kerbin Relay Network",
       "description": "Have multiple players contribute Kerbin orbit evidence toward a shared relay objective.",
@@ -279,7 +293,22 @@ Expected:
 - Reward is granted to the player whose contribution reaches the target.
 - Completion persists in `Universe/AgencyProgression/Objectives.log`.
 
-### 12. Admin Progress Reset
+### 12. Expanded Vessel Evidence
+
+Useful evidence IDs for server-authored objectives:
+
+- Launch from Kerbin: `VESSEL_LAUNCHED` / `launched-Kerbin`
+- Escape Kerbin's sphere of influence: `VESSEL_ESCAPED` / `escaped-Kerbin`
+- Encounter the Mun: `VESSEL_ENCOUNTERED` / `encountered-Mun`
+- Recover a vessel on Kerbin: `VESSEL_RECOVERED` / `recovered-Kerbin`
+
+Expected:
+
+- Each matching event writes an audit entry under `Universe/AgencyEvidence/<player>.log`.
+- A configured objective using one of these evidence pairs completes when the evidence arrives.
+- The evidence remains ignored when `agencyProgressionEnabled = false`.
+
+### 13. Admin Progress Reset
 
 1. Use the suggested test config.
 2. Complete matching evidence for `kerbin-relay-network` with player A only.
@@ -294,7 +323,7 @@ Expected:
 - The objective returns to `Available`.
 - No completion or reward is created by the reset.
 
-### 13. Server Reload
+### 14. Server Reload
 
 1. Complete at least one objective.
 2. Run `/agency reload`.
@@ -306,7 +335,7 @@ Expected:
 - Objective status is resent to clients.
 - Server does not grant rewards again just because of reload.
 
-### 14. Restart Persistence
+### 15. Restart Persistence
 
 1. Complete at least one objective.
 2. Stop and restart the server.
@@ -318,7 +347,7 @@ Expected:
 - Evidence and reward audit files remain on disk.
 - Agency panel shows the persisted complete status.
 
-### 15. Existing Server Safety
+### 16. Existing Server Safety
 
 1. Use a normal DMP server config with `agencyProgressionEnabled = False`.
 2. Connect and perform normal DMP activities: chat, launch, sync vessel, disconnect.

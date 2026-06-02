@@ -40,7 +40,8 @@ prominently and preserve original license and copyright notices.
 - [x] ~~Add admin progress inspection/reset and clearer progress display.~~
 - [x] ~~Add optional unique-contributor tracking for shared objectives.~~
 - [x] ~~Start DMP-owned contract-like objective presentation.~~
-- [ ] Expand objective evidence to cover more progression milestones.
+- [x] ~~Expand vessel objective evidence to cover more progression milestones.~~
+- [ ] Expand non-vessel objective evidence to cover infrastructure and campaign milestones.
 - [ ] Add richer objective chains and unlock rules beyond completed-objective prerequisites.
 - [ ] Add server-driven agency contracts or contract-like client experiences.
 - [ ] Add richer global community objectives that multiple players can contribute toward.

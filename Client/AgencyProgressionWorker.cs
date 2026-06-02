@@ -10,6 +10,7 @@ namespace DarkMultiPlayer
         private const int MaxEvidenceIdLength = 128;
         private readonly List<AgencyObjectiveSummary> objectives = new List<AgencyObjectiveSummary>();
         private readonly HashSet<string> sentEvidenceIds = new HashSet<string>();
+        private readonly Dictionary<Guid, string> vesselBodies = new Dictionary<Guid, string>();
         private readonly DMPGame dmpGame;
         private readonly NetworkWorker networkWorker;
         private readonly NamedAction updateAction;
@@ -25,6 +26,7 @@ namespace DarkMultiPlayer
             GameEvents.OnTechnologyResearched.Add(OnTechnologyResearched);
             GameEvents.OnScienceRecieved.Add(OnScienceRecieved);
             GameEvents.onPartCouple.Add(OnVesselDocked);
+            GameEvents.onVesselRecovered.Add(OnVesselRecovered);
         }
 
         public AgencyObjectiveSummary[] Objectives
@@ -121,12 +123,14 @@ namespace DarkMultiPlayer
             GameEvents.OnTechnologyResearched.Remove(OnTechnologyResearched);
             GameEvents.OnScienceRecieved.Remove(OnScienceRecieved);
             GameEvents.onPartCouple.Remove(OnVesselDocked);
+            GameEvents.onVesselRecovered.Remove(OnVesselRecovered);
             lock (objectives)
             {
                 objectives.Clear();
                 PackName = null;
             }
             sentEvidenceIds.Clear();
+            vesselBodies.Clear();
         }
 
         private void Update()
@@ -152,10 +156,20 @@ namespace DarkMultiPlayer
             {
                 SendEvidenceOnce(AgencyEvidenceType.VESSEL_ORBITED, BuildEvidenceId("orbit", bodyName));
             }
+            if (activeVessel.situation == Vessel.Situations.FLYING || activeVessel.situation == Vessel.Situations.SUB_ORBITAL)
+            {
+                SendEvidenceOnce(AgencyEvidenceType.VESSEL_LAUNCHED, BuildEvidenceId("launched", bodyName));
+            }
+            if (activeVessel.situation == Vessel.Situations.ESCAPING)
+            {
+                SendEvidenceOnce(AgencyEvidenceType.VESSEL_ESCAPED, BuildEvidenceId("escaped", bodyName));
+            }
             if (activeVessel.situation == Vessel.Situations.LANDED || activeVessel.situation == Vessel.Situations.SPLASHED)
             {
                 SendEvidenceOnce(AgencyEvidenceType.VESSEL_LANDED, BuildEvidenceId("landed", bodyName));
             }
+
+            TrackBodyEncounter(activeVessel, bodyName);
         }
 
         private void OnTechnologyResearched(GameEvents.HostTargetAction<RDTech, RDTech.OperationResult> data)
@@ -188,6 +202,45 @@ namespace DarkMultiPlayer
                 return;
             }
             SendEvidenceOnce(AgencyEvidenceType.VESSEL_DOCKED, BuildEvidenceId("docked", bodyName));
+        }
+
+        private void OnVesselRecovered(ProtoVessel recoveredVessel, bool recovered)
+        {
+            if (!dmpGame.serverAgencyProgressionEnabled || recoveredVessel == null || recoveredVessel.orbitSnapShot == null)
+            {
+                return;
+            }
+            string bodyName = GetBodyName(recoveredVessel.orbitSnapShot.ReferenceBodyIndex);
+            if (!string.IsNullOrEmpty(bodyName))
+            {
+                SendEvidenceOnce(AgencyEvidenceType.VESSEL_RECOVERED, BuildEvidenceId("recovered", bodyName));
+            }
+            vesselBodies.Remove(recoveredVessel.vesselID);
+        }
+
+        private void TrackBodyEncounter(Vessel vessel, string bodyName)
+        {
+            string previousBodyName;
+            if (!vesselBodies.TryGetValue(vessel.id, out previousBodyName))
+            {
+                vesselBodies[vessel.id] = bodyName;
+                return;
+            }
+            if (previousBodyName == bodyName)
+            {
+                return;
+            }
+            vesselBodies[vessel.id] = bodyName;
+            SendEvidenceOnce(AgencyEvidenceType.VESSEL_ENCOUNTERED, BuildEvidenceId("encountered", bodyName));
+        }
+
+        private string GetBodyName(int bodyIndex)
+        {
+            if (FlightGlobals.Bodies == null || bodyIndex < 0 || bodyIndex >= FlightGlobals.Bodies.Count || FlightGlobals.Bodies[bodyIndex] == null)
+            {
+                return string.Empty;
+            }
+            return FlightGlobals.Bodies[bodyIndex].bodyName;
         }
 
         private void SendEvidenceOnce(AgencyEvidenceType evidenceType, string evidenceId)

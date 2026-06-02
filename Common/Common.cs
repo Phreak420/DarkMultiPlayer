@@ -780,7 +780,11 @@ namespace DarkMultiPlayerCommon
         SCIENCE_RECEIVED,
         VESSEL_ORBITED,
         VESSEL_LANDED,
-        VESSEL_DOCKED
+        VESSEL_DOCKED,
+        VESSEL_LAUNCHED,
+        VESSEL_ESCAPED,
+        VESSEL_ENCOUNTERED,
+        VESSEL_RECOVERED
     }
 
     public enum MeshMessageType
