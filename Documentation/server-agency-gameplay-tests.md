@@ -315,7 +315,27 @@ Expected:
 - A configured objective using one of these evidence pairs completes when the evidence arrives.
 - The evidence remains ignored when `agencyProgressionEnabled = false`.
 
-### 13. Admin Progress Reset
+### 13. Admin-Confirmed Evidence
+
+Use `ADMIN_CONFIRMED` for server-reviewed milestones that do not have a safe automatic client
+signal yet, such as infrastructure, colony, faction, or event progress.
+
+Steps:
+
+1. Add an objective with `evidenceType` set to `ADMIN_CONFIRMED`.
+2. Set `evidenceId` to a safe milestone ID, such as `infrastructure-alpha`.
+3. Start the server with agency progression enabled.
+4. Run `/agency record server ADMIN_CONFIRMED infrastructure-alpha`.
+5. Reopen the Agency panel or run `/agency objectives`.
+
+Expected:
+
+- Server writes `Universe/AgencyEvidence/server.log`.
+- Matching objective changes to `Complete`.
+- Server writes `Universe/AgencyProgression/Objectives.log`.
+- Connected clients receive refreshed Agency objective state.
+
+### 14. Admin Progress Reset
 
 1. Use the suggested test config.
 2. Complete matching evidence for `kerbin-relay-network` with player A only.
@@ -330,7 +350,7 @@ Expected:
 - The objective returns to `Available`.
 - No completion or reward is created by the reset.
 
-### 14. Server Reload
+### 15. Server Reload
 
 1. Complete at least one objective.
 2. Run `/agency reload`.
@@ -342,7 +362,7 @@ Expected:
 - Objective status is resent to clients.
 - Server does not grant rewards again just because of reload.
 
-### 15. Restart Persistence
+### 16. Restart Persistence
 
 1. Complete at least one objective.
 2. Stop and restart the server.
@@ -354,7 +374,7 @@ Expected:
 - Evidence and reward audit files remain on disk.
 - Agency panel shows the persisted complete status.
 
-### 16. Existing Server Safety
+### 17. Existing Server Safety
 
 1. Use a normal DMP server config with `agencyProgressionEnabled = False`.
 2. Connect and perform normal DMP activities: chat, launch, sync vessel, disconnect.

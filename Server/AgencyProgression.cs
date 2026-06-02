@@ -159,15 +159,34 @@ namespace DarkMultiPlayerServer
                 return false;
             }
 
+            return RecordEvidence(client.playerName, (AgencyEvidenceType)evidenceType, evidenceId, gameTime, client);
+        }
+
+        public static bool RecordAdminEvidence(string playerName, int evidenceType, string evidenceId)
+        {
+            if (!Settings.settingsStore.agencyProgressionEnabled)
+            {
+                return false;
+            }
+            if (!SafeFile.IsNameSafe(playerName) || !Enum.IsDefined(typeof(AgencyEvidenceType), evidenceType) || !IsEvidenceIdSafe(evidenceId))
+            {
+                return false;
+            }
+
+            return RecordEvidence(playerName, (AgencyEvidenceType)evidenceType, evidenceId, 0, ClientHandler.GetClientByName(playerName));
+        }
+
+        private static bool RecordEvidence(string playerName, AgencyEvidenceType evidenceType, string evidenceId, double gameTime, ClientObject connectedClient)
+        {
             string evidenceDirectory = Path.Combine(Server.universeDirectory, "AgencyEvidence");
             Directory.CreateDirectory(evidenceDirectory);
-            string evidenceFile = Path.Combine(evidenceDirectory, client.playerName + ".log");
-            string evidenceTypeName = ((AgencyEvidenceType)evidenceType).ToString();
+            string evidenceFile = Path.Combine(evidenceDirectory, playerName + ".log");
+            string evidenceTypeName = evidenceType.ToString();
             AgencyEvidenceRecord evidenceRecord = new AgencyEvidenceRecord
             {
                 receivedAtUtc = DateTime.UtcNow,
-                playerName = client.playerName,
-                evidenceType = (AgencyEvidenceType)evidenceType,
+                playerName = playerName,
+                evidenceType = evidenceType,
                 evidenceId = evidenceId,
                 gameTime = gameTime
             };
@@ -177,8 +196,8 @@ namespace DarkMultiPlayerServer
             {
                 File.AppendAllText(evidenceFile, record);
             }
-            DarkLog.Debug("Recorded agency evidence " + evidenceTypeName + ":" + evidenceId + " from " + client.playerName);
-            if (CompleteMatchingObjectives(client, evidenceRecord))
+            DarkLog.Debug("Recorded agency evidence " + evidenceTypeName + ":" + evidenceId + " from " + playerName);
+            if (CompleteMatchingObjectives(connectedClient, evidenceRecord))
             {
                 DarkMultiPlayerServer.Messages.AgencyProgression.SendAgencyProgressionToAll();
             }
@@ -413,7 +432,7 @@ namespace DarkMultiPlayerServer
                     changedAny = true;
                     completedAny = true;
                     DarkLog.Normal("Agency objective complete: " + objective.id + " by " + evidenceRecord.playerName);
-                    RecordAndSendReward(client.playerName, objective.id, objective.rewardFunds, objective.rewardScience, objective.rewardReputation, true, client);
+                    RecordAndSendReward(evidenceRecord.playerName, objective.id, objective.rewardFunds, objective.rewardScience, objective.rewardReputation, true, client);
                 }
             }
             if (completedAny)

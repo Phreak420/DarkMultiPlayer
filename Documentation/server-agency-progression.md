@@ -125,7 +125,8 @@ Implemented config file: `Config/AgencyProgression.json`.
 - [x] Store evidence separately from rewards so mistakes are easy to inspect and roll back.
 - [x] Add server-side evidence query helpers for objective matching.
 - [x] Complete matching objectives when configured evidence arrives.
-- [ ] Add additional non-vessel evidence types.
+- [x] Add admin-confirmed non-vessel evidence for infrastructure and campaign milestones.
+- [ ] Add automatic non-vessel evidence from stock or optional mod integrations.
 
 Objective definitions can now optionally include `evidenceType` and `evidenceId`.
 
@@ -142,6 +143,7 @@ Implemented evidence IDs:
 - `VESSEL_ESCAPED`: `escaped-<body>`, such as `escaped-Kerbin`.
 - `VESSEL_ENCOUNTERED`: `encountered-<body>`, such as `encountered-Mun`.
 - `VESSEL_RECOVERED`: `recovered-<body>`, such as `recovered-Kerbin`.
+- `ADMIN_CONFIRMED`: admin/server-authored milestone ID, such as `infrastructure-alpha`.
 
 ### Phase 4: Server-Awarded Rewards
 
@@ -157,8 +159,9 @@ Objective definitions can now optionally include `rewardFunds`, `rewardScience`,
 
 Implemented console commands: `/agency status`, `/agency reload`, `/agency objectives`,
 `/agency evidence [player]`, `/agency rewards [player]`, `/agency progress [player]`,
-`/agency resetprogress <player|server> <objective>`, `/agency replay <player> <objective>`, and
-`/agency revoke <player> <objective>`.
+`/agency resetprogress <player|server> <objective>`,
+`/agency record <player|server> <evidenceType> <evidenceId>`,
+`/agency replay <player> <objective>`, and `/agency revoke <player> <objective>`.
 
 ### Phase 5: Shared Storyline Progression
 

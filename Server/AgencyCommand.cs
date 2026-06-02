@@ -1,4 +1,5 @@
 using System;
+using DarkMultiPlayerCommon;
 
 namespace DarkMultiPlayerServer
 {
@@ -37,6 +38,9 @@ namespace DarkMultiPlayerServer
                 case "resetprogress":
                     ResetProgress(argument);
                     break;
+                case "record":
+                    RecordEvidence(argument);
+                    break;
                 case "replay":
                     ReplayReward(argument);
                     break;
@@ -44,7 +48,7 @@ namespace DarkMultiPlayerServer
                     RevokeReward(argument);
                     break;
                 default:
-                    DarkLog.Normal("Usage: /agency [status|reload|objectives|evidence [player]|rewards [player]|progress [player]|resetprogress <player|server> <objective>|replay <player> <objective>|revoke <player> <objective>]");
+                    DarkLog.Normal("Usage: /agency [status|reload|objectives|evidence [player]|rewards [player]|progress [player]|resetprogress <player|server> <objective>|record <player|server> <evidenceType> <evidenceId>|replay <player> <objective>|revoke <player> <objective>]");
                     break;
             }
         }
@@ -153,6 +157,34 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        private static void RecordEvidence(string argument)
+        {
+            string playerName;
+            string evidenceTypeName;
+            string evidenceId;
+            if (!TryReadRecordEvidence(argument, out playerName, out evidenceTypeName, out evidenceId))
+            {
+                DarkLog.Normal("Usage: /agency record <player|server> <evidenceType> <evidenceId>");
+                return;
+            }
+
+            AgencyEvidenceType evidenceType;
+            if (!Enum.TryParse(evidenceTypeName, true, out evidenceType))
+            {
+                DarkLog.Normal("Unknown agency evidence type '" + evidenceTypeName + "'.");
+                return;
+            }
+
+            if (AgencyProgression.RecordAdminEvidence(playerName, (int)evidenceType, evidenceId))
+            {
+                DarkLog.Normal("Recorded agency evidence " + evidenceType + ":" + evidenceId + " for " + playerName + ".");
+            }
+            else
+            {
+                DarkLog.Normal("Agency evidence record failed. Check that agency progression is enabled and player/evidence IDs are safe.");
+            }
+        }
+
         private static void ReplayReward(string argument)
         {
             string playerName;
@@ -205,6 +237,27 @@ namespace DarkMultiPlayerServer
             playerName = argument.Substring(0, split).Trim();
             objectiveId = argument.Substring(split + 1).Trim();
             return !string.IsNullOrEmpty(objectiveId) && (!string.IsNullOrEmpty(playerName) || argument.StartsWith("server ", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool TryReadRecordEvidence(string argument, out string playerName, out string evidenceType, out string evidenceId)
+        {
+            playerName = string.Empty;
+            evidenceType = string.Empty;
+            evidenceId = string.Empty;
+            if (string.IsNullOrEmpty(argument))
+            {
+                return false;
+            }
+
+            string[] parts = argument.Split(new char[] { ' ' }, 3, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length != 3)
+            {
+                return false;
+            }
+            playerName = parts[0].Trim();
+            evidenceType = parts[1].Trim();
+            evidenceId = parts[2].Trim();
+            return !string.IsNullOrEmpty(playerName) && !string.IsNullOrEmpty(evidenceType) && !string.IsNullOrEmpty(evidenceId);
         }
     }
 }

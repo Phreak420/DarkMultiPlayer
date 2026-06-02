@@ -37,6 +37,7 @@ namespace ServerValidationTests
             Run("Agency vessel evidence records audit log", AgencyVesselEvidenceRecordsAuditLog);
             Run("Agency docking evidence records audit log", AgencyDockingEvidenceRecordsAuditLog);
             Run("Agency expanded vessel evidence records audit log", AgencyExpandedVesselEvidenceRecordsAuditLog);
+            Run("Agency admin evidence completes matching objective", AgencyAdminEvidenceCompletesMatchingObjective);
             Run("Agency evidence query returns records", AgencyEvidenceQueryReturnsRecords);
             Run("Agency evidence completes matching objective", AgencyEvidenceCompletesMatchingObjective);
             Run("Agency prerequisites unlock objectives", AgencyPrerequisitesUnlockObjectives);
@@ -459,6 +460,25 @@ namespace ServerValidationTests
             Assert(AgencyProgression.FindEvidence(AgencyEvidenceType.VESSEL_ENCOUNTERED, "encountered-Mun").Length == 1, "encounter evidence was not recorded");
             Assert(AgencyProgression.FindEvidence(AgencyEvidenceType.VESSEL_RECOVERED, "recovered-Kerbin").Length == 1, "recovery evidence was not recorded");
             Assert(File.Exists(Path.Combine(universe, "AgencyEvidence", "ErinLaunch.log")), "expanded vessel evidence log was not written");
+        }
+
+        private static void AgencyAdminEvidenceCompletesMatchingObjective()
+        {
+            string universe = CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-agency-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"infrastructure-alpha\",\"title\":\"Infrastructure Alpha\",\"description\":\"Admin-confirmed infrastructure milestone.\",\"status\":\"Available\",\"scope\":\"Server\",\"evidenceType\":\"ADMIN_CONFIRMED\",\"evidenceId\":\"infrastructure-alpha\"}]}");
+            Settings.settingsStore.agencyProgressionEnabled = true;
+
+            AgencyProgression.Load(true);
+            Assert(AgencyProgression.RecordAdminEvidence("server", (int)AgencyEvidenceType.ADMIN_CONFIRMED, "infrastructure-alpha"), "admin evidence record failed");
+
+            AgencyObjective[] objectives = AgencyProgression.Objectives;
+            Assert(objectives[0].status == "Complete", "admin evidence did not complete matching objective");
+            Assert(File.Exists(Path.Combine(universe, "AgencyEvidence", "server.log")), "admin evidence audit log was not written");
+            Assert(File.Exists(Path.Combine(universe, "AgencyProgression", "Objectives.log")), "admin evidence completion log was not written");
         }
 
         private static void AgencyEvidenceQueryReturnsRecords()
