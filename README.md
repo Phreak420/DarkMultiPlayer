@@ -41,10 +41,11 @@ Current and planned MMO Edition work:
 - [x] ~~Award server-approved science, funds, and reputation rewards.~~
 - [x] ~~Add admin inspection, reward replay, and reward revoke commands.~~
 - [x] ~~Add prerequisite-based objective unlocks.~~
+- [x] ~~Add basic progress targets for shared community objectives.~~
 - [ ] Expand evidence types for more mission and infrastructure milestones.
 - [ ] Add richer objective chains and unlock rules beyond completed-objective prerequisites.
 - [ ] Add server-driven agency contracts or contract-like player experiences.
-- [ ] Support global community objectives that many players can contribute toward.
+- [ ] Support richer global community objectives that many players can contribute toward.
 - [ ] Add shared economy/resource pressure with bounded, recoverable safety rules.
 - [ ] Add story and event-driven campaigns controlled by server configuration.
 - [ ] Add seasonal campaign archives, historical statistics, and Hall of Fame records.

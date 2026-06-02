@@ -148,6 +148,7 @@ and `/agency revoke <player> <objective>`.
 - [x] Store objective completion records with scope/player metadata for future shared objective
   extensions.
 - [x] Add objective prerequisites so completed milestones can unlock later objectives.
+- [x] Add basic progress targets so multiple players can contribute to shared objectives.
 - Add group/server-wide milestones that unlock later objective chains.
 - Support opt-in shared projects such as stations, relays, and bases.
 - Let server owners choose whether completion is first-to-complete, all-players, team-based, or
@@ -155,7 +156,8 @@ and `/agency revoke <player> <objective>`.
 
 Implemented scopes: `Personal` and `Server`.
 
-Objective definitions can now optionally include `prerequisiteObjectiveIds`.
+Objective definitions can now optionally include `prerequisiteObjectiveIds`, `progressTarget`,
+and `progressPerEvidence`.
 
 ### Phase 6: Contract Integration
 

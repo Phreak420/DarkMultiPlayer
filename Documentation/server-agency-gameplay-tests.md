@@ -77,6 +77,20 @@ Use this small config to exercise objective completion and rewards quickly:
       "rewardFunds": 12000,
       "rewardScience": 8,
       "rewardReputation": 3
+    },
+    {
+      "id": "kerbin-relay-network",
+      "title": "Build Kerbin Relay Network",
+      "description": "Have multiple players contribute Kerbin orbit evidence toward a shared relay objective.",
+      "status": "Available",
+      "scope": "Server",
+      "evidenceType": "VESSEL_ORBITED",
+      "evidenceId": "orbit-Kerbin",
+      "progressTarget": 2,
+      "progressPerEvidence": 1,
+      "rewardFunds": 15000,
+      "rewardScience": 4,
+      "rewardReputation": 2
     }
   ]
 }
@@ -230,7 +244,24 @@ Expected:
 - Mun landing evidence after unlock completes `mun-landing-chain`.
 - Completion persists in `Universe/AgencyProgression/Objectives.log`.
 
-### 11. Server Reload
+### 11. Shared Objective Progress
+
+1. Use the suggested test config.
+2. Complete matching evidence for `kerbin-relay-network` with player A.
+3. Reopen the Agency panel.
+4. Complete matching evidence for `kerbin-relay-network` with player B.
+5. Reopen the Agency panel.
+
+Expected:
+
+- After player A contributes, `kerbin-relay-network` shows `In Progress 1/2`.
+- Server writes `Universe/AgencyProgression/Progress.log`.
+- No reward is granted before the target is reached.
+- After player B contributes, `kerbin-relay-network` changes to `Complete`.
+- Reward is granted to the player whose contribution reaches the target.
+- Completion persists in `Universe/AgencyProgression/Objectives.log`.
+
+### 12. Server Reload
 
 1. Complete at least one objective.
 2. Run `/agency reload`.
@@ -242,7 +273,7 @@ Expected:
 - Objective status is resent to clients.
 - Server does not grant rewards again just because of reload.
 
-### 12. Restart Persistence
+### 13. Restart Persistence
 
 1. Complete at least one objective.
 2. Stop and restart the server.
@@ -254,7 +285,7 @@ Expected:
 - Evidence and reward audit files remain on disk.
 - Agency panel shows the persisted complete status.
 
-### 13. Existing Server Safety
+### 14. Existing Server Safety
 
 1. Use a normal DMP server config with `agencyProgressionEnabled = False`.
 2. Connect and perform normal DMP activities: chat, launch, sync vessel, disconnect.
@@ -270,6 +301,8 @@ Expected:
 - Objective scope currently supports `Personal` and `Server`.
 - Objective prerequisites currently use completed objective IDs; richer boolean conditions and
   objective chains are future work.
+- Shared progress objectives currently use one configured evidence type/id and numeric progress
+  target; richer contribution rules are future work.
 - Rewards are personal to the player whose evidence completed the objective unless an admin
   intentionally replays or revokes a reward.
 - Generated stock KSP contracts are not implemented yet.

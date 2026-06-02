@@ -18,6 +18,7 @@ namespace DarkMultiPlayerServer
         private static readonly TimeSpan EvidenceRateLimit = TimeSpan.FromSeconds(1);
         private static readonly List<AgencyObjective> objectives = new List<AgencyObjective>();
         private static readonly Dictionary<string, AgencyObjectiveCompletion> completions = new Dictionary<string, AgencyObjectiveCompletion>();
+        private static readonly Dictionary<string, AgencyObjectiveProgress> progress = new Dictionary<string, AgencyObjectiveProgress>();
         private static readonly Dictionary<string, long> lastEvidenceReceiveTicks = new Dictionary<string, long>();
 
         public static string PackName { get; private set; }
@@ -52,6 +53,10 @@ namespace DarkMultiPlayerServer
             {
                 completions.Clear();
             }
+            lock (progress)
+            {
+                progress.Clear();
+            }
             lock (lastEvidenceReceiveTicks)
             {
                 lastEvidenceReceiveTicks.Clear();
@@ -77,6 +82,7 @@ namespace DarkMultiPlayerServer
             }
 
             LoadCompletions();
+            LoadProgress();
 
             PackName = CleanText(agencyFileData.packName, "Server Agency");
             if (agencyFileData.objectives == null)
@@ -111,6 +117,8 @@ namespace DarkMultiPlayerServer
                         evidenceType = CleanText(objective.evidenceType, string.Empty),
                         evidenceId = CleanText(objective.evidenceId, string.Empty),
                         prerequisiteObjectiveIds = CleanPrerequisites(objective.prerequisiteObjectiveIds),
+                        progressTarget = Math.Max(0, objective.progressTarget),
+                        progressPerEvidence = objective.progressPerEvidence <= 0 ? 1 : objective.progressPerEvidence,
                         rewardFunds = objective.rewardFunds,
                         rewardScience = objective.rewardScience,
                         rewardReputation = objective.rewardReputation,
@@ -276,6 +284,7 @@ namespace DarkMultiPlayerServer
 
         private static bool CompleteMatchingObjectives(ClientObject client, AgencyEvidenceRecord evidenceRecord)
         {
+            bool changedAny = false;
             bool completedAny = false;
             lock (objectives)
             {
@@ -306,6 +315,17 @@ namespace DarkMultiPlayerServer
                         continue;
                     }
 
+                    if (objective.progressTarget > 0)
+                    {
+                        double progressValue = AddProgress(objective, completionPlayer, evidenceRecord);
+                        changedAny = true;
+                        if (progressValue < objective.progressTarget)
+                        {
+                            DarkLog.Normal("Agency objective progress: " + objective.id + " " + progressValue.ToString("R") + "/" + objective.progressTarget.ToString("R") + " by " + evidenceRecord.playerName);
+                            continue;
+                        }
+                    }
+
                     string completedAt = DateTime.UtcNow.ToString("o");
                     lock (completions)
                     {
@@ -318,6 +338,7 @@ namespace DarkMultiPlayerServer
                             completedAtUtc = completedAt
                         };
                     }
+                    changedAny = true;
                     completedAny = true;
                     DarkLog.Normal("Agency objective complete: " + objective.id + " by " + evidenceRecord.playerName);
                     RecordAndSendReward(client.playerName, objective.id, objective.rewardFunds, objective.rewardScience, objective.rewardReputation, true, client);
@@ -327,7 +348,11 @@ namespace DarkMultiPlayerServer
             {
                 SaveCompletions();
             }
-            return completedAny;
+            if (changedAny)
+            {
+                SaveProgress();
+            }
+            return changedAny;
         }
 
         private static bool RecordAndSendReward(string playerName, string objectiveId, double funds, float science, float reputation, bool sendIfOnline, ClientObject connectedClient = null)
@@ -442,6 +467,41 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        private static void LoadProgress()
+        {
+            string progressFile = GetProgressFile();
+            if (!File.Exists(progressFile))
+            {
+                return;
+            }
+
+            foreach (string line in File.ReadAllLines(progressFile))
+            {
+                if (string.IsNullOrEmpty(line))
+                {
+                    continue;
+                }
+                string[] parts = line.Split('\t');
+                double progressValue;
+                if (parts.Length != 6 || string.IsNullOrEmpty(parts[0]) || !double.TryParse(parts[3], out progressValue))
+                {
+                    continue;
+                }
+                lock (progress)
+                {
+                    progress[BuildCompletionKey(parts[0], parts[2])] = new AgencyObjectiveProgress
+                    {
+                        objectiveId = parts[0],
+                        scope = parts[1],
+                        playerName = parts[2],
+                        progressValue = progressValue,
+                        lastContributedBy = parts[4],
+                        updatedAtUtc = parts[5]
+                    };
+                }
+            }
+        }
+
         private static void SaveCompletions()
         {
             string completionFile = GetCompletionFile();
@@ -455,6 +515,21 @@ namespace DarkMultiPlayerServer
                 }
             }
             File.WriteAllLines(completionFile, lines.ToArray());
+        }
+
+        private static void SaveProgress()
+        {
+            string progressFile = GetProgressFile();
+            Directory.CreateDirectory(Path.GetDirectoryName(progressFile));
+            List<string> lines = new List<string>();
+            lock (progress)
+            {
+                foreach (AgencyObjectiveProgress progressRecord in progress.Values)
+                {
+                    lines.Add(progressRecord.objectiveId + "\t" + progressRecord.scope + "\t" + progressRecord.playerName + "\t" + progressRecord.progressValue.ToString("R") + "\t" + progressRecord.lastContributedBy + "\t" + progressRecord.updatedAtUtc);
+                }
+            }
+            File.WriteAllLines(progressFile, lines.ToArray());
         }
 
         private static AgencyObjective[] BuildObjectiveView(string playerName)
@@ -474,6 +549,9 @@ namespace DarkMultiPlayerServer
                     evidenceType = objective.evidenceType,
                     evidenceId = objective.evidenceId,
                     prerequisiteObjectiveIds = objective.prerequisiteObjectiveIds,
+                    progressTarget = objective.progressTarget,
+                    progressPerEvidence = objective.progressPerEvidence,
+                    progressValue = GetProgressValue(objective, playerName),
                     rewardFunds = objective.rewardFunds,
                     rewardScience = objective.rewardScience,
                     rewardReputation = objective.rewardReputation,
@@ -515,6 +593,14 @@ namespace DarkMultiPlayerServer
             {
                 return LockedStatus;
             }
+            if (objective.progressTarget > 0)
+            {
+                double progressValue = GetProgressValue(objective, playerName);
+                if (progressValue > 0 && progressValue < objective.progressTarget)
+                {
+                    return "In Progress " + progressValue.ToString("R") + "/" + objective.progressTarget.ToString("R");
+                }
+            }
             if (objective.prerequisiteObjectiveIds != null && objective.prerequisiteObjectiveIds.Length > 0 && string.Equals(objective.status, LockedStatus, StringComparison.OrdinalIgnoreCase))
             {
                 return AvailableStatus;
@@ -544,6 +630,44 @@ namespace DarkMultiPlayerServer
             return true;
         }
 
+        private static double AddProgress(AgencyObjective objective, string completionPlayer, AgencyEvidenceRecord evidenceRecord)
+        {
+            string progressKey = BuildCompletionKey(objective.id, completionPlayer);
+            lock (progress)
+            {
+                AgencyObjectiveProgress progressRecord;
+                if (!progress.TryGetValue(progressKey, out progressRecord))
+                {
+                    progressRecord = new AgencyObjectiveProgress
+                    {
+                        objectiveId = objective.id,
+                        scope = objective.scope,
+                        playerName = completionPlayer,
+                        progressValue = 0
+                    };
+                    progress[progressKey] = progressRecord;
+                }
+                progressRecord.progressValue = Math.Min(objective.progressTarget, progressRecord.progressValue + objective.progressPerEvidence);
+                progressRecord.lastContributedBy = evidenceRecord.playerName;
+                progressRecord.updatedAtUtc = DateTime.UtcNow.ToString("o");
+                return progressRecord.progressValue;
+            }
+        }
+
+        private static double GetProgressValue(AgencyObjective objective, string playerName)
+        {
+            string progressPlayer = IsServerObjective(objective.scope) ? string.Empty : playerName;
+            lock (progress)
+            {
+                AgencyObjectiveProgress progressRecord;
+                if (progress.TryGetValue(BuildCompletionKey(objective.id, progressPlayer), out progressRecord))
+                {
+                    return progressRecord.progressValue;
+                }
+            }
+            return 0;
+        }
+
         private static bool IsServerObjective(string scope)
         {
             return string.Equals(scope, "Server", StringComparison.OrdinalIgnoreCase);
@@ -557,6 +681,11 @@ namespace DarkMultiPlayerServer
         private static bool IsAdminTargetSafe(string playerName, string objectiveId)
         {
             return SafeFile.IsNameSafe(playerName) && SafeFile.IsNameSafe(objectiveId);
+        }
+
+        private static string GetProgressFile()
+        {
+            return Path.Combine(Server.universeDirectory, "AgencyProgression", "Progress.log");
         }
 
         private static string[] CleanPrerequisites(string[] prerequisites)
@@ -804,6 +933,14 @@ namespace DarkMultiPlayerServer
         public string[] prerequisiteObjectiveIds;
 
         [DataMember]
+        public double progressTarget;
+
+        [DataMember]
+        public double progressPerEvidence;
+
+        public double progressValue;
+
+        [DataMember]
         public double rewardFunds;
 
         [DataMember]
@@ -842,6 +979,16 @@ namespace DarkMultiPlayerServer
         public double funds;
         public float science;
         public float reputation;
+    }
+
+    public class AgencyObjectiveProgress
+    {
+        public string objectiveId;
+        public string scope;
+        public string playerName;
+        public double progressValue;
+        public string lastContributedBy;
+        public string updatedAtUtc;
     }
 
 }

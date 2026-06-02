@@ -38,6 +38,7 @@ namespace ServerValidationTests
             Run("Agency evidence query returns records", AgencyEvidenceQueryReturnsRecords);
             Run("Agency evidence completes matching objective", AgencyEvidenceCompletesMatchingObjective);
             Run("Agency prerequisites unlock objectives", AgencyPrerequisitesUnlockObjectives);
+            Run("Agency shared progress completes objective", AgencySharedProgressCompletesObjective);
             Run("Agency personal objective state is per-player", AgencyPersonalObjectiveStateIsPerPlayer);
             Run("Agency objective completion queues reward", AgencyObjectiveCompletionQueuesReward);
             Run("Agency reward query returns records", AgencyRewardQueryReturnsRecords);
@@ -532,6 +533,35 @@ namespace ServerValidationTests
             AgencyObjective[] bobObjectives = AgencyProgression.GetObjectivesForPlayer("Bob");
             Assert(aliceObjectives[0].status == "Complete", "personal objective did not complete for matching player");
             Assert(bobObjectives[0].status == "Available", "personal objective completed for another player");
+        }
+
+        private static void AgencySharedProgressCompletesObjective()
+        {
+            string universe = CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-agency-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"relay-network\",\"title\":\"Build Relay Network\",\"description\":\"Contribute relay evidence.\",\"status\":\"Available\",\"scope\":\"Server\",\"evidenceType\":\"VESSEL_ORBITED\",\"evidenceId\":\"orbit-Kerbin\",\"progressTarget\":2,\"progressPerEvidence\":1,\"rewardFunds\":500}]}");
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            ClientObject alice = CreateClient("Alice");
+            ClientObject bob = CreateClient("Bob");
+
+            AgencyProgression.Load(true);
+            SendAgencyEvidence(alice, AgencyEvidenceType.VESSEL_ORBITED, "orbit-Kerbin");
+
+            AgencyObjective[] objectives = AgencyProgression.Objectives;
+            Assert(objectives[0].status == "In Progress 1/2", "shared progress objective did not show partial progress");
+            Assert(File.Exists(Path.Combine(universe, "AgencyProgression", "Progress.log")), "shared progress log was not written");
+            Assert(!File.Exists(Path.Combine(universe, "AgencyProgression", "Objectives.log")), "partial shared progress wrote a completion log too early");
+            Assert(!File.Exists(Path.Combine(universe, "AgencyRewards", "Alice.log")), "partial shared progress granted a reward too early");
+
+            SendAgencyEvidence(bob, AgencyEvidenceType.VESSEL_ORBITED, "orbit-Kerbin");
+
+            objectives = AgencyProgression.Objectives;
+            Assert(objectives[0].status == "Complete", "shared progress objective did not complete at target");
+            Assert(File.Exists(Path.Combine(universe, "AgencyRewards", "Bob.log")), "shared progress completion did not reward completing player");
+            Assert(File.Exists(Path.Combine(universe, "AgencyProgression", "Objectives.log")), "shared progress completion log was not written");
         }
 
         private static void AgencyRewardQueryReturnsRecords()
