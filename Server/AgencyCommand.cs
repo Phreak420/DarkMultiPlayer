@@ -125,7 +125,7 @@ namespace DarkMultiPlayerServer
             {
                 AgencyObjectiveProgress record = records[i];
                 string owner = string.IsNullOrEmpty(record.playerName) ? "server" : record.playerName;
-                DarkLog.Normal(record.updatedAtUtc + " " + owner + " " + record.objectiveId + " progress=" + record.progressValue + " lastBy=" + record.lastContributedBy);
+                DarkLog.Normal(record.updatedAtUtc + " " + owner + " " + record.objectiveId + " progress=" + record.progressValue + " lastBy=" + record.lastContributedBy + " contributors=" + record.contributedBy);
             }
         }
 

@@ -160,7 +160,7 @@ Implemented console commands: `/agency status`, `/agency reload`, `/agency objec
 Implemented scopes: `Personal` and `Server`.
 
 Objective definitions can now optionally include `prerequisiteObjectiveIds`, `progressTarget`,
-and `progressPerEvidence`.
+`progressPerEvidence`, and `uniqueContributors`.
 
 ### Phase 6: Contract Integration
 

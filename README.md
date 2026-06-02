@@ -43,6 +43,7 @@ Current and planned MMO Edition work:
 - [x] ~~Add prerequisite-based objective unlocks.~~
 - [x] ~~Add basic progress targets for shared community objectives.~~
 - [x] ~~Add admin progress inspection/reset and clearer progress display.~~
+- [x] ~~Add optional unique-contributor tracking for shared objectives.~~
 - [ ] Expand evidence types for more mission and infrastructure milestones.
 - [ ] Add richer objective chains and unlock rules beyond completed-objective prerequisites.
 - [ ] Add server-driven agency contracts or contract-like player experiences.

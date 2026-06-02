@@ -88,6 +88,7 @@ Use this small config to exercise objective completion and rewards quickly:
       "evidenceId": "orbit-Kerbin",
       "progressTarget": 2,
       "progressPerEvidence": 1,
+      "uniqueContributors": true,
       "rewardFunds": 15000,
       "rewardScience": 4,
       "rewardReputation": 2
@@ -260,6 +261,8 @@ Expected:
 - The Agency panel shows a `Progress: 1 / 2` line for the partial objective.
 - Server writes `Universe/AgencyProgression/Progress.log`.
 - `/agency progress` lists the partial progress record.
+- Repeating the same matching evidence with player A does not advance progress again when
+  `uniqueContributors` is enabled.
 - No reward is granted before the target is reached.
 - After player B contributes, `kerbin-relay-network` changes to `Complete`.
 - Reward is granted to the player whose contribution reaches the target.
@@ -322,6 +325,8 @@ Expected:
   objective chains are future work.
 - Shared progress objectives currently use one configured evidence type/id and numeric progress
   target; richer contribution rules are future work.
+- `uniqueContributors` can prevent one player from advancing the same progress objective more than
+  once, but team/faction contribution rules are future work.
 - Rewards are personal to the player whose evidence completed the objective unless an admin
   intentionally replays or revokes a reward.
 - Generated stock KSP contracts are not implemented yet.

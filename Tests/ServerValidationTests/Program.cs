@@ -40,6 +40,7 @@ namespace ServerValidationTests
             Run("Agency prerequisites unlock objectives", AgencyPrerequisitesUnlockObjectives);
             Run("Agency shared progress completes objective", AgencySharedProgressCompletesObjective);
             Run("Agency shared progress reloads and resets", AgencySharedProgressReloadsAndResets);
+            Run("Agency unique contributors count once", AgencyUniqueContributorsCountOnce);
             Run("Agency personal objective state is per-player", AgencyPersonalObjectiveStateIsPerPlayer);
             Run("Agency objective completion queues reward", AgencyObjectiveCompletionQueuesReward);
             Run("Agency reward query returns records", AgencyRewardQueryReturnsRecords);
@@ -591,6 +592,33 @@ namespace ServerValidationTests
             objectives = AgencyProgression.Objectives;
             Assert(objectives[0].status == "Available", "shared progress reset did not restore available status");
             Assert(AgencyProgression.GetProgressRecords().Length == 0, "shared progress reset did not remove progress record");
+        }
+
+        private static void AgencyUniqueContributorsCountOnce()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-agency-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"relay-network\",\"title\":\"Build Relay Network\",\"description\":\"Contribute relay evidence.\",\"status\":\"Available\",\"scope\":\"Server\",\"evidenceType\":\"VESSEL_ORBITED\",\"evidenceId\":\"orbit-Kerbin\",\"progressTarget\":2,\"progressPerEvidence\":1,\"uniqueContributors\":true}]}");
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            ClientObject alice = CreateClient("Alice");
+            ClientObject bob = CreateClient("Bob");
+
+            AgencyProgression.Load(true);
+            SendAgencyEvidence(alice, AgencyEvidenceType.VESSEL_ORBITED, "orbit-Kerbin");
+
+            AgencyProgression.Load(true);
+            SendAgencyEvidence(alice, AgencyEvidenceType.VESSEL_ORBITED, "orbit-Kerbin");
+
+            AgencyObjective[] objectives = AgencyProgression.Objectives;
+            Assert(objectives[0].status == "In Progress 1/2", "duplicate unique contributor advanced shared progress");
+
+            SendAgencyEvidence(bob, AgencyEvidenceType.VESSEL_ORBITED, "orbit-Kerbin");
+
+            objectives = AgencyProgression.Objectives;
+            Assert(objectives[0].status == "Complete", "second unique contributor did not complete shared progress");
         }
 
         private static void AgencyRewardQueryReturnsRecords()

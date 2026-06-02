@@ -119,6 +119,7 @@ namespace DarkMultiPlayerServer
                         prerequisiteObjectiveIds = CleanPrerequisites(objective.prerequisiteObjectiveIds),
                         progressTarget = Math.Max(0, objective.progressTarget),
                         progressPerEvidence = objective.progressPerEvidence <= 0 ? 1 : objective.progressPerEvidence,
+                        uniqueContributors = objective.uniqueContributors,
                         rewardFunds = objective.rewardFunds,
                         rewardScience = objective.rewardScience,
                         rewardReputation = objective.rewardReputation,
@@ -378,7 +379,12 @@ namespace DarkMultiPlayerServer
 
                     if (objective.progressTarget > 0)
                     {
-                        double progressValue = AddProgress(objective, completionPlayer, evidenceRecord);
+                        bool addedContribution;
+                        double progressValue = AddProgress(objective, completionPlayer, evidenceRecord, out addedContribution);
+                        if (!addedContribution)
+                        {
+                            continue;
+                        }
                         changedAny = true;
                         if (progressValue < objective.progressTarget)
                         {
@@ -544,7 +550,7 @@ namespace DarkMultiPlayerServer
                 }
                 string[] parts = line.Split('\t');
                 double progressValue;
-                if (parts.Length != 6 || string.IsNullOrEmpty(parts[0]) || !double.TryParse(parts[3], out progressValue))
+                if ((parts.Length != 6 && parts.Length != 7) || string.IsNullOrEmpty(parts[0]) || !double.TryParse(parts[3], out progressValue))
                 {
                     continue;
                 }
@@ -557,7 +563,8 @@ namespace DarkMultiPlayerServer
                         playerName = parts[2],
                         progressValue = progressValue,
                         lastContributedBy = parts[4],
-                        updatedAtUtc = parts[5]
+                        updatedAtUtc = parts[5],
+                        contributedBy = parts.Length == 7 ? parts[6] : string.Empty
                     };
                 }
             }
@@ -587,7 +594,7 @@ namespace DarkMultiPlayerServer
             {
                 foreach (AgencyObjectiveProgress progressRecord in progress.Values)
                 {
-                    lines.Add(progressRecord.objectiveId + "\t" + progressRecord.scope + "\t" + progressRecord.playerName + "\t" + progressRecord.progressValue.ToString("R") + "\t" + progressRecord.lastContributedBy + "\t" + progressRecord.updatedAtUtc);
+                    lines.Add(progressRecord.objectiveId + "\t" + progressRecord.scope + "\t" + progressRecord.playerName + "\t" + progressRecord.progressValue.ToString("R") + "\t" + progressRecord.lastContributedBy + "\t" + progressRecord.updatedAtUtc + "\t" + progressRecord.contributedBy);
                 }
             }
             File.WriteAllLines(progressFile, lines.ToArray());
@@ -613,6 +620,7 @@ namespace DarkMultiPlayerServer
                     progressTarget = objective.progressTarget,
                     progressPerEvidence = objective.progressPerEvidence,
                     progressValue = GetProgressValue(objective, playerName),
+                    uniqueContributors = objective.uniqueContributors,
                     rewardFunds = objective.rewardFunds,
                     rewardScience = objective.rewardScience,
                     rewardReputation = objective.rewardReputation,
@@ -691,7 +699,7 @@ namespace DarkMultiPlayerServer
             return true;
         }
 
-        private static double AddProgress(AgencyObjective objective, string completionPlayer, AgencyEvidenceRecord evidenceRecord)
+        private static double AddProgress(AgencyObjective objective, string completionPlayer, AgencyEvidenceRecord evidenceRecord, out bool addedContribution)
         {
             string progressKey = BuildCompletionKey(objective.id, completionPlayer);
             lock (progress)
@@ -704,13 +712,21 @@ namespace DarkMultiPlayerServer
                         objectiveId = objective.id,
                         scope = objective.scope,
                         playerName = completionPlayer,
-                        progressValue = 0
+                        progressValue = 0,
+                        contributedBy = string.Empty
                     };
                     progress[progressKey] = progressRecord;
+                }
+                if (objective.uniqueContributors && HasContributor(progressRecord, evidenceRecord.playerName))
+                {
+                    addedContribution = false;
+                    return progressRecord.progressValue;
                 }
                 progressRecord.progressValue = Math.Min(objective.progressTarget, progressRecord.progressValue + objective.progressPerEvidence);
                 progressRecord.lastContributedBy = evidenceRecord.playerName;
                 progressRecord.updatedAtUtc = DateTime.UtcNow.ToString("o");
+                progressRecord.contributedBy = AddContributor(progressRecord.contributedBy, evidenceRecord.playerName);
+                addedContribution = true;
                 return progressRecord.progressValue;
             }
         }
@@ -744,6 +760,36 @@ namespace DarkMultiPlayerServer
             return SafeFile.IsNameSafe(playerName) && SafeFile.IsNameSafe(objectiveId);
         }
 
+        private static bool HasContributor(AgencyObjectiveProgress progressRecord, string playerName)
+        {
+            if (string.IsNullOrEmpty(progressRecord.contributedBy))
+            {
+                return false;
+            }
+            string[] contributors = progressRecord.contributedBy.Split(',');
+            foreach (string contributor in contributors)
+            {
+                if (contributor == playerName)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static string AddContributor(string contributedBy, string playerName)
+        {
+            if (string.IsNullOrEmpty(playerName) || !SafeFile.IsNameSafe(playerName))
+            {
+                return contributedBy;
+            }
+            if (string.IsNullOrEmpty(contributedBy))
+            {
+                return playerName;
+            }
+            return contributedBy + "," + playerName;
+        }
+
         private static bool IsProgressResetTargetSafe(string playerName, string objectiveId)
         {
             return (string.IsNullOrEmpty(playerName) || SafeFile.IsNameSafe(playerName)) && SafeFile.IsNameSafe(objectiveId);
@@ -758,7 +804,8 @@ namespace DarkMultiPlayerServer
                 playerName = progressRecord.playerName,
                 progressValue = progressRecord.progressValue,
                 lastContributedBy = progressRecord.lastContributedBy,
-                updatedAtUtc = progressRecord.updatedAtUtc
+                updatedAtUtc = progressRecord.updatedAtUtc,
+                contributedBy = progressRecord.contributedBy
             };
         }
 
@@ -1017,6 +1064,9 @@ namespace DarkMultiPlayerServer
         [DataMember]
         public double progressPerEvidence;
 
+        [DataMember]
+        public bool uniqueContributors;
+
         public double progressValue;
 
         [DataMember]
@@ -1068,6 +1118,7 @@ namespace DarkMultiPlayerServer
         public double progressValue;
         public string lastContributedBy;
         public string updatedAtUtc;
+        public string contributedBy;
     }
 
 }
