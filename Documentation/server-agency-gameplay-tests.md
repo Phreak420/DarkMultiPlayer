@@ -82,6 +82,7 @@ Use this small config to exercise objective completion and rewards quickly:
       "prerequisiteObjectiveIds": [
         "orbit-kerbin"
       ],
+      "prerequisiteMode": "All",
       "rewardFunds": 12000,
       "rewardScience": 8,
       "rewardReputation": 3
@@ -270,6 +271,12 @@ Expected:
 - Completing `orbit-kerbin` changes `mun-landing-chain` to `Available`.
 - Mun landing evidence after unlock completes `mun-landing-chain`.
 - Completion persists in `Universe/AgencyProgression/Objectives.log`.
+
+Optional branching-chain check:
+
+- Add two prerequisite objective IDs and set `prerequisiteMode` to `Any`.
+- Complete either prerequisite.
+- Confirm the dependent objective changes from `Locked` to `Available`.
 
 ### 11. Shared Objective Progress
 

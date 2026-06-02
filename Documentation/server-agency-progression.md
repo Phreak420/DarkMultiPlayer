@@ -167,6 +167,7 @@ Implemented console commands: `/agency status`, `/agency reload`, `/agency objec
 - [x] Store objective completion records with scope/player metadata for future shared objective
   extensions.
 - [x] Add objective prerequisites so completed milestones can unlock later objectives.
+- [x] Add `prerequisiteMode` so objective chains can require `All` or `Any` prerequisites.
 - [x] Add basic progress targets so multiple players can contribute to shared objectives.
 - [x] Show objective progress values in the Agency UI for partially complete progress objectives.
 - Add group/server-wide milestones that unlock later objective chains.
@@ -176,8 +177,9 @@ Implemented console commands: `/agency status`, `/agency reload`, `/agency objec
 
 Implemented scopes: `Personal` and `Server`.
 
-Objective definitions can now optionally include `prerequisiteObjectiveIds`, `progressTarget`,
-`progressPerEvidence`, and `uniqueContributors`.
+Objective definitions can now optionally include `prerequisiteObjectiveIds`, `prerequisiteMode`,
+`progressTarget`, `progressPerEvidence`, and `uniqueContributors`. `prerequisiteMode` defaults to
+`All`; set it to `Any` when completing any one listed prerequisite should unlock the objective.
 
 ### Phase 6: Contract Integration
 

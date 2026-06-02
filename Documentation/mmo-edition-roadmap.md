@@ -41,6 +41,7 @@ prominently and preserve original license and copyright notices.
 - [x] ~~Add optional unique-contributor tracking for shared objectives.~~
 - [x] ~~Start DMP-owned contract-like objective presentation.~~
 - [x] ~~Expand vessel objective evidence to cover more progression milestones.~~
+- [x] ~~Add any/all prerequisite modes for branching objective chains.~~
 - [ ] Expand non-vessel objective evidence to cover infrastructure and campaign milestones.
 - [ ] Add richer objective chains and unlock rules beyond completed-objective prerequisites.
 - [ ] Add server-driven agency contracts or contract-like client experiences.

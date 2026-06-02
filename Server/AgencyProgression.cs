@@ -15,6 +15,8 @@ namespace DarkMultiPlayerServer
         private const string CompleteStatus = "Complete";
         private const string LockedStatus = "Locked";
         private const string AvailableStatus = "Available";
+        private const string PrerequisiteModeAll = "All";
+        private const string PrerequisiteModeAny = "Any";
         private static readonly TimeSpan EvidenceRateLimit = TimeSpan.FromSeconds(1);
         private static readonly List<AgencyObjective> objectives = new List<AgencyObjective>();
         private static readonly Dictionary<string, AgencyObjectiveCompletion> completions = new Dictionary<string, AgencyObjectiveCompletion>();
@@ -119,6 +121,7 @@ namespace DarkMultiPlayerServer
                         evidenceType = CleanText(objective.evidenceType, string.Empty),
                         evidenceId = CleanText(objective.evidenceId, string.Empty),
                         prerequisiteObjectiveIds = CleanPrerequisites(objective.prerequisiteObjectiveIds),
+                        prerequisiteMode = CleanPrerequisiteMode(objective.prerequisiteMode),
                         progressTarget = Math.Max(0, objective.progressTarget),
                         progressPerEvidence = objective.progressPerEvidence <= 0 ? 1 : objective.progressPerEvidence,
                         uniqueContributors = objective.uniqueContributors,
@@ -621,6 +624,7 @@ namespace DarkMultiPlayerServer
                     evidenceType = objective.evidenceType,
                     evidenceId = objective.evidenceId,
                     prerequisiteObjectiveIds = objective.prerequisiteObjectiveIds,
+                    prerequisiteMode = objective.prerequisiteMode,
                     progressTarget = objective.progressTarget,
                     progressPerEvidence = objective.progressPerEvidence,
                     progressValue = GetProgressValue(objective, playerName),
@@ -687,20 +691,30 @@ namespace DarkMultiPlayerServer
             {
                 return true;
             }
+            bool anyMode = string.Equals(objective.prerequisiteMode, PrerequisiteModeAny, StringComparison.OrdinalIgnoreCase);
             foreach (string prerequisiteObjectiveId in objective.prerequisiteObjectiveIds)
             {
                 AgencyObjective prerequisite = FindObjective(prerequisiteObjectiveId);
                 if (prerequisite == null)
                 {
-                    return false;
+                    if (!anyMode)
+                    {
+                        return false;
+                    }
+                    continue;
                 }
                 string prerequisitePlayer = IsServerObjective(prerequisite.scope) ? string.Empty : playerName;
-                if (GetCompletion(prerequisite.id, prerequisitePlayer) == null)
+                bool prerequisiteComplete = GetCompletion(prerequisite.id, prerequisitePlayer) != null;
+                if (anyMode && prerequisiteComplete)
+                {
+                    return true;
+                }
+                if (!anyMode && !prerequisiteComplete)
                 {
                     return false;
                 }
             }
-            return true;
+            return !anyMode;
         }
 
         private static double AddProgress(AgencyObjective objective, string completionPlayer, AgencyEvidenceRecord evidenceRecord, out bool addedContribution)
@@ -837,6 +851,15 @@ namespace DarkMultiPlayerServer
                 }
             }
             return cleanPrerequisites.ToArray();
+        }
+
+        private static string CleanPrerequisiteMode(string prerequisiteMode)
+        {
+            if (string.Equals(prerequisiteMode, PrerequisiteModeAny, StringComparison.OrdinalIgnoreCase))
+            {
+                return PrerequisiteModeAny;
+            }
+            return PrerequisiteModeAll;
         }
 
         private static AgencyEvidenceRecord[] ReadEvidenceFile(string evidenceFile)
@@ -1071,6 +1094,9 @@ namespace DarkMultiPlayerServer
 
         [DataMember]
         public string[] prerequisiteObjectiveIds;
+
+        [DataMember]
+        public string prerequisiteMode;
 
         [DataMember]
         public double progressTarget;

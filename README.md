@@ -46,6 +46,7 @@ Current and planned MMO Edition work:
 - [x] ~~Add optional unique-contributor tracking for shared objectives.~~
 - [x] ~~Start DMP-owned contract-like objective presentation.~~
 - [x] ~~Expand vessel evidence types for more mission milestones.~~
+- [x] ~~Add any/all prerequisite modes for branching objective chains.~~
 - [ ] Expand non-vessel evidence types for infrastructure and campaign milestones.
 - [ ] Add richer objective chains and unlock rules beyond completed-objective prerequisites.
 - [ ] Add server-driven agency contracts or contract-like player experiences.

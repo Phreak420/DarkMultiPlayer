@@ -40,6 +40,7 @@ namespace ServerValidationTests
             Run("Agency evidence query returns records", AgencyEvidenceQueryReturnsRecords);
             Run("Agency evidence completes matching objective", AgencyEvidenceCompletesMatchingObjective);
             Run("Agency prerequisites unlock objectives", AgencyPrerequisitesUnlockObjectives);
+            Run("Agency any prerequisite mode unlocks objectives", AgencyAnyPrerequisiteModeUnlocksObjectives);
             Run("Agency shared progress completes objective", AgencySharedProgressCompletesObjective);
             Run("Agency shared progress reloads and resets", AgencySharedProgressReloadsAndResets);
             Run("Agency unique contributors count once", AgencyUniqueContributorsCountOnce);
@@ -554,6 +555,28 @@ namespace ServerValidationTests
             SendAgencyEvidence(bob, AgencyEvidenceType.VESSEL_LANDED, "landed-Mun");
             objectives = AgencyProgression.Objectives;
             Assert(objectives[1].status == "Complete", "dependent objective did not complete after unlocking");
+        }
+
+        private static void AgencyAnyPrerequisiteModeUnlocksObjectives()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-agency-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"orbit-kerbin\",\"title\":\"Orbit Kerbin\",\"description\":\"Reach orbit.\",\"status\":\"Available\",\"scope\":\"Server\",\"evidenceType\":\"VESSEL_ORBITED\",\"evidenceId\":\"orbit-Kerbin\"},{\"id\":\"encounter-mun\",\"title\":\"Encounter Mun\",\"description\":\"Reach Mun SOI.\",\"status\":\"Available\",\"scope\":\"Server\",\"evidenceType\":\"VESSEL_ENCOUNTERED\",\"evidenceId\":\"encountered-Mun\"},{\"id\":\"choose-next-step\",\"title\":\"Choose Next Step\",\"description\":\"Unlock after either milestone.\",\"status\":\"Locked\",\"scope\":\"Server\",\"evidenceType\":\"VESSEL_LANDED\",\"evidenceId\":\"landed-Mun\",\"prerequisiteObjectiveIds\":[\"orbit-kerbin\",\"encounter-mun\"],\"prerequisiteMode\":\"Any\"}]}");
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            ClientObject alice = CreateClient("Alice");
+
+            AgencyProgression.Load(true);
+            AgencyObjective[] objectives = AgencyProgression.Objectives;
+            Assert(objectives[2].status == "Locked", "any-mode objective was not locked before prerequisite completion");
+
+            SendAgencyEvidence(alice, AgencyEvidenceType.VESSEL_ENCOUNTERED, "encountered-Mun");
+            objectives = AgencyProgression.Objectives;
+            Assert(objectives[1].status == "Complete", "any-mode prerequisite did not complete");
+            Assert(objectives[2].status == "Available", "any-mode objective did not unlock after one prerequisite completion");
+            Assert(objectives[2].prerequisiteMode == "Any", "any-mode objective did not preserve prerequisite mode");
         }
 
         private static void AgencyPersonalObjectiveStateIsPerPlayer()
