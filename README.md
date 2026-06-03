@@ -47,6 +47,7 @@ Current and planned MMO Edition work:
 - [x] ~~Start DMP-owned contract-like objective presentation.~~
 - [x] ~~Expand vessel evidence types for more mission milestones.~~
 - [x] ~~Add any/all prerequisite modes for branching objective chains.~~
+- [x] ~~Add hidden-until-unlocked objectives for spoiler-free campaign chains.~~
 - [x] ~~Add admin-confirmed non-vessel evidence for infrastructure and campaign milestones.~~
 - [ ] Add automatic non-vessel evidence from stock or optional mod integrations.
 - [ ] Add richer objective chains and unlock rules beyond completed-objective prerequisites.

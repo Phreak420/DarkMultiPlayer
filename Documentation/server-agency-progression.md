@@ -171,6 +171,7 @@ Implemented console commands: `/agency status`, `/agency reload`, `/agency objec
   extensions.
 - [x] Add objective prerequisites so completed milestones can unlock later objectives.
 - [x] Add `prerequisiteMode` so objective chains can require `All` or `Any` prerequisites.
+- [x] Add `hiddenUntilAvailable` so story objectives can stay hidden until unlocked.
 - [x] Add basic progress targets so multiple players can contribute to shared objectives.
 - [x] Show objective progress values in the Agency UI for partially complete progress objectives.
 - Add group/server-wide milestones that unlock later objective chains.
@@ -181,8 +182,11 @@ Implemented console commands: `/agency status`, `/agency reload`, `/agency objec
 Implemented scopes: `Personal` and `Server`.
 
 Objective definitions can now optionally include `prerequisiteObjectiveIds`, `prerequisiteMode`,
-`progressTarget`, `progressPerEvidence`, and `uniqueContributors`. `prerequisiteMode` defaults to
-`All`; set it to `Any` when completing any one listed prerequisite should unlock the objective.
+`hiddenUntilAvailable`, `progressTarget`, `progressPerEvidence`, and `uniqueContributors`.
+`prerequisiteMode` defaults to `All`; set it to `Any` when completing any one listed prerequisite
+should unlock the objective. `hiddenUntilAvailable` keeps locked objectives out of the
+client-facing objective list until their prerequisites are met while preserving the full objective
+list for server admins.
 
 ### Phase 6: Contract Integration
 

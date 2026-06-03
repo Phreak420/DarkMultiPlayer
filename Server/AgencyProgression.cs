@@ -31,7 +31,7 @@ namespace DarkMultiPlayerServer
             {
                 lock (objectives)
                 {
-                    return BuildObjectiveView(string.Empty);
+                    return BuildObjectiveView(string.Empty, false);
                 }
             }
         }
@@ -40,7 +40,7 @@ namespace DarkMultiPlayerServer
         {
             lock (objectives)
             {
-                return BuildObjectiveView(playerName);
+                return BuildObjectiveView(playerName, true);
             }
         }
 
@@ -122,6 +122,7 @@ namespace DarkMultiPlayerServer
                         evidenceId = CleanText(objective.evidenceId, string.Empty),
                         prerequisiteObjectiveIds = CleanPrerequisites(objective.prerequisiteObjectiveIds),
                         prerequisiteMode = CleanPrerequisiteMode(objective.prerequisiteMode),
+                        hiddenUntilAvailable = objective.hiddenUntilAvailable,
                         progressTarget = Math.Max(0, objective.progressTarget),
                         progressPerEvidence = objective.progressPerEvidence <= 0 ? 1 : objective.progressPerEvidence,
                         uniqueContributors = objective.uniqueContributors,
@@ -624,19 +625,24 @@ namespace DarkMultiPlayerServer
             File.WriteAllLines(progressFile, lines.ToArray());
         }
 
-        private static AgencyObjective[] BuildObjectiveView(string playerName)
+        private static AgencyObjective[] BuildObjectiveView(string playerName, bool hideLockedHiddenObjectives)
         {
             List<AgencyObjective> view = new List<AgencyObjective>();
             foreach (AgencyObjective objective in objectives)
             {
                 string completionPlayer = IsServerObjective(objective.scope) ? string.Empty : playerName;
                 AgencyObjectiveCompletion completion = GetCompletion(objective.id, completionPlayer);
+                string status = GetObjectiveStatus(objective, playerName);
+                if (hideLockedHiddenObjectives && objective.hiddenUntilAvailable && status == LockedStatus)
+                {
+                    continue;
+                }
                 view.Add(new AgencyObjective
                 {
                     id = objective.id,
                     title = objective.title,
                     description = objective.description,
-                    status = GetObjectiveStatus(objective, playerName),
+                    status = status,
                     scope = objective.scope,
                     contractType = objective.contractType,
                     issuer = objective.issuer,
@@ -644,6 +650,7 @@ namespace DarkMultiPlayerServer
                     evidenceId = objective.evidenceId,
                     prerequisiteObjectiveIds = objective.prerequisiteObjectiveIds,
                     prerequisiteMode = objective.prerequisiteMode,
+                    hiddenUntilAvailable = objective.hiddenUntilAvailable,
                     progressTarget = objective.progressTarget,
                     progressPerEvidence = objective.progressPerEvidence,
                     progressValue = GetProgressValue(objective, playerName),
@@ -1116,6 +1123,9 @@ namespace DarkMultiPlayerServer
 
         [DataMember]
         public string prerequisiteMode;
+
+        [DataMember]
+        public bool hiddenUntilAvailable;
 
         [DataMember]
         public double progressTarget;

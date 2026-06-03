@@ -278,6 +278,15 @@ Optional branching-chain check:
 - Complete either prerequisite.
 - Confirm the dependent objective changes from `Locked` to `Available`.
 
+Optional hidden-chain check:
+
+- Set `hiddenUntilAvailable` to `true` on a locked dependent objective.
+- Confirm the objective is not shown in the Agency panel before its prerequisites are complete.
+- Complete the prerequisite.
+- Confirm the objective appears as `Available`.
+- Run `/agency objectives` and confirm admins can still see the hidden objective in the full
+  server objective list.
+
 ### 11. Shared Objective Progress
 
 1. Use the suggested test config.

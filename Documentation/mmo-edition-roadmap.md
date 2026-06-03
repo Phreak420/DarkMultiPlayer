@@ -42,6 +42,7 @@ prominently and preserve original license and copyright notices.
 - [x] ~~Start DMP-owned contract-like objective presentation.~~
 - [x] ~~Expand vessel objective evidence to cover more progression milestones.~~
 - [x] ~~Add any/all prerequisite modes for branching objective chains.~~
+- [x] ~~Add hidden-until-unlocked objectives for spoiler-free campaign chains.~~
 - [x] ~~Add admin-confirmed non-vessel objective evidence for infrastructure and campaign milestones.~~
 - [ ] Add automatic non-vessel objective evidence from stock or optional mod integrations.
 - [ ] Add richer objective chains and unlock rules beyond completed-objective prerequisites.

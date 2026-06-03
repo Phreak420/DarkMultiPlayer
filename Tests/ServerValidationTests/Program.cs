@@ -42,6 +42,7 @@ namespace ServerValidationTests
             Run("Agency evidence completes matching objective", AgencyEvidenceCompletesMatchingObjective);
             Run("Agency prerequisites unlock objectives", AgencyPrerequisitesUnlockObjectives);
             Run("Agency any prerequisite mode unlocks objectives", AgencyAnyPrerequisiteModeUnlocksObjectives);
+            Run("Agency hidden objectives appear after unlock", AgencyHiddenObjectivesAppearAfterUnlock);
             Run("Agency shared progress completes objective", AgencySharedProgressCompletesObjective);
             Run("Agency shared progress reloads and resets", AgencySharedProgressReloadsAndResets);
             Run("Agency unique contributors count once", AgencyUniqueContributorsCountOnce);
@@ -597,6 +598,30 @@ namespace ServerValidationTests
             Assert(objectives[1].status == "Complete", "any-mode prerequisite did not complete");
             Assert(objectives[2].status == "Available", "any-mode objective did not unlock after one prerequisite completion");
             Assert(objectives[2].prerequisiteMode == "Any", "any-mode objective did not preserve prerequisite mode");
+        }
+
+        private static void AgencyHiddenObjectivesAppearAfterUnlock()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-agency-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"orbit-kerbin\",\"title\":\"Orbit Kerbin\",\"description\":\"Reach orbit.\",\"status\":\"Available\",\"scope\":\"Personal\",\"evidenceType\":\"VESSEL_ORBITED\",\"evidenceId\":\"orbit-Kerbin\"},{\"id\":\"secret-mun\",\"title\":\"Secret Mun Objective\",\"description\":\"Hidden until orbit.\",\"status\":\"Locked\",\"scope\":\"Personal\",\"evidenceType\":\"VESSEL_ENCOUNTERED\",\"evidenceId\":\"encountered-Mun\",\"prerequisiteObjectiveIds\":[\"orbit-kerbin\"],\"hiddenUntilAvailable\":true}]}");
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            ClientObject alice = CreateClient("Alice");
+
+            AgencyProgression.Load(true);
+            AgencyObjective[] aliceObjectives = AgencyProgression.GetObjectivesForPlayer("Alice");
+            Assert(aliceObjectives.Length == 1, "hidden locked objective was visible before unlock");
+            Assert(aliceObjectives[0].id == "orbit-kerbin", "visible objective was not the prerequisite");
+            Assert(AgencyProgression.Objectives.Length == 2, "admin objective list did not preserve hidden objective");
+
+            SendAgencyEvidence(alice, AgencyEvidenceType.VESSEL_ORBITED, "orbit-Kerbin");
+            aliceObjectives = AgencyProgression.GetObjectivesForPlayer("Alice");
+            Assert(aliceObjectives.Length == 2, "hidden objective did not appear after unlock");
+            Assert(aliceObjectives[1].id == "secret-mun", "unlocked hidden objective was not visible");
+            Assert(aliceObjectives[1].status == "Available", "unlocked hidden objective was not available");
         }
 
         private static void AgencyPersonalObjectiveStateIsPerPlayer()
