@@ -55,6 +55,7 @@ Current and planned MMO Edition work:
 - [ ] Add shared economy/resource pressure with bounded, recoverable safety rules.
 - [ ] Add story and event-driven campaigns controlled by server configuration.
 - [ ] Add seasonal campaign archives, historical statistics, and Hall of Fame records.
+- [ ] Add optional DMPServer telemetry/export/API hooks for separate external dashboard apps.
 - [ ] Improve player identity visibility and migration without breaking existing auth.
 - [ ] Add gameplay profiles for Vanilla Mode, Agency Mode, and optional MMO Campaign Mode.
 - [ ] Add optional compatibility hooks for colony, mapping, construction, tourism,
@@ -79,6 +80,10 @@ default MMO profile.
 
 The broader platform roadmap is tracked in
 [Documentation/mmo-edition-roadmap.md](Documentation/mmo-edition-roadmap.md).
+
+Future live dashboard features should be built as a separate application or repository. MMO
+Edition's role should be limited to optional, admin-configured DMPServer telemetry/export/API
+support so vanilla DMP-style servers remain unaffected.
 
 ## Compatibility Policy
 

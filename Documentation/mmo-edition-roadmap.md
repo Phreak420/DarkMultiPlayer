@@ -50,6 +50,7 @@ prominently and preserve original license and copyright notices.
 - [ ] Add shared economy and resource pressure with strong safety limits.
 - [ ] Add story/event-driven campaigns with configurable phases.
 - [ ] Add seasonal campaign archives, historical statistics, and Hall of Fame records.
+- [ ] Add optional DMPServer telemetry/export/API hooks for separate external dashboard apps.
 - [ ] Improve identity visibility, migration, and recovery while preserving existing auth.
 - [ ] Add gameplay profiles that let servers choose between vanilla multiplayer, stock-friendly
   agency progression, and deeper optional MMO campaign integrations.
@@ -245,6 +246,62 @@ evidence/objective/reward architecture rather than replacing it. Server owners s
 inspect current values, understand why they changed, override them when needed, and disable the
 systems entirely for vanilla or stock-friendly servers.
 
+## Server Telemetry And External Dashboard Support
+
+Future MMO Edition dashboard features should be built as a separate application, ideally in a
+separate project or repository. DMPServer should remain focused on multiplayer stability,
+authoritative server state, subspace/vessel sync, and compatibility with the original
+DarkMultiPlayer foundation created by godarklight and the original contributors.
+
+DMPServer may eventually expose optional telemetry and status data through stable native hooks,
+such as documented APIs, exported files, append-only logs, event streams, or webhook publishers.
+The server should provide clear output contracts that external tools can consume, but it should
+not embed or directly own a web dashboard UI.
+
+Future DMPServer-side telemetry capabilities may include:
+
+- Optional server status endpoint or exported status file.
+- Player online/offline tracking.
+- Active vessel summary.
+- Vessel ownership and location metadata where available.
+- Campaign/world-state progress export.
+- Agency event log export.
+- Contract, science, funds, and milestone events.
+- Historical timeline events.
+- Optional Discord or webhook event publishing.
+- Optional WebSocket or event-stream support for live updates.
+
+A separate dashboard application could eventually display:
+
+- Players online.
+- Active vessels.
+- Colony and station lists.
+- Campaign progress.
+- Server news feed.
+- Historical milestones.
+- Faction or agency rankings.
+- Solar system overview.
+- Discord and community activity.
+
+Telemetry and dashboard support must remain optional and disabled by default unless explicitly
+configured by the server owner. Vanilla DMP-style servers should not be affected. Admins should be
+able to run DMPServer without any dashboard, restart or replace a dashboard without affecting the
+game server, and choose which telemetry outputs are enabled.
+
+Telemetry should be privacy-conscious and admin-configurable. DMPServer should not expose
+sensitive admin data, private filesystem paths, authentication secrets, private keys, raw server
+configuration that is not intended for publication, or unnecessary player-identifying data.
+
+Design principles:
+
+- Keep the game server stable.
+- Avoid coupling multiplayer synchronization to web UI features.
+- Let admins run without any dashboard.
+- Let future dashboard apps be restarted, upgraded, or replaced without affecting DMPServer.
+- Prefer simple, well-documented output contracts over tightly integrated UI code.
+- Keep telemetry bounded, observable, and inexpensive enough that it cannot harm server tick,
+  vessel sync, or agency progression reliability.
+
 ## Design Rules
 
 - Keep MMO systems optional and disabled by default until mature.
@@ -257,6 +314,8 @@ systems entirely for vanilla or stock-friendly servers.
 - Avoid irreversible economy failure states; pressure should create recovery opportunities.
 - Keep campaign content configuration-driven rather than hardcoded.
 - Keep third-party mod support optional and profile-driven.
+- Keep dashboard features outside DMPServer; DMPServer should only expose optional telemetry,
+  exports, or APIs for external tools.
 
 ## Detailed Plans
 
