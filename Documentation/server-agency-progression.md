@@ -196,6 +196,8 @@ list for server admins.
   with Contract Configurator when installed.
 - [x] Start with DMP-owned contract-like objective presentation in the Agency UI.
 - [x] Show contract type, issuer, and reward summary for agency objectives.
+- [x] Add a compact mission-board layout with selectable objectives and a focused mission detail
+  view inside the gated Agency tab.
 - Avoid hard dependency on Contract Configurator in the core mod.
 - Treat stock KSP contract state as client UI/experience, not as authoritative server truth.
 

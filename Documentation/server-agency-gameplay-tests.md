@@ -147,8 +147,10 @@ Expected:
 
 - `Agency` tab appears.
 - `Show Agency Panel` toggle appears.
-- Enabling the toggle shows the configured objective titles and statuses.
-- Visible objectives show contract type, scope, issuer, and reward summary when configured.
+- Enabling the toggle shows a compact mission list with configured objective titles and statuses.
+- Selecting a mission updates the mission detail area.
+- Visible mission details show contract type, scope, issuer, progress, and reward summary when
+  configured.
 
 ### 3. Objective Completion From Orbit Evidence
 

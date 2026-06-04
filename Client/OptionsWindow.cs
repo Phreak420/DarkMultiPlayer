@@ -30,6 +30,7 @@ namespace DarkMultiPlayer
         //const
         private const float WINDOW_HEIGHT = 350;
         private const float WINDOW_WIDTH = 300;
+        private const int AGENCY_OBJECTIVES_PER_PAGE = 4;
         private const int descWidth = 75;
         private const int sepWidth = 5;
         //Keybindings
@@ -38,6 +39,8 @@ namespace DarkMultiPlayer
         private string settingKeyMessage = "cancel";
         private string toolbarMode;
         private string interpolatorMode;
+        private string selectedAgencyObjectiveId;
+        private int agencyObjectivePage;
         // Toolbar
         private GUIStyle toolbarBtnStyle;
         private OptionsTab selectedTab = OptionsTab.PLAYER;
@@ -502,68 +505,177 @@ namespace DarkMultiPlayer
             }
             if (selectedTab == OptionsTab.AGENCY)
             {
-                GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 300));
-                groupY = 0;
-
-                GUI.Box(new Rect(0, groupY, windowRect.width - 20, 20), "Server Agency", sectionHeaderStyle);
-                groupY += 24;
-
-                bool displayAgencyProgression = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), dmpGame.displayAgencyProgression, "Show Agency Panel");
-                if (displayAgencyProgression != dmpGame.displayAgencyProgression)
-                {
-                    dmpGame.displayAgencyProgression = displayAgencyProgression;
-                    DarkLog.Debug("Agency progression panel display set to " + displayAgencyProgression);
-                }
-                groupY += 24;
-
-                if (dmpGame.displayAgencyProgression)
-                {
-                    string packName = dmpGame.agencyProgressionWorker.PackName;
-                    if (string.IsNullOrEmpty(packName))
-                    {
-                        packName = "Server Agency";
-                    }
-                    GUI.Label(new Rect(0, groupY, windowRect.width - 20, 20), packName, sectionHeaderStyle);
-                    groupY += 24;
-
-                    AgencyObjectiveSummary[] objectives = dmpGame.agencyProgressionWorker.Objectives;
-                    if (objectives.Length == 0)
-                    {
-                        GUI.Label(new Rect(0, groupY, windowRect.width - 20, 36), "No agency objectives are available from this server.", noteStyle);
-                    }
-                    else
-                    {
-                        int maxObjectives = Math.Min(objectives.Length, 3);
-                        for (int i = 0; i < maxObjectives; i++)
-                        {
-                            AgencyObjectiveSummary objective = objectives[i];
-                            GUI.Label(new Rect(0, groupY, windowRect.width - 20, 20), objective.title + " [" + objective.status + "]", descriptorStyle);
-                            groupY += 20;
-                            GUI.Label(new Rect(0, groupY, windowRect.width - 20, 20), BuildAgencyObjectiveMetadata(objective), noteStyle);
-                            groupY += 22;
-                            if (objective.progressTarget > 0 && objective.progressValue > 0 && objective.progressValue < objective.progressTarget)
-                            {
-                                GUI.Label(new Rect(0, groupY, windowRect.width - 20, 20), "Progress: " + objective.progressValue.ToString("0.##") + " / " + objective.progressTarget.ToString("0.##"), noteStyle);
-                                groupY += 22;
-                            }
-                            string rewardSummary = BuildAgencyRewardSummary(objective);
-                            if (!string.IsNullOrEmpty(rewardSummary))
-                            {
-                                GUI.Label(new Rect(0, groupY, windowRect.width - 20, 20), rewardSummary, noteStyle);
-                                groupY += 22;
-                            }
-                            GUI.Label(new Rect(0, groupY, windowRect.width - 20, 34), objective.description, noteStyle);
-                            groupY += 38;
-                        }
-                    }
-                }
-                else
-                {
-                    GUI.Label(new Rect(0, groupY, windowRect.width - 20, 36), "Agency progression is experimental and server controlled.", noteStyle);
-                }
-
-                GUI.EndGroup();
+                DrawAgencyTab(windowY);
             }
+        }
+
+        private void DrawAgencyTab(int windowY)
+        {
+            GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 300));
+            int groupY = 0;
+            int contentWidth = (int)windowRect.width - 20;
+
+            GUI.Box(new Rect(0, groupY, contentWidth, 20), "Server Agency", sectionHeaderStyle);
+            groupY += 24;
+
+            bool displayAgencyProgression = GUI.Toggle(new Rect(0, groupY, contentWidth, 20), dmpGame.displayAgencyProgression, "Show Agency Panel");
+            if (displayAgencyProgression != dmpGame.displayAgencyProgression)
+            {
+                dmpGame.displayAgencyProgression = displayAgencyProgression;
+                DarkLog.Debug("Agency progression panel display set to " + displayAgencyProgression);
+            }
+            groupY += 24;
+
+            if (!dmpGame.displayAgencyProgression)
+            {
+                GUI.Label(new Rect(0, groupY, contentWidth, 36), "Agency progression is experimental and server controlled.", noteStyle);
+                GUI.EndGroup();
+                return;
+            }
+
+            string packName = dmpGame.agencyProgressionWorker.PackName;
+            if (string.IsNullOrEmpty(packName))
+            {
+                packName = "Server Agency";
+            }
+            GUI.Label(new Rect(0, groupY, contentWidth, 20), packName, sectionHeaderStyle);
+            groupY += 24;
+
+            AgencyObjectiveSummary[] objectives = dmpGame.agencyProgressionWorker.Objectives;
+            if (objectives.Length == 0)
+            {
+                selectedAgencyObjectiveId = null;
+                GUI.Label(new Rect(0, groupY, contentWidth, 36), "No agency objectives are available from this server.", noteStyle);
+                GUI.EndGroup();
+                return;
+            }
+
+            GetSelectedAgencyObjective(objectives);
+            DrawAgencyMissionList(objectives, contentWidth, ref groupY);
+            AgencyObjectiveSummary selectedObjective = GetSelectedAgencyObjective(objectives);
+            DrawAgencyMissionDetail(selectedObjective, contentWidth, ref groupY);
+            GUI.EndGroup();
+        }
+
+        private AgencyObjectiveSummary GetSelectedAgencyObjective(AgencyObjectiveSummary[] objectives)
+        {
+            AgencyObjectiveSummary firstObjective = objectives[0];
+            if (string.IsNullOrEmpty(selectedAgencyObjectiveId))
+            {
+                selectedAgencyObjectiveId = firstObjective.id;
+                return firstObjective;
+            }
+
+            for (int i = 0; i < objectives.Length; i++)
+            {
+                if (objectives[i].id == selectedAgencyObjectiveId)
+                {
+                    agencyObjectivePage = i / AGENCY_OBJECTIVES_PER_PAGE;
+                    return objectives[i];
+                }
+            }
+
+            selectedAgencyObjectiveId = firstObjective.id;
+            agencyObjectivePage = 0;
+            return firstObjective;
+        }
+
+        private void DrawAgencyMissionList(AgencyObjectiveSummary[] objectives, int contentWidth, ref int groupY)
+        {
+            GUI.Box(new Rect(0, groupY, contentWidth, 20), "Missions", sectionHeaderStyle);
+            groupY += 22;
+
+            int lastPage = (objectives.Length - 1) / AGENCY_OBJECTIVES_PER_PAGE;
+            if (agencyObjectivePage > lastPage)
+            {
+                agencyObjectivePage = lastPage;
+            }
+            if (agencyObjectivePage < 0)
+            {
+                agencyObjectivePage = 0;
+            }
+
+            int startIndex = agencyObjectivePage * AGENCY_OBJECTIVES_PER_PAGE;
+            int endIndex = Math.Min(objectives.Length, startIndex + AGENCY_OBJECTIVES_PER_PAGE);
+            for (int i = startIndex; i < endIndex; i++)
+            {
+                AgencyObjectiveSummary objective = objectives[i];
+                string label = BuildAgencyMissionListLabel(objective);
+                if (objective.id == selectedAgencyObjectiveId)
+                {
+                    label = "> " + label;
+                }
+                if (GUI.Button(new Rect(0, groupY, contentWidth, 22), label, buttonStyle))
+                {
+                    selectedAgencyObjectiveId = objective.id;
+                }
+                groupY += 24;
+            }
+
+            if (objectives.Length > AGENCY_OBJECTIVES_PER_PAGE)
+            {
+                int buttonWidth = 64;
+                if (GUI.Button(new Rect(0, groupY, buttonWidth, 20), "Prev", buttonStyle) && agencyObjectivePage > 0)
+                {
+                    agencyObjectivePage--;
+                    selectedAgencyObjectiveId = objectives[agencyObjectivePage * AGENCY_OBJECTIVES_PER_PAGE].id;
+                }
+                GUI.Label(new Rect(buttonWidth, groupY, contentWidth - (buttonWidth * 2), 20), "Page " + (agencyObjectivePage + 1) + " / " + (lastPage + 1), noteStyle);
+                if (GUI.Button(new Rect(contentWidth - buttonWidth, groupY, buttonWidth, 20), "Next", buttonStyle) && agencyObjectivePage < lastPage)
+                {
+                    agencyObjectivePage++;
+                    selectedAgencyObjectiveId = objectives[agencyObjectivePage * AGENCY_OBJECTIVES_PER_PAGE].id;
+                }
+                groupY += 20;
+            }
+        }
+
+        private void DrawAgencyMissionDetail(AgencyObjectiveSummary objective, int contentWidth, ref int groupY)
+        {
+            GUI.Box(new Rect(0, groupY, contentWidth, 20), "Mission Detail", sectionHeaderStyle);
+            groupY += 22;
+
+            GUI.Label(new Rect(0, groupY, contentWidth, 20), BuildAgencyMissionTitle(objective), descriptorStyle);
+            groupY += 20;
+            GUI.Label(new Rect(0, groupY, contentWidth, 20), BuildAgencyObjectiveMetadata(objective), noteStyle);
+            groupY += 20;
+
+            string progressSummary = BuildAgencyProgressSummary(objective);
+            if (!string.IsNullOrEmpty(progressSummary))
+            {
+                GUI.Label(new Rect(0, groupY, contentWidth, 20), progressSummary, noteStyle);
+                groupY += 20;
+            }
+
+            string rewardSummary = BuildAgencyRewardSummary(objective);
+            if (!string.IsNullOrEmpty(rewardSummary))
+            {
+                GUI.Label(new Rect(0, groupY, contentWidth, 20), rewardSummary, noteStyle);
+                groupY += 20;
+            }
+
+            GUI.Label(new Rect(0, groupY, contentWidth, 48), objective.description, noteStyle);
+        }
+
+        private string BuildAgencyMissionListLabel(AgencyObjectiveSummary objective)
+        {
+            string title = string.IsNullOrEmpty(objective.title) ? objective.id : objective.title;
+            return "[" + objective.status + "] " + title;
+        }
+
+        private string BuildAgencyMissionTitle(AgencyObjectiveSummary objective)
+        {
+            string title = string.IsNullOrEmpty(objective.title) ? objective.id : objective.title;
+            return title + " [" + objective.status + "]";
+        }
+
+        private string BuildAgencyProgressSummary(AgencyObjectiveSummary objective)
+        {
+            if (objective.progressTarget <= 0 || objective.progressValue <= 0 || objective.progressValue >= objective.progressTarget)
+            {
+                return string.Empty;
+            }
+            return "Progress: " + objective.progressValue.ToString("0.##") + " / " + objective.progressTarget.ToString("0.##");
         }
 
         private string BuildAgencyObjectiveMetadata(AgencyObjectiveSummary objective)
