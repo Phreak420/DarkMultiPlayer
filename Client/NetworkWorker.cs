@@ -2043,6 +2043,7 @@ namespace DarkMultiPlayer
                 mw.Write<byte[]>(signature);
                 mw.Write<string>(Common.PROGRAM_VERSION);
                 mw.Write<bool>(dmpSettings.compressionEnabled);
+                mw.Write<string>(dmpSettings.playerUuid ?? string.Empty);
                 newMessageLength = (int)mw.GetMessageLength();
             }
             newMessage.data = ByteRecycler.GetObject(newMessageLength);

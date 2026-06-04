@@ -35,7 +35,10 @@ Expected:
 - The UUID copy button places the full UUID on the clipboard.
 - The identity copy button places the displayed fingerprint on the clipboard.
 - The UUID remains the same after restart.
-- No server connection, protocol change, or Agency mode is required for this test.
+- No Agency mode is required for this test.
+- After connecting to a compatible server, `Universe/Players/Identities/<uuid>.txt` is written
+  with the UUID, current display name, public-key fingerprint, first seen time, and last seen time.
+- Existing name/public-key authentication remains authoritative.
 
 ## Suggested Test Campaign Config
 

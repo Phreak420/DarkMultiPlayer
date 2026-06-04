@@ -251,9 +251,9 @@ and does not replace the current keypair backup/migration requirement.
 - [x] Add a generated `playerUuid` to client settings.
 - [x] Keep the existing RSA challenge-response authentication.
 - [x] Show and copy the local UUID from the Player options tab.
-- [ ] Send the UUID during handshake as optional protocol data after existing fields.
-- [ ] Let old clients and old servers continue using the current name/key behavior.
-- [ ] Store server-side identity metadata as a new record, such as:
+- [x] Send the UUID during handshake as optional protocol data after existing fields.
+- [x] Let old clients and old servers continue using the current name/key behavior.
+- [x] Store server-side identity metadata as a new record, such as:
   - UUID
   - current display name
   - public key fingerprint
@@ -265,8 +265,13 @@ The UUID should be silent during normal play but copyable/exportable by the user
 treated as a secret by itself; possession of the private key should remain the proof of identity.
 
 Implemented local UUID slice: the client generates a UUID in `settings.cfg`, persists it through
-the normal settings backup path, and exposes it in the Player options tab. The UUID is not sent to
-servers yet, so this slice does not change protocol compatibility or authentication behavior.
+the normal settings backup path, and exposes it in the Player options tab.
+
+Implemented server metadata slice: the client appends UUID metadata as a trailing optional
+handshake field. Servers that understand it validate the UUID and write informational identity
+records under `Universe/Players/Identities/<uuid>.txt` after the existing name/key authentication
+succeeds. Older clients can still connect without UUID metadata, and older servers should ignore
+the trailing field. Authorization still uses the existing name/public-key model.
 
 ### Phase C: Name-Independent Authorization
 

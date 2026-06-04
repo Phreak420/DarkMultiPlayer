@@ -885,6 +885,7 @@ namespace DarkMultiPlayerServer
         public bool isBanned;
         public IPAddress ipAddress;
         public string publicKey;
+        public string playerUuid;
         //subspace tracking
         public int subspace = -1;
         public float subspaceRate = 1f;

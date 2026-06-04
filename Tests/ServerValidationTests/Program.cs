@@ -24,6 +24,8 @@ namespace ServerValidationTests
             Run("Lock release spoof does not mutate locks", LockReleaseSpoofDoesNotMutateLocks);
             Run("Compression round-trips byte arrays", CompressionRoundTripsByteArrays);
             Run("Compression round-trips recycled byte arrays", CompressionRoundTripsRecycledByteArrays);
+            Run("Handshake UUID normalization validates input", HandshakeUuidNormalizationValidatesInput);
+            Run("Handshake identity metadata records UUID", HandshakeIdentityMetadataRecordsUuid);
             Run("Message size validation rejects invalid lengths", MessageSizeValidationRejectsInvalidLengths);
             Run("Split message rejects oversized declared length", SplitMessageRejectsOversizedDeclaredLength);
             Run("Split message rejects oversized first chunk", SplitMessageRejectsOversizedFirstChunk);
@@ -277,6 +279,44 @@ namespace ServerValidationTests
                     ByteRecycler.ReleaseObject(decompressed);
                 }
             }
+        }
+
+        private static void HandshakeUuidNormalizationValidatesInput()
+        {
+            string uuid = Guid.NewGuid().ToString("N");
+            Assert(DarkMultiPlayerServer.Messages.Handshake.TryNormalizePlayerUuid(uuid, out string normalizedUuid), "valid compact uuid was rejected");
+            Assert(Guid.TryParse(normalizedUuid, out Guid _), "normalized uuid was not parseable");
+            Assert(!DarkMultiPlayerServer.Messages.Handshake.TryNormalizePlayerUuid("../bad", out string _), "unsafe uuid value was accepted");
+            Assert(!DarkMultiPlayerServer.Messages.Handshake.TryNormalizePlayerUuid("", out string _), "empty uuid value was accepted");
+        }
+
+        private static void HandshakeIdentityMetadataRecordsUuid()
+        {
+            string universe = CreateUniverse();
+            string uuid = Guid.NewGuid().ToString();
+            ClientObject client = CreateClient("Alice");
+            client.playerUuid = uuid;
+            client.publicKey = "alice-public-key";
+
+            DarkMultiPlayerServer.Messages.Handshake.RecordPlayerIdentityMetadata(client);
+
+            string identityFile = Path.Combine(universe, "Players", "Identities", uuid + ".txt");
+            Assert(File.Exists(identityFile), "identity metadata file was not written");
+            string identityMetadata = File.ReadAllText(identityFile);
+            Assert(identityMetadata.Contains("uuid=" + uuid), "identity metadata did not include uuid");
+            Assert(identityMetadata.Contains("currentName=Alice"), "identity metadata did not include current player name");
+            Assert(identityMetadata.Contains("publicKeyFingerprint="), "identity metadata did not include public key fingerprint");
+            Assert(identityMetadata.Contains("firstSeenUtc="), "identity metadata did not include first seen time");
+            Assert(identityMetadata.Contains("lastSeenUtc="), "identity metadata did not include last seen time");
+
+            ClientObject renamedClient = CreateClient("AliceRenamed");
+            renamedClient.playerUuid = uuid;
+            renamedClient.publicKey = "alice-public-key";
+            DarkMultiPlayerServer.Messages.Handshake.RecordPlayerIdentityMetadata(renamedClient);
+
+            identityMetadata = File.ReadAllText(identityFile);
+            Assert(identityMetadata.Contains("currentName=AliceRenamed"), "identity metadata did not update current player name");
+            Assert(identityMetadata.Contains("previousNames=Alice"), "identity metadata did not retain previous player name");
         }
 
         private static void MessageSizeValidationRejectsInvalidLengths()
@@ -825,6 +865,7 @@ namespace ServerValidationTests
             string universe = Path.Combine(Path.GetTempPath(), "dmp-validation-tests-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path.Combine(universe, "Flags"));
             Directory.CreateDirectory(Path.Combine(universe, "Kerbals"));
+            Directory.CreateDirectory(Path.Combine(universe, "Players"));
             Server.universeDirectory = universe;
             return universe;
         }
