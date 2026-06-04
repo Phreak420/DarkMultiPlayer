@@ -58,7 +58,8 @@ Current and planned MMO Edition work:
 - [ ] Add story and event-driven campaigns controlled by server configuration.
 - [ ] Add seasonal campaign archives, historical statistics, and Hall of Fame records.
 - [ ] Add optional DMPServer telemetry/export/API hooks for separate external dashboard apps.
-- [ ] Improve player identity visibility and migration without breaking existing auth.
+- [x] ~~Show and copy the current public identity fingerprint without breaking existing auth.~~
+- [ ] Improve player identity migration and recovery without breaking existing auth.
 - [ ] Add gameplay profiles for Vanilla Mode, Agency Mode, and optional MMO Campaign Mode.
 - [ ] Add optional compatibility hooks for colony, mapping, construction, tourism,
   infrastructure, and hard-mode survival mods.

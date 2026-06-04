@@ -234,11 +234,17 @@ Future identity work should be phased and backwards-compatible:
 
 ### Phase A: Identity Visibility
 
-- Show the current public identity fingerprint in a client UI panel.
-- Add a "copy identity" action that copies a short fingerprint or export token.
-- Add clear text explaining that this identity is needed to keep server ownership/admin/group
+- [x] Show the current public identity fingerprint in a client UI panel.
+- [x] Add a "copy identity" action that copies a short public-key fingerprint.
+- [x] Add clear text explaining that identity key files should be kept when moving installs.
+- [ ] Add a future export token or guided identity export flow for full migration.
+- [ ] Add clear text explaining that this identity is needed to keep server ownership/admin/group
   access when moving installs.
-- Do not change handshake behavior yet.
+- [x] Do not change handshake behavior yet.
+
+Implemented visibility: the Player options tab shows a short SHA-256 fingerprint derived from the
+client public key and can copy that fingerprint to the clipboard. This is not a private-key export
+and does not replace the current keypair backup/migration requirement.
 
 ### Phase B: Stable Player UUID
 

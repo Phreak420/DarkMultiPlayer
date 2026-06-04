@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using UnityEngine;
 
 namespace DarkMultiPlayer
@@ -40,6 +41,7 @@ namespace DarkMultiPlayer
         private string toolbarMode;
         private string interpolatorMode;
         private string selectedAgencyObjectiveId;
+        private string identityCopyMessage;
         private int agencyObjectivePage;
         // Toolbar
         private GUIStyle toolbarBtnStyle;
@@ -227,7 +229,7 @@ namespace DarkMultiPlayer
 
             if (selectedTab == OptionsTab.PLAYER)
             {
-                GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 106));
+                GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 150));
                 groupY = 0;
 
                 GUI.Label(new Rect(0, groupY, descWidth, 20), "Name:", descriptorStyle);
@@ -284,6 +286,19 @@ namespace DarkMultiPlayer
 
                 if (GUI.Button(new Rect(0, groupY, windowRect.width - 20, 20), "Random Color", buttonStyle))
                     playerColor = PlayerColorWorker.GenerateRandomColor();
+                groupY += 24;
+
+                GUI.Label(new Rect(0, groupY, descWidth, 20), "Identity:", descriptorStyle);
+                GUI.Label(new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 88, 20), GetPlayerIdentityFingerprint(), textFieldStyle);
+                if (GUI.Button(new Rect(windowRect.width - 82, groupY, 62, 20), "Copy ID", buttonStyle))
+                {
+                    GUIUtility.systemCopyBuffer = GetPlayerIdentityFingerprint();
+                    identityCopyMessage = "Identity copied";
+                    DarkLog.Debug("Copied player identity fingerprint to clipboard");
+                }
+                groupY += 22;
+
+                GUI.Label(new Rect(0, groupY, windowRect.width - 20, 20), string.IsNullOrEmpty(identityCopyMessage) ? "Keep your key files when moving installs." : identityCopyMessage, noteStyle);
 
                 if (!playerColor.Equals(dmpSettings.playerColor))
                 {
@@ -676,6 +691,21 @@ namespace DarkMultiPlayer
                 return string.Empty;
             }
             return "Progress: " + objective.progressValue.ToString("0.##") + " / " + objective.progressTarget.ToString("0.##");
+        }
+
+        private string GetPlayerIdentityFingerprint()
+        {
+            if (dmpSettings == null || string.IsNullOrEmpty(dmpSettings.playerPublicKey))
+            {
+                return "Unavailable";
+            }
+
+            string hash = DarkMultiPlayerCommon.Common.CalculateSHA256Hash(Encoding.UTF8.GetBytes(dmpSettings.playerPublicKey));
+            if (string.IsNullOrEmpty(hash) || hash.Length < 16)
+            {
+                return "Unavailable";
+            }
+            return hash.Substring(0, 4) + "-" + hash.Substring(4, 4) + "-" + hash.Substring(8, 4) + "-" + hash.Substring(12, 4);
         }
 
         private string BuildAgencyObjectiveMetadata(AgencyObjectiveSummary objective)
