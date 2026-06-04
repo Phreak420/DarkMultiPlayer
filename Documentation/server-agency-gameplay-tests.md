@@ -19,6 +19,24 @@ These tests cover the optional MMO Edition agency progression experiment. Existi
    - `Loaded agency progression pack 'Server Agency' with ... objectives.`
 6. Confirm `Config/AgencyProgression.json` exists after first enabled startup.
 
+## Identity Visibility Smoke Test
+
+1. Start KSP with the MMO Edition client installed.
+2. Open DMP Options.
+3. Open the `Player` tab.
+4. Click `Copy ID`.
+5. Click `Copy` beside the UUID row.
+6. Restart KSP and reopen the `Player` tab.
+
+Expected:
+
+- The `Identity` row shows a short public-key fingerprint.
+- The `UUID` row shows a stable compact UUID.
+- The UUID copy button places the full UUID on the clipboard.
+- The identity copy button places the displayed fingerprint on the clipboard.
+- The UUID remains the same after restart.
+- No server connection, protocol change, or Agency mode is required for this test.
+
 ## Suggested Test Campaign Config
 
 Use this small config to exercise objective completion and rewards quickly:

@@ -229,7 +229,7 @@ namespace DarkMultiPlayer
 
             if (selectedTab == OptionsTab.PLAYER)
             {
-                GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 150));
+                GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 174));
                 groupY = 0;
 
                 GUI.Label(new Rect(0, groupY, descWidth, 20), "Name:", descriptorStyle);
@@ -293,8 +293,18 @@ namespace DarkMultiPlayer
                 if (GUI.Button(new Rect(windowRect.width - 82, groupY, 62, 20), "Copy ID", buttonStyle))
                 {
                     GUIUtility.systemCopyBuffer = GetPlayerIdentityFingerprint();
-                    identityCopyMessage = "Identity copied";
+                    identityCopyMessage = "Identity fingerprint copied";
                     DarkLog.Debug("Copied player identity fingerprint to clipboard");
+                }
+                groupY += 22;
+
+                GUI.Label(new Rect(0, groupY, descWidth, 20), "UUID:", descriptorStyle);
+                GUI.Label(new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 88, 20), GetPlayerUuidDisplay(), textFieldStyle);
+                if (GUI.Button(new Rect(windowRect.width - 82, groupY, 62, 20), "Copy", buttonStyle))
+                {
+                    GUIUtility.systemCopyBuffer = GetPlayerUuidClipboardValue();
+                    identityCopyMessage = "Player UUID copied";
+                    DarkLog.Debug("Copied player UUID to clipboard");
                 }
                 groupY += 22;
 
@@ -706,6 +716,28 @@ namespace DarkMultiPlayer
                 return "Unavailable";
             }
             return hash.Substring(0, 4) + "-" + hash.Substring(4, 4) + "-" + hash.Substring(8, 4) + "-" + hash.Substring(12, 4);
+        }
+
+        private string GetPlayerUuidDisplay()
+        {
+            if (dmpSettings == null || string.IsNullOrEmpty(dmpSettings.playerUuid))
+            {
+                return "Unavailable";
+            }
+            if (dmpSettings.playerUuid.Length > 13)
+            {
+                return dmpSettings.playerUuid.Substring(0, 8) + "..." + dmpSettings.playerUuid.Substring(dmpSettings.playerUuid.Length - 4);
+            }
+            return dmpSettings.playerUuid;
+        }
+
+        private string GetPlayerUuidClipboardValue()
+        {
+            if (dmpSettings == null || string.IsNullOrEmpty(dmpSettings.playerUuid))
+            {
+                return string.Empty;
+            }
+            return dmpSettings.playerUuid;
         }
 
         private string BuildAgencyObjectiveMetadata(AgencyObjectiveSummary objective)

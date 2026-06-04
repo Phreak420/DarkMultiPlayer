@@ -54,6 +54,7 @@ prominently and preserve original license and copyright notices.
 - [ ] Add seasonal campaign archives, historical statistics, and Hall of Fame records.
 - [ ] Add optional DMPServer telemetry/export/API hooks for separate external dashboard apps.
 - [x] ~~Show and copy the current public identity fingerprint without changing existing auth.~~
+- [x] ~~Generate and copy a local player UUID without changing protocol behavior.~~
 - [ ] Improve identity migration and recovery while preserving existing auth.
 - [ ] Add gameplay profiles that let servers choose between vanilla multiplayer, stock-friendly
   agency progression, and deeper optional MMO campaign integrations.

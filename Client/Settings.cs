@@ -11,6 +11,7 @@ namespace DarkMultiPlayer
     {
         //Settings
         public string playerName;
+        public string playerUuid;
         public string playerPublicKey;
         public string playerPrivateKey;
         public int cacheSize;
@@ -205,6 +206,12 @@ namespace DarkMultiPlayer
                 ConfigNode bindingsNode = settingsNode.GetNode("KEYBINDINGS");
 
                 playerName = playerNode.GetValue("name");
+                if (!playerNode.TryGetValue("uuid", ref playerUuid) || !IsValidPlayerUuid(playerUuid))
+                {
+                    DarkLog.Debug("[Settings]: Adding player uuid to settings file");
+                    playerUuid = Guid.NewGuid().ToString();
+                    saveAfterLoad = true;
+                }
 
                 if (!int.TryParse(settingsNode.GetValue("cacheSize"), out cacheSize))
                 {
@@ -380,6 +387,7 @@ namespace DarkMultiPlayer
             ConfigNode playerNode = settingsNode.AddNode("PLAYER");
 
             playerNode.SetValue("name", playerName, true);
+            playerNode.SetValue("uuid", playerUuid, true);
             playerNode.SetValue("color", playerColor, true);
             playerNode.SetValue("flag", selectedFlag, true);
 
@@ -429,6 +437,12 @@ namespace DarkMultiPlayer
             mainNode.AddNode(settingsNode);
             return mainNode;
         }
+
+        private bool IsValidPlayerUuid(string uuid)
+        {
+            Guid parsedUuid;
+            return !string.IsNullOrEmpty(uuid) && Guid.TryParse(uuid, out parsedUuid);
+        }
     }
 
     public class ServerEntry
@@ -445,4 +459,3 @@ namespace DarkMultiPlayer
         INTERPOLATE3S
     }
 }
-
