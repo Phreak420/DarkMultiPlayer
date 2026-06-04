@@ -785,7 +785,8 @@ namespace DarkMultiPlayerCommon
         VESSEL_ESCAPED,
         VESSEL_ENCOUNTERED,
         VESSEL_RECOVERED,
-        ADMIN_CONFIRMED
+        ADMIN_CONFIRMED,
+        CONTRACT_COMPLETED
     }
 
     public enum MeshMessageType

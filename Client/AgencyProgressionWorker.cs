@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Contracts;
 using DarkMultiPlayerCommon;
 using MessageStream2;
 
@@ -28,6 +29,7 @@ namespace DarkMultiPlayer
             GameEvents.OnScienceRecieved.Add(OnScienceRecieved);
             GameEvents.onPartCouple.Add(OnVesselDocked);
             GameEvents.onVesselRecovered.Add(OnVesselRecovered);
+            GameEvents.Contract.onCompleted.Add(OnContractCompleted);
         }
 
         public AgencyObjectiveSummary[] Objectives
@@ -127,6 +129,7 @@ namespace DarkMultiPlayer
             GameEvents.OnScienceRecieved.Remove(OnScienceRecieved);
             GameEvents.onPartCouple.Remove(OnVesselDocked);
             GameEvents.onVesselRecovered.Remove(OnVesselRecovered);
+            GameEvents.Contract.onCompleted.Remove(OnContractCompleted);
             lock (objectives)
             {
                 objectives.Clear();
@@ -225,6 +228,23 @@ namespace DarkMultiPlayer
                 SendEvidenceOnce(AgencyEvidenceType.VESSEL_RECOVERED, BuildEvidenceId("recovered", bodyName));
             }
             vesselBodies.Remove(recoveredVessel.vesselID);
+        }
+
+        private void OnContractCompleted(Contract contract)
+        {
+            if (!dmpGame.serverAgencyProgressionEnabled || contract == null)
+            {
+                return;
+            }
+
+            ConfigNode contractNode = new ConfigNode();
+            contract.Save(contractNode);
+            string contractType = contractNode.GetValue("type");
+            if (string.IsNullOrEmpty(contractType))
+            {
+                contractType = contract.GetType().Name;
+            }
+            SendEvidenceOnce(AgencyEvidenceType.CONTRACT_COMPLETED, BuildEvidenceId("contract", contractType));
         }
 
         private void TrackBodyEncounter(Vessel vessel, string bodyName)

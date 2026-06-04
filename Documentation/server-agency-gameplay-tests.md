@@ -344,7 +344,26 @@ Expected:
 - Server writes `Universe/AgencyProgression/Objectives.log`.
 - Connected clients receive refreshed Agency objective state.
 
-### 14. Admin Progress Reset
+### 14. Contract Completion Evidence
+
+Use `CONTRACT_COMPLETED` for stock contract completion milestones. The client reports a sanitized
+evidence ID in the form `contract-<contractType>`.
+
+Steps:
+
+1. Add an objective with `evidenceType` set to `CONTRACT_COMPLETED`.
+2. Set `evidenceId` to a known stock contract type, such as `contract-WorldFirstContract`.
+3. Complete that contract in Career mode while connected to the server.
+4. Reopen the Agency panel or run `/agency objectives`.
+
+Expected:
+
+- Server writes `Universe/AgencyEvidence/<player>.log`.
+- Evidence log includes `CONTRACT_COMPLETED`.
+- Matching objective changes to `Complete`.
+- Rewards apply once when configured.
+
+### 15. Admin Progress Reset
 
 1. Use the suggested test config.
 2. Complete matching evidence for `kerbin-relay-network` with player A only.
@@ -359,7 +378,7 @@ Expected:
 - The objective returns to `Available`.
 - No completion or reward is created by the reset.
 
-### 15. Server Reload
+### 16. Server Reload
 
 1. Complete at least one objective.
 2. Run `/agency reload`.
@@ -371,7 +390,7 @@ Expected:
 - Objective status is resent to clients.
 - Server does not grant rewards again just because of reload.
 
-### 16. Restart Persistence
+### 17. Restart Persistence
 
 1. Complete at least one objective.
 2. Stop and restart the server.
@@ -383,7 +402,7 @@ Expected:
 - Evidence and reward audit files remain on disk.
 - Agency panel shows the persisted complete status.
 
-### 17. Existing Server Safety
+### 18. Existing Server Safety
 
 1. Use a normal DMP server config with `agencyProgressionEnabled = False`.
 2. Connect and perform normal DMP activities: chat, launch, sync vessel, disconnect.

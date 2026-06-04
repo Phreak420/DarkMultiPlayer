@@ -126,7 +126,8 @@ Implemented config file: `Config/AgencyProgression.json`.
 - [x] Add server-side evidence query helpers for objective matching.
 - [x] Complete matching objectives when configured evidence arrives.
 - [x] Add admin-confirmed non-vessel evidence for infrastructure and campaign milestones.
-- [ ] Add automatic non-vessel evidence from stock or optional mod integrations.
+- [x] Add stock contract completion evidence.
+- [ ] Add automatic non-vessel evidence from optional mod integrations.
 
 Objective definitions can now optionally include `evidenceType` and `evidenceId`.
 
@@ -144,6 +145,7 @@ Implemented evidence IDs:
 - `VESSEL_ENCOUNTERED`: `encountered-<body>`, such as `encountered-Mun`.
 - `VESSEL_RECOVERED`: `recovered-<body>`, such as `recovered-Kerbin`.
 - `ADMIN_CONFIRMED`: admin/server-authored milestone ID, such as `infrastructure-alpha`.
+- `CONTRACT_COMPLETED`: `contract-<contractType>`, such as `contract-WorldFirstContract`.
 
 ### Phase 4: Server-Awarded Rewards
 
