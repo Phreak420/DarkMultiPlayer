@@ -56,6 +56,7 @@ prominently and preserve original license and copyright notices.
 - [x] ~~Show and copy the current public identity fingerprint without changing existing auth.~~
 - [x] ~~Generate and copy a local player UUID without changing protocol behavior.~~
 - [x] ~~Send optional UUID handshake metadata and record server-side identity metadata.~~
+- [x] ~~Add read-only server commands for inspecting identity metadata.~~
 - [ ] Improve identity migration and recovery while preserving existing auth.
 - [ ] Add gameplay profiles that let servers choose between vanilla multiplayer, stock-friendly
   agency progression, and deeper optional MMO campaign integrations.

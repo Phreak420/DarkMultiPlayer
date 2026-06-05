@@ -39,6 +39,9 @@ Expected:
 - After connecting to a compatible server, `Universe/Players/Identities/<uuid>.txt` is written
   with the UUID, current display name, public-key fingerprint, first seen time, and last seen time.
 - Existing name/public-key authentication remains authoritative.
+- Run `/identity list` and confirm the connected player appears.
+- Run `/identity show <uuid>` and confirm the full metadata is displayed.
+- Run `/identity find <playerName>` and confirm the player can be found by display name.
 
 ## Suggested Test Campaign Config
 

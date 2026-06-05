@@ -26,6 +26,7 @@ namespace ServerValidationTests
             Run("Compression round-trips recycled byte arrays", CompressionRoundTripsRecycledByteArrays);
             Run("Handshake UUID normalization validates input", HandshakeUuidNormalizationValidatesInput);
             Run("Handshake identity metadata records UUID", HandshakeIdentityMetadataRecordsUuid);
+            Run("Identity store queries records", IdentityStoreQueriesRecords);
             Run("Message size validation rejects invalid lengths", MessageSizeValidationRejectsInvalidLengths);
             Run("Split message rejects oversized declared length", SplitMessageRejectsOversizedDeclaredLength);
             Run("Split message rejects oversized first chunk", SplitMessageRejectsOversizedFirstChunk);
@@ -317,6 +318,34 @@ namespace ServerValidationTests
             identityMetadata = File.ReadAllText(identityFile);
             Assert(identityMetadata.Contains("currentName=AliceRenamed"), "identity metadata did not update current player name");
             Assert(identityMetadata.Contains("previousNames=Alice"), "identity metadata did not retain previous player name");
+        }
+
+        private static void IdentityStoreQueriesRecords()
+        {
+            CreateUniverse();
+            string aliceUuid = Guid.NewGuid().ToString();
+            string bobUuid = Guid.NewGuid().ToString();
+
+            ClientObject alice = CreateClient("Alice");
+            alice.playerUuid = aliceUuid;
+            alice.publicKey = "alice-public-key";
+            PlayerIdentityStore.Record(alice);
+
+            ClientObject bob = CreateClient("Bob");
+            bob.playerUuid = bobUuid;
+            bob.publicKey = "bob-public-key";
+            PlayerIdentityStore.Record(bob);
+
+            PlayerIdentityRecord[] records = PlayerIdentityStore.GetRecords();
+            Assert(records.Length == 2, "identity store returned wrong record count");
+
+            PlayerIdentityRecord[] aliceMatches = PlayerIdentityStore.FindRecords("Alice");
+            Assert(aliceMatches.Length == 1, "identity store did not find player by current name");
+            Assert(aliceMatches[0].uuid == aliceUuid, "identity store returned wrong uuid for player name");
+
+            PlayerIdentityRecord[] uuidMatches = PlayerIdentityStore.FindRecords(bobUuid.Substring(0, 8));
+            Assert(uuidMatches.Length == 1, "identity store did not find player by partial uuid");
+            Assert(uuidMatches[0].currentName == "Bob", "identity store returned wrong player for uuid search");
         }
 
         private static void MessageSizeValidationRejectsInvalidLengths()

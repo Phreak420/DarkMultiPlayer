@@ -284,10 +284,14 @@ the trailing field. Authorization still uses the existing name/public-key model.
 ### Phase D: Recovery And Migration Tools
 
 - Add a client-side export/import flow for identity files.
-- Add server admin commands to inspect identities, attach a new key to an existing UUID, rename a
-  display name, and revoke compromised identities.
+- [x] Add server admin commands to inspect identities.
+- Add server admin commands to attach a new key to an existing UUID, rename a display name, and
+  revoke compromised identities.
 - Require explicit admin action for account recovery so players cannot claim another player's
   progress by copying a name.
+
+Implemented inspection command: `/identity [list|show <uuid|name|fingerprint>|find <text>]`.
+This command is read-only and does not affect login, authorization, player files, or ownership.
 
 ### Phase E: Optional Stronger Trust Models
 

@@ -153,6 +153,7 @@ namespace DarkMultiPlayerServer
             CommandHandler.RegisterCommand("admin", AdminCommand.HandleCommand, "Sets a player as admin/removes admin from the player");
             CommandHandler.RegisterCommand("whitelist", WhitelistCommand.HandleCommand, "Change the server whitelist");
             CommandHandler.RegisterCommand("agency", AgencyCommand.HandleCommand, "Agency progression tools");
+            CommandHandler.RegisterCommand("identity", IdentityCommand.HandleCommand, "Player identity metadata tools");
 
             //Register the ctrl+c event
             Console.CancelKeyPress += new ConsoleCancelEventHandler(CatchExit);

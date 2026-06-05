@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.IO;
 using System.Threading;
 using System.Text.RegularExpressions;
-using System.Text;
 using DarkMultiPlayerCommon;
 using MessageStream2;
 
@@ -59,7 +57,7 @@ namespace DarkMultiPlayerServer.Messages
                     try
                     {
                         string receivedPlayerUuid = mr.Read<string>();
-                        if (!TryNormalizePlayerUuid(receivedPlayerUuid, out playerUuid))
+                        if (!PlayerIdentityStore.TryNormalizePlayerUuid(receivedPlayerUuid, out playerUuid))
                         {
                             DarkLog.Debug("Ignoring invalid player UUID from " + playerName);
                         }
@@ -204,7 +202,7 @@ namespace DarkMultiPlayerServer.Messages
             if (handshakeReponse == HandshakeReply.HANDSHOOK_SUCCESSFULLY)
             {
                 client.authenticated = true;
-                RecordPlayerIdentityMetadata(client);
+                PlayerIdentityStore.Record(client);
                 string devClientVersion = "";
                 DMPPluginHandler.FireOnClientAuthenticated(client);
 
@@ -233,130 +231,12 @@ namespace DarkMultiPlayerServer.Messages
 
         public static bool TryNormalizePlayerUuid(string playerUuid, out string normalizedPlayerUuid)
         {
-            normalizedPlayerUuid = "";
-            Guid parsedUuid;
-            if (string.IsNullOrEmpty(playerUuid) || !Guid.TryParse(playerUuid, out parsedUuid))
-            {
-                return false;
-            }
-            normalizedPlayerUuid = parsedUuid.ToString();
-            return true;
+            return PlayerIdentityStore.TryNormalizePlayerUuid(playerUuid, out normalizedPlayerUuid);
         }
 
         public static void RecordPlayerIdentityMetadata(ClientObject client)
         {
-            if (client == null || string.IsNullOrEmpty(client.playerUuid))
-            {
-                return;
-            }
-
-            try
-            {
-                string identitiesDirectory = Path.Combine(Path.Combine(Server.universeDirectory, "Players"), "Identities");
-                Directory.CreateDirectory(identitiesDirectory);
-                string identityFile = Path.Combine(identitiesDirectory, client.playerUuid + ".txt");
-                Dictionary<string, string> metadata = ReadIdentityMetadata(identityFile);
-                string now = DateTime.UtcNow.ToString("o");
-                string previousNames = metadata.ContainsKey("previousNames") ? metadata["previousNames"] : "";
-                string currentName = metadata.ContainsKey("currentName") ? metadata["currentName"] : "";
-                if (!string.IsNullOrEmpty(currentName) && currentName != client.playerName && !ContainsMetadataValue(previousNames, currentName))
-                {
-                    previousNames = string.IsNullOrEmpty(previousNames) ? currentName : previousNames + ";" + currentName;
-                }
-
-                metadata["uuid"] = client.playerUuid;
-                metadata["currentName"] = SanitizeMetadataValue(client.playerName);
-                metadata["publicKeyFingerprint"] = GetPublicKeyFingerprint(client.publicKey);
-                if (!metadata.ContainsKey("firstSeenUtc") || string.IsNullOrEmpty(metadata["firstSeenUtc"]))
-                {
-                    metadata["firstSeenUtc"] = now;
-                }
-                metadata["lastSeenUtc"] = now;
-                metadata["previousNames"] = SanitizeMetadataValue(previousNames);
-
-                WriteIdentityMetadata(identityFile, metadata);
-            }
-            catch (Exception e)
-            {
-                DarkLog.Debug("Failed to record player identity metadata for " + client.playerName + ": " + e);
-            }
-        }
-
-        private static Dictionary<string, string> ReadIdentityMetadata(string identityFile)
-        {
-            Dictionary<string, string> metadata = new Dictionary<string, string>();
-            if (!File.Exists(identityFile))
-            {
-                return metadata;
-            }
-
-            foreach (string line in File.ReadAllLines(identityFile))
-            {
-                int separatorIndex = line.IndexOf('=');
-                if (separatorIndex <= 0)
-                {
-                    continue;
-                }
-                string key = line.Substring(0, separatorIndex);
-                string value = line.Substring(separatorIndex + 1);
-                metadata[key] = value;
-            }
-            return metadata;
-        }
-
-        private static void WriteIdentityMetadata(string identityFile, Dictionary<string, string> metadata)
-        {
-            string[] orderedKeys = new string[] { "uuid", "currentName", "publicKeyFingerprint", "firstSeenUtc", "lastSeenUtc", "previousNames" };
-            using (StreamWriter sw = new StreamWriter(identityFile))
-            {
-                foreach (string key in orderedKeys)
-                {
-                    if (metadata.ContainsKey(key))
-                    {
-                        sw.WriteLine(key + "=" + metadata[key]);
-                    }
-                }
-            }
-        }
-
-        private static string GetPublicKeyFingerprint(string publicKey)
-        {
-            if (string.IsNullOrEmpty(publicKey))
-            {
-                return "";
-            }
-            string hash = Common.CalculateSHA256Hash(Encoding.UTF8.GetBytes(publicKey));
-            if (string.IsNullOrEmpty(hash) || hash.Length < 16)
-            {
-                return "";
-            }
-            return hash.Substring(0, 4) + "-" + hash.Substring(4, 4) + "-" + hash.Substring(8, 4) + "-" + hash.Substring(12, 4);
-        }
-
-        private static bool ContainsMetadataValue(string values, string value)
-        {
-            if (string.IsNullOrEmpty(values) || string.IsNullOrEmpty(value))
-            {
-                return false;
-            }
-            string[] splitValues = values.Split(';');
-            foreach (string splitValue in splitValues)
-            {
-                if (splitValue == value)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private static string SanitizeMetadataValue(string value)
-        {
-            if (string.IsNullOrEmpty(value))
-            {
-                return "";
-            }
-            return value.Replace("\r", "").Replace("\n", "").Replace(";", "");
+            PlayerIdentityStore.Record(client);
         }
 
         private static void SendHandshakeReply(ClientObject client, HandshakeReply enumResponse, string reason)
