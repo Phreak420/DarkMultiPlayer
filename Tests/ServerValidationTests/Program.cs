@@ -29,6 +29,8 @@ namespace ServerValidationTests
             Run("Identity store queries records", IdentityStoreQueriesRecords);
             Run("Identity store records audit events", IdentityStoreRecordsAuditEvents);
             Run("Identity store attaches key with confirmation", IdentityStoreAttachesKeyWithConfirmation);
+            Run("Identity store renames identity with confirmation", IdentityStoreRenamesIdentityWithConfirmation);
+            Run("Identity store revokes identity with confirmation", IdentityStoreRevokesIdentityWithConfirmation);
             Run("Message size validation rejects invalid lengths", MessageSizeValidationRejectsInvalidLengths);
             Run("Split message rejects oversized declared length", SplitMessageRejectsOversizedDeclaredLength);
             Run("Split message rejects oversized first chunk", SplitMessageRejectsOversizedFirstChunk);
@@ -406,6 +408,74 @@ namespace ServerValidationTests
             Assert(auditRecords.Length == 1, "identity key attach did not write one audit event");
             Assert(auditRecords[0].uuid == uuid, "identity key attach audit recorded wrong uuid");
             Assert(auditRecords[0].details.Contains("sourcePlayer=AliceRecovery"), "identity key attach audit did not include source player");
+        }
+
+        private static void IdentityStoreRenamesIdentityWithConfirmation()
+        {
+            string universe = CreateUniverse();
+            string uuid = Guid.NewGuid().ToString();
+
+            ClientObject alice = CreateClient("Alice");
+            alice.playerUuid = uuid;
+            alice.publicKey = "alice-public-key";
+            PlayerIdentityStore.Record(alice);
+
+            string playersDirectory = Path.Combine(universe, "Players");
+            string oldKeyFile = Path.Combine(playersDirectory, "Alice.txt");
+            string newKeyFile = Path.Combine(playersDirectory, "AliceRenamed.txt");
+            File.WriteAllText(oldKeyFile, alice.publicKey);
+
+            PlayerIdentityRecoveryResult rejected = PlayerIdentityStore.RenameIdentity(uuid, "AliceRenamed", false);
+            Assert(!rejected.success, "identity rename succeeded without confirmation");
+            Assert(File.Exists(oldKeyFile), "identity rename without confirmation moved the player key file");
+
+            PlayerIdentityRecoveryResult result = PlayerIdentityStore.RenameIdentity(uuid, "AliceRenamed", true);
+            Assert(result.success, "identity rename failed with confirmation: " + result.message);
+            Assert(!File.Exists(oldKeyFile), "identity rename left the old player key file in place");
+            Assert(File.Exists(newKeyFile), "identity rename did not move the player key file");
+            Assert(File.ReadAllText(newKeyFile) == alice.publicKey, "identity rename changed the player key content");
+
+            PlayerIdentityRecord[] records = PlayerIdentityStore.FindRecords(uuid);
+            Assert(records.Length == 1, "identity rename did not preserve one identity record");
+            Assert(records[0].currentName == "AliceRenamed", "identity rename did not update current name");
+            Assert(records[0].previousNames.Contains("Alice"), "identity rename did not keep previous name");
+
+            PlayerIdentityAuditRecord[] auditRecords = PlayerIdentityStore.GetAuditRecords("renamed");
+            Assert(auditRecords.Length == 1, "identity rename did not write one audit event");
+            Assert(auditRecords[0].details.Contains("previousName=Alice"), "identity rename audit did not include previous name");
+        }
+
+        private static void IdentityStoreRevokesIdentityWithConfirmation()
+        {
+            string universe = CreateUniverse();
+            string uuid = Guid.NewGuid().ToString();
+
+            ClientObject alice = CreateClient("Alice");
+            alice.playerUuid = uuid;
+            alice.publicKey = "alice-public-key";
+            PlayerIdentityStore.Record(alice);
+
+            string playersDirectory = Path.Combine(universe, "Players");
+            string playerKeyFile = Path.Combine(playersDirectory, "Alice.txt");
+            File.WriteAllText(playerKeyFile, alice.publicKey);
+
+            PlayerIdentityRecoveryResult rejected = PlayerIdentityStore.RevokeIdentity(uuid, "lost key", false);
+            Assert(!rejected.success, "identity revoke succeeded without confirmation");
+            Assert(File.Exists(playerKeyFile), "identity revoke without confirmation moved the player key file");
+
+            PlayerIdentityRecoveryResult result = PlayerIdentityStore.RevokeIdentity(uuid, "lost key", true);
+            Assert(result.success, "identity revoke failed with confirmation: " + result.message);
+            Assert(!File.Exists(playerKeyFile), "identity revoke left the player key file in place");
+            Assert(Directory.GetFiles(playersDirectory, "Alice.revoked-*.bak").Length == 1, "identity revoke did not back up the previous key file");
+
+            PlayerIdentityRecord[] records = PlayerIdentityStore.FindRecords(uuid);
+            Assert(records.Length == 1, "identity revoke did not preserve one identity record");
+            Assert(!string.IsNullOrEmpty(records[0].revokedUtc), "identity revoke did not record revoked time");
+            Assert(records[0].revokedReason == "lost key", "identity revoke did not record reason");
+
+            PlayerIdentityAuditRecord[] auditRecords = PlayerIdentityStore.GetAuditRecords("revoked");
+            Assert(auditRecords.Length == 1, "identity revoke did not write one audit event");
+            Assert(auditRecords[0].details.Contains("reason=lost key"), "identity revoke audit did not include reason");
         }
 
         private static void MessageSizeValidationRejectsInvalidLengths()

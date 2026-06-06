@@ -53,6 +53,13 @@ Expected:
   `Universe/Players/<currentName>.txt` is updated and `/identity audit <uuid>` shows
   `key-attached`. Confirm a timestamped `Universe/Players/<currentName>.recovery-*.bak` file was
   written if the previous key file existed.
+- For controlled rename testing only, run `/identity rename <uuid> <newPlayerName> confirm`;
+  confirm `Universe/Players/<oldName>.txt` moves to `Universe/Players/<newPlayerName>.txt`,
+  `/identity show <uuid>` lists the new current name and previous name, and `/identity audit <uuid>`
+  shows `renamed`.
+- For controlled revoke testing only, run `/identity revoke <uuid> <reason> confirm`; confirm the
+  current key file moves to `Universe/Players/<currentName>.revoked-*.bak`, `/identity show <uuid>`
+  lists the revoked timestamp and reason, and `/identity audit <uuid>` shows `revoked`.
 
 ## Suggested Test Campaign Config
 

@@ -31,8 +31,14 @@ namespace DarkMultiPlayerServer
                 case "attachkey":
                     AttachKey(argument);
                     break;
+                case "rename":
+                    RenameIdentity(argument);
+                    break;
+                case "revoke":
+                    RevokeIdentity(argument);
+                    break;
                 default:
-                    DarkLog.Normal("Usage: /identity [list|show <uuid|name|fingerprint>|find <text>|audit [uuid|name|fingerprint]|attachkey <uuid> <onlinePlayerName> confirm]");
+                    DarkLog.Normal("Usage: /identity [list|show <uuid|name|fingerprint>|find <text>|audit [uuid|name|fingerprint]|attachkey <uuid> <onlinePlayerName> confirm|rename <uuid> <newPlayerName> confirm|revoke <uuid> <reason> confirm]");
                     break;
             }
         }
@@ -72,6 +78,11 @@ namespace DarkMultiPlayerServer
                 DarkLog.Normal("First seen UTC: " + record.firstSeenUtc);
                 DarkLog.Normal("Last seen UTC: " + record.lastSeenUtc);
                 DarkLog.Normal("Previous names: " + (string.IsNullOrEmpty(record.previousNames) ? "(none)" : record.previousNames));
+                if (!string.IsNullOrEmpty(record.revokedUtc))
+                {
+                    DarkLog.Normal("Revoked UTC: " + record.revokedUtc);
+                    DarkLog.Normal("Revoked reason: " + record.revokedReason);
+                }
             }
         }
 
@@ -125,9 +136,37 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        private static void RenameIdentity(string argument)
+        {
+            string[] args = argument.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (args.Length != 3 || args[2] != "confirm")
+            {
+                DarkLog.Normal("Usage: /identity rename <uuid> <newPlayerName> confirm");
+                return;
+            }
+
+            PlayerIdentityRecoveryResult result = PlayerIdentityStore.RenameIdentity(args[0], args[1], true);
+            DarkLog.Normal(result.message);
+        }
+
+        private static void RevokeIdentity(string argument)
+        {
+            string[] args = argument.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (args.Length < 3 || args[args.Length - 1] != "confirm")
+            {
+                DarkLog.Normal("Usage: /identity revoke <uuid> <reason> confirm");
+                return;
+            }
+
+            string reason = string.Join(" ", args, 1, args.Length - 2);
+            PlayerIdentityRecoveryResult result = PlayerIdentityStore.RevokeIdentity(args[0], reason, true);
+            DarkLog.Normal(result.message);
+        }
+
         private static string FormatIdentitySummary(PlayerIdentityRecord record)
         {
-            return record.uuid + " " + record.currentName + " " + record.publicKeyFingerprint + " lastSeen=" + record.lastSeenUtc;
+            string revoked = string.IsNullOrEmpty(record.revokedUtc) ? "" : " revoked=" + record.revokedUtc;
+            return record.uuid + " " + record.currentName + " " + record.publicKeyFingerprint + " lastSeen=" + record.lastSeenUtc + revoked;
         }
     }
 }

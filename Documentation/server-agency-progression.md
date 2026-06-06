@@ -287,7 +287,7 @@ the trailing field. Authorization still uses the existing name/public-key model.
 - Add a future guided import/export flow for identity files.
 - [x] Add server admin commands to inspect identities.
 - [x] Add server admin command to attach a new key to an existing UUID.
-- Add server admin commands to rename a display name and revoke compromised identities.
+- [x] Add server admin commands to rename a display name and revoke compromised identities.
 - [x] Add read-only audit visibility before adding recovery mutation commands.
 - Require explicit admin action for account recovery so players cannot claim another player's
   progress by copying a name.
@@ -306,6 +306,18 @@ existing identity record, and the command requires the literal `confirm` token. 
 `Universe/Players/<currentName>.txt`, writes a timestamped `.recovery-*.bak` copy of the previous
 key file when one exists, and records a `key-attached` audit event. It should be used only for
 admin-approved recovery after the server owner verifies the player out of band.
+
+Implemented rename and revoke commands:
+
+- `/identity rename <uuid> <newPlayerName> confirm` updates identity metadata, moves the existing
+  `Universe/Players/<oldName>.txt` key file to the new display name when present, refuses to
+  overwrite an existing target key file, and records a `renamed` audit event.
+- `/identity revoke <uuid> <reason> confirm` records `revokedUtc` and `revokedReason`, moves the
+  current key file to a timestamped `.revoked-*.bak` file when present, and records a `revoked`
+  audit event.
+
+These commands are explicit admin recovery tools. They preserve the existing name/public-key login
+model and do not silently migrate admin state, ownership files, groups, or permissions.
 
 Implemented client backup action: the Player options tab can refresh the local identity backup
 under `saves/DarkMultiPlayer` and copy that backup folder path. The backup includes settings plus

@@ -14,6 +14,8 @@ namespace DarkMultiPlayerServer
         public string firstSeenUtc;
         public string lastSeenUtc;
         public string previousNames;
+        public string revokedUtc;
+        public string revokedReason;
     }
 
     public class PlayerIdentityAuditRecord
@@ -218,6 +220,151 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        public static PlayerIdentityRecoveryResult RenameIdentity(string uuid, string newName, bool confirmed)
+        {
+            PlayerIdentityRecoveryResult result = new PlayerIdentityRecoveryResult();
+            if (!confirmed)
+            {
+                result.message = "Confirmation required. Use: /identity rename <uuid> <newPlayerName> confirm";
+                return result;
+            }
+            if (string.IsNullOrEmpty(newName) || !SafeFile.IsNameSafe(newName))
+            {
+                result.message = "New player name is missing or unsafe.";
+                return result;
+            }
+
+            string normalizedUuid;
+            if (!TryNormalizePlayerUuid(uuid, out normalizedUuid))
+            {
+                result.message = "Invalid UUID.";
+                return result;
+            }
+
+            try
+            {
+                string identityFile = GetIdentityFile(normalizedUuid);
+                if (!File.Exists(identityFile))
+                {
+                    result.message = "Identity UUID was not found.";
+                    return result;
+                }
+
+                Dictionary<string, string> metadata = ReadIdentityMetadata(identityFile);
+                string oldName = GetMetadataValue(metadata, "currentName");
+                if (string.IsNullOrEmpty(oldName) || !SafeFile.IsNameSafe(oldName))
+                {
+                    result.message = "Identity current name is missing or unsafe.";
+                    return result;
+                }
+                if (oldName == newName)
+                {
+                    result.message = "Identity already uses that name.";
+                    return result;
+                }
+
+                string playersDirectory = Path.Combine(Server.universeDirectory, "Players");
+                string oldKeyFile = Path.Combine(playersDirectory, oldName + ".txt");
+                string newKeyFile = Path.Combine(playersDirectory, newName + ".txt");
+                if (File.Exists(newKeyFile))
+                {
+                    result.message = "Target player key file already exists; refusing to overwrite " + newName + ".txt.";
+                    return result;
+                }
+
+                string previousNames = GetMetadataValue(metadata, "previousNames");
+                if (!ContainsMetadataValue(previousNames, oldName))
+                {
+                    previousNames = string.IsNullOrEmpty(previousNames) ? oldName : previousNames + ";" + oldName;
+                }
+                metadata["currentName"] = SanitizeMetadataValue(newName);
+                metadata["previousNames"] = SanitizeMetadataValue(previousNames);
+                metadata["lastSeenUtc"] = DateTime.UtcNow.ToString("o");
+                WriteIdentityMetadata(identityFile, metadata);
+
+                if (File.Exists(oldKeyFile))
+                {
+                    File.Move(oldKeyFile, newKeyFile);
+                }
+
+                string fingerprint = GetMetadataValue(metadata, "publicKeyFingerprint");
+                RecordAudit("renamed", normalizedUuid, newName, fingerprint, "previousName=" + oldName);
+                result.success = true;
+                result.targetPlayerName = newName;
+                result.attachedFingerprint = fingerprint;
+                result.message = "Renamed identity '" + oldName + "' to '" + newName + "'.";
+                return result;
+            }
+            catch (Exception e)
+            {
+                result.message = "Failed to rename identity: " + e.Message;
+                return result;
+            }
+        }
+
+        public static PlayerIdentityRecoveryResult RevokeIdentity(string uuid, string reason, bool confirmed)
+        {
+            PlayerIdentityRecoveryResult result = new PlayerIdentityRecoveryResult();
+            if (!confirmed)
+            {
+                result.message = "Confirmation required. Use: /identity revoke <uuid> <reason> confirm";
+                return result;
+            }
+
+            string normalizedUuid;
+            if (!TryNormalizePlayerUuid(uuid, out normalizedUuid))
+            {
+                result.message = "Invalid UUID.";
+                return result;
+            }
+
+            try
+            {
+                string identityFile = GetIdentityFile(normalizedUuid);
+                if (!File.Exists(identityFile))
+                {
+                    result.message = "Identity UUID was not found.";
+                    return result;
+                }
+
+                Dictionary<string, string> metadata = ReadIdentityMetadata(identityFile);
+                string playerName = GetMetadataValue(metadata, "currentName");
+                if (string.IsNullOrEmpty(playerName) || !SafeFile.IsNameSafe(playerName))
+                {
+                    result.message = "Identity current name is missing or unsafe.";
+                    return result;
+                }
+
+                string revokedUtc = DateTime.UtcNow.ToString("o");
+                metadata["revokedUtc"] = revokedUtc;
+                metadata["revokedReason"] = SanitizeMetadataValue(reason);
+                metadata["lastSeenUtc"] = revokedUtc;
+                WriteIdentityMetadata(identityFile, metadata);
+
+                string playersDirectory = Path.Combine(Server.universeDirectory, "Players");
+                string playerKeyFile = Path.Combine(playersDirectory, playerName + ".txt");
+                string revokedKeyFile = "";
+                if (File.Exists(playerKeyFile))
+                {
+                    revokedKeyFile = Path.Combine(playersDirectory, playerName + ".revoked-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss") + ".bak");
+                    File.Move(playerKeyFile, revokedKeyFile);
+                }
+
+                string fingerprint = GetMetadataValue(metadata, "publicKeyFingerprint");
+                RecordAudit("revoked", normalizedUuid, playerName, fingerprint, "reason=" + reason + ";keyBackup=" + Path.GetFileName(revokedKeyFile));
+                result.success = true;
+                result.targetPlayerName = playerName;
+                result.attachedFingerprint = fingerprint;
+                result.message = "Revoked identity '" + playerName + "'. Existing key file was " + (string.IsNullOrEmpty(revokedKeyFile) ? "not present." : "moved to " + Path.GetFileName(revokedKeyFile) + ".");
+                return result;
+            }
+            catch (Exception e)
+            {
+                result.message = "Failed to revoke identity: " + e.Message;
+                return result;
+            }
+        }
+
         public static PlayerIdentityAuditRecord[] GetAuditRecords(string query)
         {
             string auditFile = GetAuditFile();
@@ -270,6 +417,8 @@ namespace DarkMultiPlayerServer
             record.firstSeenUtc = GetMetadataValue(metadata, "firstSeenUtc");
             record.lastSeenUtc = GetMetadataValue(metadata, "lastSeenUtc");
             record.previousNames = GetMetadataValue(metadata, "previousNames");
+            record.revokedUtc = GetMetadataValue(metadata, "revokedUtc");
+            record.revokedReason = GetMetadataValue(metadata, "revokedReason");
             return record;
         }
 
@@ -312,7 +461,7 @@ namespace DarkMultiPlayerServer
 
         private static void WriteIdentityMetadata(string identityFile, Dictionary<string, string> metadata)
         {
-            string[] orderedKeys = new string[] { "uuid", "currentName", "publicKeyFingerprint", "firstSeenUtc", "lastSeenUtc", "previousNames" };
+            string[] orderedKeys = new string[] { "uuid", "currentName", "publicKeyFingerprint", "firstSeenUtc", "lastSeenUtc", "previousNames", "revokedUtc", "revokedReason" };
             using (StreamWriter sw = new StreamWriter(identityFile))
             {
                 foreach (string key in orderedKeys)
