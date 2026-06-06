@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
@@ -11,6 +12,16 @@ namespace DarkMultiPlayer
         CONTROLS,
         ADVANCED,
         AGENCY
+    }
+
+    enum AgencyObjectiveFilter
+    {
+        ALL,
+        AVAILABLE,
+        ACTIVE,
+        COMPLETED,
+        LOCKED,
+        SHARED
     }
 
     public class OptionsWindow
@@ -31,7 +42,7 @@ namespace DarkMultiPlayer
         //const
         private const float WINDOW_HEIGHT = 350;
         private const float WINDOW_WIDTH = 300;
-        private const int AGENCY_OBJECTIVES_PER_PAGE = 4;
+        private const int AGENCY_OBJECTIVES_PER_PAGE = 3;
         private const int descWidth = 75;
         private const int sepWidth = 5;
         //Keybindings
@@ -43,6 +54,7 @@ namespace DarkMultiPlayer
         private string selectedAgencyObjectiveId;
         private string identityCopyMessage;
         private int agencyObjectivePage;
+        private AgencyObjectiveFilter agencyObjectiveFilter = AgencyObjectiveFilter.ALL;
         // Toolbar
         private GUIStyle toolbarBtnStyle;
         private OptionsTab selectedTab = OptionsTab.PLAYER;
@@ -586,11 +598,87 @@ namespace DarkMultiPlayer
                 return;
             }
 
-            GetSelectedAgencyObjective(objectives);
-            DrawAgencyMissionList(objectives, contentWidth, ref groupY);
-            AgencyObjectiveSummary selectedObjective = GetSelectedAgencyObjective(objectives);
+            DrawAgencyFilterRow(contentWidth, ref groupY);
+            AgencyObjectiveSummary[] filteredObjectives = FilterAgencyObjectives(objectives);
+            if (filteredObjectives.Length == 0)
+            {
+                selectedAgencyObjectiveId = null;
+                agencyObjectivePage = 0;
+                GUI.Label(new Rect(0, groupY, contentWidth, 36), "No objectives match this filter.", noteStyle);
+                GUI.EndGroup();
+                return;
+            }
+
+            GetSelectedAgencyObjective(filteredObjectives);
+            DrawAgencyMissionList(filteredObjectives, contentWidth, ref groupY);
+            AgencyObjectiveSummary selectedObjective = GetSelectedAgencyObjective(filteredObjectives);
             DrawAgencyMissionDetail(selectedObjective, contentWidth, ref groupY);
             GUI.EndGroup();
+        }
+
+        private void DrawAgencyFilterRow(int contentWidth, ref int groupY)
+        {
+            int buttonWidth = contentWidth / 6;
+            DrawAgencyFilterButton(AgencyObjectiveFilter.ALL, "All", 0, buttonWidth, groupY);
+            DrawAgencyFilterButton(AgencyObjectiveFilter.AVAILABLE, "Open", buttonWidth, buttonWidth, groupY);
+            DrawAgencyFilterButton(AgencyObjectiveFilter.ACTIVE, "Active", buttonWidth * 2, buttonWidth, groupY);
+            DrawAgencyFilterButton(AgencyObjectiveFilter.COMPLETED, "Done", buttonWidth * 3, buttonWidth, groupY);
+            DrawAgencyFilterButton(AgencyObjectiveFilter.LOCKED, "Locked", buttonWidth * 4, buttonWidth, groupY);
+            DrawAgencyFilterButton(AgencyObjectiveFilter.SHARED, "Shared", buttonWidth * 5, contentWidth - (buttonWidth * 5), groupY);
+            groupY += 24;
+        }
+
+        private void DrawAgencyFilterButton(AgencyObjectiveFilter filter, string label, int x, int width, int groupY)
+        {
+            string displayLabel = agencyObjectiveFilter == filter ? "> " + label : label;
+            if (GUI.Button(new Rect(x, groupY, width, 20), displayLabel, buttonStyle))
+            {
+                agencyObjectiveFilter = filter;
+                agencyObjectivePage = 0;
+                selectedAgencyObjectiveId = null;
+            }
+        }
+
+        private AgencyObjectiveSummary[] FilterAgencyObjectives(AgencyObjectiveSummary[] objectives)
+        {
+            if (agencyObjectiveFilter == AgencyObjectiveFilter.ALL)
+            {
+                return objectives;
+            }
+
+            List<AgencyObjectiveSummary> filteredObjectives = new List<AgencyObjectiveSummary>();
+            foreach (AgencyObjectiveSummary objective in objectives)
+            {
+                if (MatchesAgencyFilter(objective))
+                {
+                    filteredObjectives.Add(objective);
+                }
+            }
+            return filteredObjectives.ToArray();
+        }
+
+        private bool MatchesAgencyFilter(AgencyObjectiveSummary objective)
+        {
+            switch (agencyObjectiveFilter)
+            {
+                case AgencyObjectiveFilter.AVAILABLE:
+                    return MatchesAgencyText(objective.status, "available");
+                case AgencyObjectiveFilter.ACTIVE:
+                    return MatchesAgencyText(objective.status, "active") || MatchesAgencyText(objective.status, "in progress");
+                case AgencyObjectiveFilter.COMPLETED:
+                    return MatchesAgencyText(objective.status, "complete");
+                case AgencyObjectiveFilter.LOCKED:
+                    return MatchesAgencyText(objective.status, "locked") || MatchesAgencyText(objective.status, "hidden");
+                case AgencyObjectiveFilter.SHARED:
+                    return MatchesAgencyText(objective.scope, "server") || MatchesAgencyText(objective.scope, "shared") || MatchesAgencyText(objective.scope, "community");
+                default:
+                    return true;
+            }
+        }
+
+        private bool MatchesAgencyText(string value, string match)
+        {
+            return !string.IsNullOrEmpty(value) && value.IndexOf(match, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private AgencyObjectiveSummary GetSelectedAgencyObjective(AgencyObjectiveSummary[] objectives)
@@ -707,11 +795,16 @@ namespace DarkMultiPlayer
 
         private string BuildAgencyProgressSummary(AgencyObjectiveSummary objective)
         {
-            if (objective.progressTarget <= 0 || objective.progressValue <= 0 || objective.progressValue >= objective.progressTarget)
+            if (objective.progressTarget <= 0)
             {
                 return string.Empty;
             }
-            return "Progress: " + objective.progressValue.ToString("0.##") + " / " + objective.progressTarget.ToString("0.##");
+            string progressSummary = "Progress: " + objective.progressValue.ToString("0.##") + " / " + objective.progressTarget.ToString("0.##");
+            if (objective.progressValue >= objective.progressTarget)
+            {
+                progressSummary += " complete";
+            }
+            return progressSummary;
         }
 
         private string GetPlayerIdentityFingerprint()

@@ -164,6 +164,26 @@ Use this small config to exercise objective completion and rewards quickly:
 }
 ```
 
+## Agency Objective Filter Smoke Test
+
+1. Enable `agencyProgressionEnabled` on the server.
+2. Use an `AgencyProgression.json` file with a mix of available, completed, locked, personal, and
+   server-scoped objectives.
+3. Connect with the client and open DMP Options.
+4. Open the `Agency` tab and enable `Show Agency Panel`.
+5. Click `All`, `Open`, `Active`, `Done`, `Locked`, and `Shared`.
+
+Expected:
+
+- `All` shows every objective sent by the server.
+- `Open` shows objectives whose status is available.
+- `Active` shows active or in-progress objectives when present.
+- `Done` shows completed objectives.
+- `Locked` shows locked or hidden objectives when present.
+- `Shared` shows server, shared, or community-scoped objectives.
+- Empty filters show `No objectives match this filter.` without throwing errors.
+- Objectives with progress targets show `Progress: current / target`, including completed progress.
+
 ## Test Cases
 
 ### 1. Disabled Server Compatibility

@@ -72,7 +72,7 @@ The next implementation phase should improve how Agency Mode feels during ordina
 keeping the current evidence/objective/reward architecture intact.
 
 - [ ] Add a dedicated Server Space Agency window instead of relying only on the current hidden tab.
-- [ ] Add objective filtering for available, active, completed, locked, and shared objectives.
+- [x] ~~Add objective filtering for available, active, completed, locked, and shared objectives.~~
 - [ ] Add clearer reward and progress presentation before a player accepts or pursues an objective.
 - [ ] Add optional server-authored objective categories such as exploration, construction,
   logistics, rescue, infrastructure, science, and community goals.
