@@ -288,11 +288,17 @@ the trailing field. Authorization still uses the existing name/public-key model.
 - [x] Add server admin commands to inspect identities.
 - Add server admin commands to attach a new key to an existing UUID, rename a display name, and
   revoke compromised identities.
+- [x] Add read-only audit visibility before adding recovery mutation commands.
 - Require explicit admin action for account recovery so players cannot claim another player's
   progress by copying a name.
 
 Implemented inspection command: `/identity [list|show <uuid|name|fingerprint>|find <text>]`.
 This command is read-only and does not affect login, authorization, player files, or ownership.
+
+Implemented audit visibility: identity creation, display-name changes, and public-key fingerprint
+changes are written to `Universe/Players/Identities/IdentityAudit.log`. Server owners can inspect
+the log with `/identity audit [uuid|name|fingerprint]`. This is intentionally read-only; recovery
+commands that alter trust should be added later and must write to the same audit trail.
 
 Implemented client backup action: the Player options tab can refresh the local identity backup
 under `saves/DarkMultiPlayer` and copy that backup folder path. The backup includes settings plus

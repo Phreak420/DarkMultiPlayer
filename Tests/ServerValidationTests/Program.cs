@@ -27,6 +27,7 @@ namespace ServerValidationTests
             Run("Handshake UUID normalization validates input", HandshakeUuidNormalizationValidatesInput);
             Run("Handshake identity metadata records UUID", HandshakeIdentityMetadataRecordsUuid);
             Run("Identity store queries records", IdentityStoreQueriesRecords);
+            Run("Identity store records audit events", IdentityStoreRecordsAuditEvents);
             Run("Message size validation rejects invalid lengths", MessageSizeValidationRejectsInvalidLengths);
             Run("Split message rejects oversized declared length", SplitMessageRejectsOversizedDeclaredLength);
             Run("Split message rejects oversized first chunk", SplitMessageRejectsOversizedFirstChunk);
@@ -346,6 +347,31 @@ namespace ServerValidationTests
             PlayerIdentityRecord[] uuidMatches = PlayerIdentityStore.FindRecords(bobUuid.Substring(0, 8));
             Assert(uuidMatches.Length == 1, "identity store did not find player by partial uuid");
             Assert(uuidMatches[0].currentName == "Bob", "identity store returned wrong player for uuid search");
+        }
+
+        private static void IdentityStoreRecordsAuditEvents()
+        {
+            CreateUniverse();
+            string uuid = Guid.NewGuid().ToString();
+
+            ClientObject alice = CreateClient("Alice");
+            alice.playerUuid = uuid;
+            alice.publicKey = "alice-public-key";
+            PlayerIdentityStore.Record(alice);
+
+            ClientObject renamedAlice = CreateClient("AliceRenamed");
+            renamedAlice.playerUuid = uuid;
+            renamedAlice.publicKey = "alice-public-key";
+            PlayerIdentityStore.Record(renamedAlice);
+
+            PlayerIdentityAuditRecord[] records = PlayerIdentityStore.GetAuditRecords(uuid);
+            Assert(records.Length == 2, "identity audit returned wrong record count");
+            Assert(records[0].action == "created", "identity audit did not record creation");
+            Assert(records[1].action == "name-changed", "identity audit did not record name change");
+            Assert(records[1].details.Contains("previousName=Alice"), "identity audit did not include previous name");
+
+            PlayerIdentityAuditRecord[] nameMatches = PlayerIdentityStore.GetAuditRecords("AliceRenamed");
+            Assert(nameMatches.Length == 1, "identity audit did not filter by current name");
         }
 
         private static void MessageSizeValidationRejectsInvalidLengths()

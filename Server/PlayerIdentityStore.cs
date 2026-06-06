@@ -16,6 +16,16 @@ namespace DarkMultiPlayerServer
         public string previousNames;
     }
 
+    public class PlayerIdentityAuditRecord
+    {
+        public DateTime recordedAtUtc;
+        public string action;
+        public string uuid;
+        public string playerName;
+        public string publicKeyFingerprint;
+        public string details;
+    }
+
     public static class PlayerIdentityStore
     {
         public static bool TryNormalizePlayerUuid(string playerUuid, out string normalizedPlayerUuid)
@@ -45,6 +55,11 @@ namespace DarkMultiPlayerServer
                 string now = DateTime.UtcNow.ToString("o");
                 string previousNames = metadata.ContainsKey("previousNames") ? metadata["previousNames"] : "";
                 string currentName = metadata.ContainsKey("currentName") ? metadata["currentName"] : "";
+                string currentFingerprint = metadata.ContainsKey("publicKeyFingerprint") ? metadata["publicKeyFingerprint"] : "";
+                string nextFingerprint = GetPublicKeyFingerprint(client.publicKey);
+                bool isNewRecord = string.IsNullOrEmpty(currentName);
+                bool nameChanged = !string.IsNullOrEmpty(currentName) && currentName != client.playerName;
+                bool fingerprintChanged = !string.IsNullOrEmpty(currentFingerprint) && currentFingerprint != nextFingerprint;
                 if (!string.IsNullOrEmpty(currentName) && currentName != client.playerName && !ContainsMetadataValue(previousNames, currentName))
                 {
                     previousNames = string.IsNullOrEmpty(previousNames) ? currentName : previousNames + ";" + currentName;
@@ -52,7 +67,7 @@ namespace DarkMultiPlayerServer
 
                 metadata["uuid"] = client.playerUuid;
                 metadata["currentName"] = SanitizeMetadataValue(client.playerName);
-                metadata["publicKeyFingerprint"] = GetPublicKeyFingerprint(client.publicKey);
+                metadata["publicKeyFingerprint"] = nextFingerprint;
                 if (!metadata.ContainsKey("firstSeenUtc") || string.IsNullOrEmpty(metadata["firstSeenUtc"]))
                 {
                     metadata["firstSeenUtc"] = now;
@@ -61,6 +76,18 @@ namespace DarkMultiPlayerServer
                 metadata["previousNames"] = SanitizeMetadataValue(previousNames);
 
                 WriteIdentityMetadata(identityFile, metadata);
+                if (isNewRecord)
+                {
+                    RecordAudit("created", client.playerUuid, client.playerName, nextFingerprint, "identity metadata created");
+                }
+                if (nameChanged)
+                {
+                    RecordAudit("name-changed", client.playerUuid, client.playerName, nextFingerprint, "previousName=" + currentName);
+                }
+                if (fingerprintChanged)
+                {
+                    RecordAudit("fingerprint-changed", client.playerUuid, client.playerName, nextFingerprint, "previousFingerprint=" + currentFingerprint);
+                }
             }
             catch (Exception e)
             {
@@ -107,6 +134,48 @@ namespace DarkMultiPlayerServer
             return matches.ToArray();
         }
 
+        public static PlayerIdentityAuditRecord[] GetAuditRecords(string query)
+        {
+            string auditFile = GetAuditFile();
+            if (!File.Exists(auditFile))
+            {
+                return new PlayerIdentityAuditRecord[0];
+            }
+
+            List<PlayerIdentityAuditRecord> records = new List<PlayerIdentityAuditRecord>();
+            foreach (string line in File.ReadAllLines(auditFile))
+            {
+                PlayerIdentityAuditRecord record;
+                if (TryParseAuditRecord(line, out record) && (string.IsNullOrEmpty(query) || MatchesAuditRecord(record, query)))
+                {
+                    records.Add(record);
+                }
+            }
+            return records.ToArray();
+        }
+
+        public static void RecordAudit(string action, string uuid, string playerName, string publicKeyFingerprint, string details)
+        {
+            try
+            {
+                Directory.CreateDirectory(GetIdentityDirectory());
+                using (StreamWriter sw = new StreamWriter(GetAuditFile(), true))
+                {
+                    sw.WriteLine(
+                        DateTime.UtcNow.ToString("o") + "|" +
+                        SanitizeAuditValue(action) + "|" +
+                        SanitizeAuditValue(uuid) + "|" +
+                        SanitizeAuditValue(playerName) + "|" +
+                        SanitizeAuditValue(publicKeyFingerprint) + "|" +
+                        SanitizeAuditValue(details));
+                }
+            }
+            catch (Exception e)
+            {
+                DarkLog.Debug("Failed to record identity audit entry: " + e);
+            }
+        }
+
         private static PlayerIdentityRecord ReadRecord(string identityFile)
         {
             Dictionary<string, string> metadata = ReadIdentityMetadata(identityFile);
@@ -128,6 +197,11 @@ namespace DarkMultiPlayerServer
         private static string GetIdentityFile(string playerUuid)
         {
             return Path.Combine(GetIdentityDirectory(), playerUuid + ".txt");
+        }
+
+        private static string GetAuditFile()
+        {
+            return Path.Combine(GetIdentityDirectory(), "IdentityAudit.log");
         }
 
         private static Dictionary<string, string> ReadIdentityMetadata(string identityFile)
@@ -203,6 +277,29 @@ namespace DarkMultiPlayerServer
             return !string.IsNullOrEmpty(value) && value.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
+        private static bool MatchesAuditRecord(PlayerIdentityAuditRecord record, string query)
+        {
+            return Matches(record.action, query) || Matches(record.uuid, query) || Matches(record.playerName, query) || Matches(record.publicKeyFingerprint, query) || Matches(record.details, query);
+        }
+
+        private static bool TryParseAuditRecord(string line, out PlayerIdentityAuditRecord record)
+        {
+            record = new PlayerIdentityAuditRecord();
+            string[] parts = line.Split('|');
+            DateTime recordedAtUtc;
+            if (parts.Length != 6 || !DateTime.TryParse(parts[0], out recordedAtUtc))
+            {
+                return false;
+            }
+            record.recordedAtUtc = recordedAtUtc;
+            record.action = parts[1];
+            record.uuid = parts[2];
+            record.playerName = parts[3];
+            record.publicKeyFingerprint = parts[4];
+            record.details = parts[5];
+            return true;
+        }
+
         private static string GetMetadataValue(Dictionary<string, string> metadata, string key)
         {
             return metadata.ContainsKey(key) ? metadata[key] : "";
@@ -215,6 +312,15 @@ namespace DarkMultiPlayerServer
                 return "";
             }
             return value.Replace("\r", "").Replace("\n", "").Replace(";", "");
+        }
+
+        private static string SanitizeAuditValue(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return "";
+            }
+            return value.Replace("\r", "").Replace("\n", "").Replace("|", "");
         }
     }
 }

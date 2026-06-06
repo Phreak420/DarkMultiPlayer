@@ -25,8 +25,11 @@ namespace DarkMultiPlayerServer
                 case "find":
                     FindIdentities(argument);
                     break;
+                case "audit":
+                    ShowAudit(argument);
+                    break;
                 default:
-                    DarkLog.Normal("Usage: /identity [list|show <uuid|name|fingerprint>|find <text>]");
+                    DarkLog.Normal("Usage: /identity [list|show <uuid|name|fingerprint>|find <text>|audit [uuid|name|fingerprint]]");
                     break;
             }
         }
@@ -82,6 +85,18 @@ namespace DarkMultiPlayerServer
             foreach (PlayerIdentityRecord record in records)
             {
                 DarkLog.Normal(FormatIdentitySummary(record));
+            }
+        }
+
+        private static void ShowAudit(string query)
+        {
+            PlayerIdentityAuditRecord[] records = PlayerIdentityStore.GetAuditRecords(query);
+            DarkLog.Normal("Player identity audit records: " + records.Length);
+            int start = Math.Max(0, records.Length - 20);
+            for (int i = start; i < records.Length; i++)
+            {
+                PlayerIdentityAuditRecord record = records[i];
+                DarkLog.Normal(record.recordedAtUtc.ToString("u") + " " + record.action + " " + record.uuid + " " + record.playerName + " " + record.publicKeyFingerprint + " " + record.details);
             }
         }
 

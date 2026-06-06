@@ -46,6 +46,8 @@ Expected:
 - Run `/identity list` and confirm the connected player appears.
 - Run `/identity show <uuid>` and confirm the full metadata is displayed.
 - Run `/identity find <playerName>` and confirm the player can be found by display name.
+- Run `/identity audit <uuid>` and confirm identity creation or metadata-change audit entries are
+  displayed when present.
 
 ## Suggested Test Campaign Config
 
