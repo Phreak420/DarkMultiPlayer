@@ -42,6 +42,7 @@ namespace DarkMultiPlayer
         private string privateKeyFile;
         private string backupPublicKeyFile;
         private string backupPrivateKeyFile;
+        public string IdentityBackupDirectory { private set; get; }
 
         public Settings()
         {
@@ -55,6 +56,7 @@ namespace DarkMultiPlayer
             {
                 Directory.CreateDirectory(darkMultiPlayerSavesDirectory);
             }
+            IdentityBackupDirectory = darkMultiPlayerSavesDirectory;
             dataLocation = Path.Combine(Path.Combine(Path.Combine(Path.Combine(Client.dmpClient.kspRootPath, "GameData"), "DarkMultiPlayer"), "Plugins"), "Data");
             DarkLog.Debug("DarkMultiPlayer Settings path: " + dataLocation);
             oldSettingsFile = Path.Combine(dataLocation, OLD_SETTINGS_FILE);
@@ -415,6 +417,28 @@ namespace DarkMultiPlayer
             mainNode.Save(settingsFile);
 
             File.Copy(settingsFile, backupSettingsFile, true);
+        }
+
+        public bool BackupIdentityFiles()
+        {
+            try
+            {
+                SaveSettings();
+                if (!Directory.Exists(IdentityBackupDirectory))
+                {
+                    Directory.CreateDirectory(IdentityBackupDirectory);
+                }
+                File.Copy(publicKeyFile, backupPublicKeyFile, true);
+                File.Copy(privateKeyFile, backupPrivateKeyFile, true);
+                File.Copy(settingsFile, backupSettingsFile, true);
+                return true;
+            }
+            catch (Exception e)
+            {
+                DarkLog.Debug("Error backing up identity files:");
+                DarkLog.Debug(e.ToString());
+                return false;
+            }
         }
 
         public ConfigNode GetDefaultSettings()

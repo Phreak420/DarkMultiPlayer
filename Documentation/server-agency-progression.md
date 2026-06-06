@@ -283,7 +283,8 @@ the trailing field. Authorization still uses the existing name/public-key model.
 
 ### Phase D: Recovery And Migration Tools
 
-- Add a client-side export/import flow for identity files.
+- [x] Add a client-side backup action for identity files.
+- Add a future guided import/export flow for identity files.
 - [x] Add server admin commands to inspect identities.
 - Add server admin commands to attach a new key to an existing UUID, rename a display name, and
   revoke compromised identities.
@@ -292,6 +293,10 @@ the trailing field. Authorization still uses the existing name/public-key model.
 
 Implemented inspection command: `/identity [list|show <uuid|name|fingerprint>|find <text>]`.
 This command is read-only and does not affect login, authorization, player files, or ownership.
+
+Implemented client backup action: the Player options tab can refresh the local identity backup
+under `saves/DarkMultiPlayer` and copy that backup folder path. The backup includes settings plus
+the public/private key files needed to preserve current server identity on another install.
 
 ### Phase E: Optional Stronger Trust Models
 

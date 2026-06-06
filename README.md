@@ -62,6 +62,7 @@ Current and planned MMO Edition work:
 - [x] ~~Generate and copy a local player UUID without changing protocol behavior.~~
 - [x] ~~Send optional UUID handshake metadata and record server-side identity metadata.~~
 - [x] ~~Add read-only server commands for inspecting identity metadata.~~
+- [x] ~~Add client identity backup controls for moving installs.~~
 - [ ] Improve player identity migration and recovery without breaking existing auth.
 - [ ] Add gameplay profiles for Vanilla Mode, Agency Mode, and optional MMO Campaign Mode.
 - [ ] Add optional compatibility hooks for colony, mapping, construction, tourism,

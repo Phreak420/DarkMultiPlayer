@@ -229,7 +229,7 @@ namespace DarkMultiPlayer
 
             if (selectedTab == OptionsTab.PLAYER)
             {
-                GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 174));
+                GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 198));
                 groupY = 0;
 
                 GUI.Label(new Rect(0, groupY, descWidth, 20), "Name:", descriptorStyle);
@@ -309,6 +309,17 @@ namespace DarkMultiPlayer
                 groupY += 22;
 
                 GUI.Label(new Rect(0, groupY, windowRect.width - 20, 20), string.IsNullOrEmpty(identityCopyMessage) ? "Keep your key files when moving installs." : identityCopyMessage, noteStyle);
+                groupY += 22;
+
+                if (GUI.Button(new Rect(0, groupY, 130, 20), "Backup ID", buttonStyle))
+                {
+                    identityCopyMessage = dmpSettings.BackupIdentityFiles() ? "Identity backup refreshed" : "Identity backup failed";
+                }
+                if (GUI.Button(new Rect(138, groupY, windowRect.width - 158, 20), "Copy Path", buttonStyle))
+                {
+                    GUIUtility.systemCopyBuffer = dmpSettings.IdentityBackupDirectory;
+                    identityCopyMessage = "Backup path copied";
+                }
 
                 if (!playerColor.Equals(dmpSettings.playerColor))
                 {

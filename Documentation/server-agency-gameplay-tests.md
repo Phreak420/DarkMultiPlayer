@@ -26,7 +26,9 @@ These tests cover the optional MMO Edition agency progression experiment. Existi
 3. Open the `Player` tab.
 4. Click `Copy ID`.
 5. Click `Copy` beside the UUID row.
-6. Restart KSP and reopen the `Player` tab.
+6. Click `Backup ID`.
+7. Click `Copy Path`.
+8. Restart KSP and reopen the `Player` tab.
 
 Expected:
 
@@ -34,6 +36,8 @@ Expected:
 - The `UUID` row shows a stable compact UUID.
 - The UUID copy button places the full UUID on the clipboard.
 - The identity copy button places the displayed fingerprint on the clipboard.
+- `Backup ID` refreshes the identity backup under `saves/DarkMultiPlayer`.
+- `Copy Path` places the backup folder path on the clipboard.
 - The UUID remains the same after restart.
 - No Agency mode is required for this test.
 - After connecting to a compatible server, `Universe/Players/Identities/<uuid>.txt` is written
