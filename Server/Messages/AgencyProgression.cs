@@ -7,7 +7,7 @@ namespace DarkMultiPlayerServer.Messages
     {
         public static void SendAgencyProgression(ClientObject client)
         {
-            if (!Settings.settingsStore.agencyProgressionEnabled)
+            if (!Settings.IsAgencyProgressionActive())
             {
                 return;
             }
@@ -70,7 +70,7 @@ namespace DarkMultiPlayerServer.Messages
 
         public static void SendAgencyProgressionToAll()
         {
-            if (!Settings.settingsStore.agencyProgressionEnabled)
+            if (!Settings.IsAgencyProgressionActive())
             {
                 return;
             }

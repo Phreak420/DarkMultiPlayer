@@ -7,7 +7,7 @@ namespace DarkMultiPlayerServer.Messages
     {
         public static void SendAgencyReward(ClientObject client, string objectiveId, double funds, float science, float reputation)
         {
-            if (client == null || !Settings.settingsStore.agencyProgressionEnabled)
+            if (client == null || !Settings.IsAgencyProgressionActive())
             {
                 return;
             }

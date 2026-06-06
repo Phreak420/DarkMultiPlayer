@@ -144,7 +144,7 @@ namespace DarkMultiPlayerServer
 
         public static bool RecordEvidence(ClientObject client, int evidenceType, string evidenceId, double gameTime)
         {
-            if (!Settings.settingsStore.agencyProgressionEnabled)
+            if (!Settings.IsAgencyProgressionActive())
             {
                 return false;
             }
@@ -169,7 +169,7 @@ namespace DarkMultiPlayerServer
 
         public static bool RecordAdminEvidence(string playerName, int evidenceType, string evidenceId)
         {
-            if (!Settings.settingsStore.agencyProgressionEnabled)
+            if (!Settings.IsAgencyProgressionActive())
             {
                 return false;
             }

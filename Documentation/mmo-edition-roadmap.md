@@ -61,8 +61,8 @@ prominently and preserve original license and copyright notices.
 - [x] ~~Add read-only identity audit logs and audit inspection command.~~
 - [x] ~~Add confirmed admin command to attach an online player's key to an existing identity.~~
 - [x] ~~Improve identity migration and recovery while preserving existing auth.~~
-- [ ] Add gameplay profiles that let servers choose between vanilla multiplayer, stock-friendly
-  agency progression, and deeper optional MMO campaign integrations.
+- [x] ~~Add gameplay profiles that let servers choose between vanilla multiplayer, stock-friendly
+  agency progression, and deeper optional MMO campaign integrations.~~
 - [ ] Add compatibility hooks for supported colony, exploration, construction, tourism,
   infrastructure, and hard-mode survival mods without making them required dependencies.
 
@@ -84,6 +84,18 @@ keeping the current evidence/objective/reward architecture intact.
 
 MMO Edition should support distinct server profiles instead of assuming every server wants the
 same amount of progression or mod integration.
+
+Implemented setting: `gameplayProfile` in `Config/Settings.txt`.
+
+Supported values:
+
+- `Vanilla`
+- `Agency`
+- `MMOCampaign`
+
+During the transition, `agencyProgressionEnabled = True` still enables Agency systems even when
+`gameplayProfile = Vanilla`. `MMOCampaign` is currently a placeholder that uses the Agency systems
+until campaign director, economy, and optional mod integration layers are implemented.
 
 ### Vanilla Mode
 

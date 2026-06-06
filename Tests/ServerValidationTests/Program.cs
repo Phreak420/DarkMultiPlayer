@@ -26,6 +26,7 @@ namespace ServerValidationTests
             Run("Compression round-trips recycled byte arrays", CompressionRoundTripsRecycledByteArrays);
             Run("Handshake UUID normalization validates input", HandshakeUuidNormalizationValidatesInput);
             Run("Handshake identity metadata records UUID", HandshakeIdentityMetadataRecordsUuid);
+            Run("Gameplay profiles resolve agency state", GameplayProfilesResolveAgencyState);
             Run("Identity store queries records", IdentityStoreQueriesRecords);
             Run("Identity store records audit events", IdentityStoreRecordsAuditEvents);
             Run("Identity store attaches key with confirmation", IdentityStoreAttachesKeyWithConfirmation);
@@ -322,6 +323,29 @@ namespace ServerValidationTests
             identityMetadata = File.ReadAllText(identityFile);
             Assert(identityMetadata.Contains("currentName=AliceRenamed"), "identity metadata did not update current player name");
             Assert(identityMetadata.Contains("previousNames=Alice"), "identity metadata did not retain previous player name");
+        }
+
+        private static void GameplayProfilesResolveAgencyState()
+        {
+            CreateUniverse();
+
+            Settings.settingsStore.gameplayProfile = GameplayProfile.Vanilla;
+            Settings.settingsStore.agencyProgressionEnabled = false;
+            Assert(!Settings.IsAgencyProgressionActive(), "vanilla profile enabled agency progression unexpectedly");
+
+            Settings.settingsStore.gameplayProfile = GameplayProfile.Vanilla;
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            Assert(Settings.IsAgencyProgressionActive(), "legacy agencyProgressionEnabled flag did not enable agency progression");
+            Assert(Settings.GetGameplayProfileSummary().Contains("legacy agencyProgressionEnabled flag"), "legacy agency summary did not mention transition flag");
+
+            Settings.settingsStore.gameplayProfile = GameplayProfile.Agency;
+            Settings.settingsStore.agencyProgressionEnabled = false;
+            Assert(Settings.IsAgencyProgressionActive(), "agency profile did not enable agency progression");
+
+            Settings.settingsStore.gameplayProfile = GameplayProfile.MMOCampaign;
+            Settings.settingsStore.agencyProgressionEnabled = false;
+            Assert(Settings.IsAgencyProgressionActive(), "MMO campaign profile did not enable agency progression placeholder");
+            Assert(Settings.GetGameplayProfileSummary().Contains("placeholder"), "MMO campaign summary did not mention placeholder behavior");
         }
 
         private static void IdentityStoreQueriesRecords()
@@ -1026,6 +1050,8 @@ namespace ServerValidationTests
             Directory.CreateDirectory(Path.Combine(universe, "Kerbals"));
             Directory.CreateDirectory(Path.Combine(universe, "Players"));
             Server.universeDirectory = universe;
+            Settings.settingsStore.gameplayProfile = GameplayProfile.Vanilla;
+            Settings.settingsStore.agencyProgressionEnabled = false;
             return universe;
         }
 

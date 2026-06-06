@@ -29,7 +29,7 @@ namespace DarkMultiPlayerServer.Messages
                 mw.Write<string>(Settings.settingsStore.consoleIdentifier);
                 mw.Write<int>((int)Settings.settingsStore.gameDifficulty);
                 mw.Write<float>(Settings.settingsStore.safetyBubbleDistance);
-                mw.Write<bool>(Settings.settingsStore.agencyProgressionEnabled);
+                mw.Write<bool>(Settings.IsAgencyProgressionActive());
 
                 if (Settings.settingsStore.gameDifficulty == GameDifficulty.CUSTOM)
                 {

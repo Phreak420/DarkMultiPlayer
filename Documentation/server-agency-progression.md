@@ -548,4 +548,9 @@ The core extension points to preserve are:
 - Campaigns remain optional and configuration-driven.
 - Dynamic economy systems remain bounded, observable, and recoverable.
 - Existing DMP sandbox, science, and career servers continue to work with
-  `agencyProgressionEnabled = false`.
+  `gameplayProfile = Vanilla` and `agencyProgressionEnabled = false`.
+
+Implemented gameplay profile gate: `gameplayProfile = Vanilla|Agency|MMOCampaign` is available in
+`Config/Settings.txt`. `Agency` enables the current server agency progression systems.
+`MMOCampaign` is a future-facing placeholder and currently uses Agency systems. The older
+`agencyProgressionEnabled` flag remains supported as a transition path.

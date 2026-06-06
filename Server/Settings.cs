@@ -9,6 +9,13 @@ using SettingsParser;
 
 namespace DarkMultiPlayerServer
 {
+    public enum GameplayProfile
+    {
+        Vanilla,
+        Agency,
+        MMOCampaign
+    }
+
     public class Settings
     {
         private static ConfigParser<SettingsStore> serverSettings;
@@ -33,6 +40,19 @@ namespace DarkMultiPlayerServer
         public static void Save()
         {
             serverSettings.SaveSettings();
+        }
+
+        public static bool IsAgencyProgressionActive()
+        {
+            return settingsStore.agencyProgressionEnabled || settingsStore.gameplayProfile == GameplayProfile.Agency || settingsStore.gameplayProfile == GameplayProfile.MMOCampaign;
+        }
+
+        public static string GetGameplayProfileSummary()
+        {
+            string agencyState = IsAgencyProgressionActive() ? "enabled" : "disabled";
+            string transitionNote = settingsStore.agencyProgressionEnabled && settingsStore.gameplayProfile == GameplayProfile.Vanilla ? " via legacy agencyProgressionEnabled flag" : string.Empty;
+            string placeholderNote = settingsStore.gameplayProfile == GameplayProfile.MMOCampaign ? "; MMO Campaign currently uses Agency Mode systems as a placeholder" : string.Empty;
+            return "Gameplay profile: " + settingsStore.gameplayProfile + "; agency progression " + agencyState + transitionNote + placeholderNote + ".";
         }
     }
 
@@ -98,6 +118,8 @@ namespace DarkMultiPlayerServer
         public double expireLogs = 0;
         [Description("Specify the minimum distance in which vessels can interact with eachother at the launch pad and runway")]
         public float safetyBubbleDistance = 100.0f;
+        [Description("Select the MMO Edition gameplay profile.\nVanilla: mostly original DMP behavior.\nAgency: stock-friendly server agency objectives and rewards.\nMMOCampaign: reserved for future deeper campaign systems; currently behaves like Agency.")]
+        public GameplayProfile gameplayProfile = GameplayProfile.Vanilla;
         [Description("Enable experimental server agency progression.\nThis is a work-in-progress mode for server-authored objectives and is disabled by default.")]
         public bool agencyProgressionEnabled = false;
     }

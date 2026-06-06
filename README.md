@@ -102,8 +102,19 @@ Compatibility is a core goal of this fork.
   `DarkMultiPlayer`/`DMP` where changing them could break existing installs.
 - CKAN packaging is intentionally untouched for now.
 - Existing servers should continue to behave like normal DarkMultiPlayer servers when
-  `agencyProgressionEnabled = False`.
+  `gameplayProfile = Vanilla` and `agencyProgressionEnabled = False`.
 - Experimental MMO systems should stay optional and auditable.
+
+Server owners can now choose an MMO Edition profile in `Config/Settings.txt`:
+
+```text
+gameplayProfile = Vanilla
+```
+
+Supported values are `Vanilla`, `Agency`, and `MMOCampaign`. `Vanilla` preserves mostly original
+DMP behavior. `Agency` enables the current stock-friendly server agency systems. `MMOCampaign` is
+a future-facing placeholder and currently uses the Agency systems until deeper campaign features
+exist. The legacy `agencyProgressionEnabled` flag still enables Agency systems during the transition.
 
 ## Install
 
@@ -124,10 +135,12 @@ If your server's game difficulty is set to `CUSTOM`, gameplay settings can be ch
 For the MMO Edition agency experiment, set:
 
 ```txt
+gameplayProfile = Agency
 agencyProgressionEnabled = True
 ```
 
-The feature remains disabled by default.
+The feature remains disabled by default. `gameplayProfile = Agency` is the preferred setting;
+`agencyProgressionEnabled = True` remains supported for transition testing.
 
 ## Compiling
 

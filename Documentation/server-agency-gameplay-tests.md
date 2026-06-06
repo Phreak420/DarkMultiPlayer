@@ -11,11 +11,12 @@ These tests cover the optional MMO Edition agency progression experiment. Existi
    - `GameData/DarkMultiPlayer/Plugins/DarkMultiPlayer.dll`
 2. Start the experimental server build.
 3. Edit `Config/Settings.txt` and set:
+   - `gameplayProfile = Agency`
    - `agencyProgressionEnabled = True`
    - `gameMode = CAREER` for reward testing
 4. Restart the server after changing settings.
 5. Confirm the server logs:
-   - `Experimental server agency progression is enabled.`
+   - `Gameplay profile: Agency; agency progression enabled.`
    - `Loaded agency progression pack 'Server Agency' with ... objectives.`
 6. Confirm `Config/AgencyProgression.json` exists after first enabled startup.
 
@@ -172,7 +173,8 @@ Use this small config to exercise objective completion and rewards quickly:
 
 ## Space Agency Window Smoke Test
 
-1. Enable `agencyProgressionEnabled` on the server.
+1. Enable Agency systems on the server with either `gameplayProfile = Agency` or
+   `agencyProgressionEnabled = True`.
 2. Use an `AgencyProgression.json` file with `onboardingText` and a mix of categories, available,
    completed, locked, personal, and server-scoped objectives.
 3. Connect with the client and open DMP Options.
@@ -200,7 +202,7 @@ Expected:
 
 ### 1. Disabled Server Compatibility
 
-1. Set `agencyProgressionEnabled = False`.
+1. Set `gameplayProfile = Vanilla` and `agencyProgressionEnabled = False`.
 2. Start the server and connect from KSP.
 3. Open DMP Options.
 
@@ -212,7 +214,7 @@ Expected:
 
 ### 2. Agency Tab Visibility
 
-1. Set `agencyProgressionEnabled = True`.
+1. Set `gameplayProfile = Agency`.
 2. Restart server.
 3. Connect from KSP.
 4. Open DMP Options.
@@ -480,7 +482,8 @@ Expected:
 
 ### 18. Existing Server Safety
 
-1. Use a normal DMP server config with `agencyProgressionEnabled = False`.
+1. Use a normal DMP server config with `gameplayProfile = Vanilla` and
+   `agencyProgressionEnabled = False`.
 2. Connect and perform normal DMP activities: chat, launch, sync vessel, disconnect.
 
 Expected:

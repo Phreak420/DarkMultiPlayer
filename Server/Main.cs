@@ -212,11 +212,8 @@ namespace DarkMultiPlayerServer
 
                 serverRestarting = false;
                 DarkLog.Normal("Starting DMPServer " + Common.PROGRAM_VERSION + ", protocol " + Common.PROTOCOL_VERSION);
-                if (Settings.settingsStore.agencyProgressionEnabled)
-                {
-                    DarkLog.Normal("Experimental server agency progression is enabled.");
-                }
-                AgencyProgression.Load(Settings.settingsStore.agencyProgressionEnabled);
+                DarkLog.Normal(Settings.GetGameplayProfileSummary());
+                AgencyProgression.Load(Settings.IsAgencyProgressionActive());
 
                 if (Settings.settingsStore.gameDifficulty == GameDifficulty.CUSTOM)
                 {

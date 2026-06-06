@@ -55,7 +55,7 @@ namespace DarkMultiPlayerServer
 
         private static void ShowStatus()
         {
-            if (!Settings.settingsStore.agencyProgressionEnabled)
+            if (!Settings.IsAgencyProgressionActive())
             {
                 DarkLog.Normal("Agency progression is disabled.");
                 return;
@@ -79,7 +79,7 @@ namespace DarkMultiPlayerServer
 
         private static void Reload()
         {
-            AgencyProgression.Load(Settings.settingsStore.agencyProgressionEnabled);
+            AgencyProgression.Load(Settings.IsAgencyProgressionActive());
             DarkMultiPlayerServer.Messages.AgencyProgression.SendAgencyProgressionToAll();
             DarkLog.Normal("Agency progression reloaded.");
         }
