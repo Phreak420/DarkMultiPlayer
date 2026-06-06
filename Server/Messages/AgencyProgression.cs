@@ -20,6 +20,7 @@ namespace DarkMultiPlayerServer.Messages
             string[] objectiveScopes = new string[objectives.Length];
             string[] objectiveContractTypes = new string[objectives.Length];
             string[] objectiveIssuers = new string[objectives.Length];
+            string[] objectiveCategories = new string[objectives.Length];
             double[] objectiveProgressValues = new double[objectives.Length];
             double[] objectiveProgressTargets = new double[objectives.Length];
             double[] objectiveRewardFunds = new double[objectives.Length];
@@ -35,6 +36,7 @@ namespace DarkMultiPlayerServer.Messages
                 objectiveScopes[i] = objectives[i].scope;
                 objectiveContractTypes[i] = objectives[i].contractType;
                 objectiveIssuers[i] = objectives[i].issuer;
+                objectiveCategories[i] = objectives[i].category;
                 objectiveProgressValues[i] = objectives[i].progressValue;
                 objectiveProgressTargets[i] = objectives[i].progressTarget;
                 objectiveRewardFunds[i] = objectives[i].rewardFunds;
@@ -59,6 +61,8 @@ namespace DarkMultiPlayerServer.Messages
                 mw.Write<double[]>(objectiveRewardFunds);
                 mw.Write<float[]>(objectiveRewardScience);
                 mw.Write<float[]>(objectiveRewardReputation);
+                mw.Write<string[]>(objectiveCategories);
+                mw.Write<string>(DarkMultiPlayerServer.AgencyProgression.OnboardingText);
                 newMessage.data = mw.GetMessageBytes();
             }
             ClientHandler.SendToClient(client, newMessage, true);

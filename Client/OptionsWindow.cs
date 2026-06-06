@@ -566,17 +566,17 @@ namespace DarkMultiPlayer
             GUI.Box(new Rect(0, groupY, contentWidth, 20), "Server Agency", sectionHeaderStyle);
             groupY += 24;
 
-            bool displayAgencyProgression = GUI.Toggle(new Rect(0, groupY, contentWidth, 20), dmpGame.displayAgencyProgression, "Show Agency Panel");
+            bool displayAgencyProgression = GUI.Toggle(new Rect(0, groupY, contentWidth, 20), dmpGame.displayAgencyProgression, "Show Space Agency Window");
             if (displayAgencyProgression != dmpGame.displayAgencyProgression)
             {
                 dmpGame.displayAgencyProgression = displayAgencyProgression;
-                DarkLog.Debug("Agency progression panel display set to " + displayAgencyProgression);
+                DarkLog.Debug("Agency progression window display set to " + displayAgencyProgression);
             }
             groupY += 24;
 
             if (!dmpGame.displayAgencyProgression)
             {
-                GUI.Label(new Rect(0, groupY, contentWidth, 36), "Agency progression is experimental and server controlled.", noteStyle);
+                GUI.Label(new Rect(0, groupY, contentWidth, 48), "Agency Mode is server controlled. Enable the window to review objectives, progress, and rewards.", noteStyle);
                 GUI.EndGroup();
                 return;
             }
@@ -590,29 +590,7 @@ namespace DarkMultiPlayer
             groupY += 24;
 
             AgencyObjectiveSummary[] objectives = dmpGame.agencyProgressionWorker.Objectives;
-            if (objectives.Length == 0)
-            {
-                selectedAgencyObjectiveId = null;
-                GUI.Label(new Rect(0, groupY, contentWidth, 36), "No agency objectives are available from this server.", noteStyle);
-                GUI.EndGroup();
-                return;
-            }
-
-            DrawAgencyFilterRow(contentWidth, ref groupY);
-            AgencyObjectiveSummary[] filteredObjectives = FilterAgencyObjectives(objectives);
-            if (filteredObjectives.Length == 0)
-            {
-                selectedAgencyObjectiveId = null;
-                agencyObjectivePage = 0;
-                GUI.Label(new Rect(0, groupY, contentWidth, 36), "No objectives match this filter.", noteStyle);
-                GUI.EndGroup();
-                return;
-            }
-
-            GetSelectedAgencyObjective(filteredObjectives);
-            DrawAgencyMissionList(filteredObjectives, contentWidth, ref groupY);
-            AgencyObjectiveSummary selectedObjective = GetSelectedAgencyObjective(filteredObjectives);
-            DrawAgencyMissionDetail(selectedObjective, contentWidth, ref groupY);
+            GUI.Label(new Rect(0, groupY, contentWidth, 60), "Space Agency window is open with " + objectives.Length + " server objective(s). Close it from the window or turn this toggle off.", noteStyle);
             GUI.EndGroup();
         }
 

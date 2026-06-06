@@ -18,6 +18,7 @@ namespace DarkMultiPlayer
         private readonly NamedAction updateAction;
 
         public string PackName { get; private set; }
+        public string OnboardingText { get; private set; }
 
         public AgencyProgressionWorker(DMPGame dmpGame, NetworkWorker networkWorker)
         {
@@ -60,9 +61,21 @@ namespace DarkMultiPlayer
                 double[] rewardFunds = mr.Read<double[]>();
                 float[] rewardScience = mr.Read<float[]>();
                 float[] rewardReputation = mr.Read<float[]>();
-
                 int objectiveCount = ids.Length;
-                if (titles.Length != objectiveCount || descriptions.Length != objectiveCount || statuses.Length != objectiveCount || scopes.Length != objectiveCount || contractTypes.Length != objectiveCount || issuers.Length != objectiveCount || progressValues.Length != objectiveCount || progressTargets.Length != objectiveCount || rewardFunds.Length != objectiveCount || rewardScience.Length != objectiveCount || rewardReputation.Length != objectiveCount)
+                string[] categories = new string[objectiveCount];
+                OnboardingText = string.Empty;
+                try
+                {
+                    categories = mr.Read<string[]>();
+                    OnboardingText = mr.Read<string>();
+                }
+                catch (Exception)
+                {
+                    categories = new string[objectiveCount];
+                    OnboardingText = string.Empty;
+                }
+
+                if (titles.Length != objectiveCount || descriptions.Length != objectiveCount || statuses.Length != objectiveCount || scopes.Length != objectiveCount || contractTypes.Length != objectiveCount || issuers.Length != objectiveCount || progressValues.Length != objectiveCount || progressTargets.Length != objectiveCount || rewardFunds.Length != objectiveCount || rewardScience.Length != objectiveCount || rewardReputation.Length != objectiveCount || categories.Length != objectiveCount)
                 {
                     DarkLog.Debug("Received invalid agency progression data from server.");
                     return;
@@ -83,6 +96,7 @@ namespace DarkMultiPlayer
                             scope = scopes[i],
                             contractType = contractTypes[i],
                             issuer = issuers[i],
+                            category = categories[i],
                             progressValue = progressValues[i],
                             progressTarget = progressTargets[i],
                             rewardFunds = rewardFunds[i],
@@ -134,6 +148,7 @@ namespace DarkMultiPlayer
             {
                 objectives.Clear();
                 PackName = null;
+                OnboardingText = null;
             }
             sentEvidenceIds.Clear();
             vesselBodies.Clear();
@@ -345,8 +360,47 @@ namespace DarkMultiPlayer
             {
                 Reputation.Instance.AddReputation(reputation, TransactionReasons.ContractReward);
             }
-            ScreenMessages.PostScreenMessage("Agency objective complete: " + objectiveId, 5f, ScreenMessageStyle.UPPER_CENTER);
+            PostAgencyNotification("Agency objective complete: " + objectiveId + BuildRewardNotice(funds, science, reputation));
             DarkLog.Debug("Applied agency reward for " + objectiveId + ": funds=" + funds + ", science=" + science + ", reputation=" + reputation);
+        }
+
+        private void PostAgencyNotification(string message)
+        {
+            try
+            {
+                ScreenMessages.PostScreenMessage(message, 5f, ScreenMessageStyle.UPPER_CENTER);
+            }
+            catch (Exception e)
+            {
+                DarkLog.Debug("Failed to post agency notification, exception: " + e);
+            }
+        }
+
+        private string BuildRewardNotice(double funds, float science, float reputation)
+        {
+            string rewards = string.Empty;
+            if (funds != 0)
+            {
+                rewards = "Funds " + funds.ToString("0.##");
+            }
+            if (science != 0)
+            {
+                rewards = AppendRewardNotice(rewards, "Science " + science.ToString("0.##"));
+            }
+            if (reputation != 0)
+            {
+                rewards = AppendRewardNotice(rewards, "Rep " + reputation.ToString("0.##"));
+            }
+            return string.IsNullOrEmpty(rewards) ? string.Empty : "\nRewards: " + rewards;
+        }
+
+        private string AppendRewardNotice(string rewards, string reward)
+        {
+            if (string.IsNullOrEmpty(rewards))
+            {
+                return reward;
+            }
+            return rewards + ", " + reward;
         }
     }
 
@@ -359,6 +413,7 @@ namespace DarkMultiPlayer
         public string scope;
         public string contractType;
         public string issuer;
+        public string category;
         public double progressValue;
         public double progressTarget;
         public double rewardFunds;

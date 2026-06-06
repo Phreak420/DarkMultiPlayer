@@ -71,14 +71,14 @@ prominently and preserve original license and copyright notices.
 The next implementation phase should improve how Agency Mode feels during ordinary play while
 keeping the current evidence/objective/reward architecture intact.
 
-- [ ] Add a dedicated Server Space Agency window instead of relying only on the current hidden tab.
+- [x] ~~Add a dedicated Server Space Agency window instead of relying only on the current hidden tab.~~
 - [x] ~~Add objective filtering for available, active, completed, locked, and shared objectives.~~
-- [ ] Add clearer reward and progress presentation before a player accepts or pursues an objective.
-- [ ] Add optional server-authored objective categories such as exploration, construction,
-  logistics, rescue, infrastructure, science, and community goals.
-- [ ] Add lightweight objective notification messages that are queued on the Unity main thread.
-- [ ] Add server-configurable onboarding text for Agency Mode without turning it into a landing page.
-- [ ] Add safer in-game error handling around agency reward and notification UI calls.
+- [x] ~~Add clearer reward and progress presentation before a player accepts or pursues an objective.~~
+- [x] ~~Add optional server-authored objective categories such as exploration, construction,
+  logistics, rescue, infrastructure, science, and community goals.~~
+- [x] ~~Add lightweight objective notification messages that are queued on the Unity main thread.~~
+- [x] ~~Add server-configurable onboarding text for Agency Mode without turning it into a landing page.~~
+- [x] ~~Add safer in-game error handling around agency reward and notification UI calls.~~
 
 ## Gameplay Profiles
 

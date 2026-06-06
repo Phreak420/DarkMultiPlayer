@@ -68,6 +68,7 @@ Use this small config to exercise objective completion and rewards quickly:
 ```json
 {
   "packName": "DMP Test Agency",
+  "onboardingText": "Mission Control is coordinating shared progression for this server. Review objectives, contribute evidence, and collect server-approved rewards.",
   "objectives": [
     {
       "id": "orbit-kerbin",
@@ -77,6 +78,7 @@ Use this small config to exercise objective completion and rewards quickly:
       "scope": "Personal",
       "contractType": "Milestone",
       "issuer": "Server Agency",
+      "category": "Exploration",
       "evidenceType": "VESSEL_ORBITED",
       "evidenceId": "orbit-Kerbin",
       "rewardFunds": 5000,
@@ -91,6 +93,7 @@ Use this small config to exercise objective completion and rewards quickly:
       "scope": "Personal",
       "contractType": "Science",
       "issuer": "Research Division",
+      "category": "Science",
       "evidenceType": "SCIENCE_RECEIVED",
       "evidenceId": "crewReport@KerbinSrfLandedLaunchPad",
       "rewardFunds": 1000,
@@ -105,6 +108,7 @@ Use this small config to exercise objective completion and rewards quickly:
       "scope": "Personal",
       "contractType": "Operations",
       "issuer": "Mission Control",
+      "category": "Operations",
       "evidenceType": "VESSEL_DOCKED",
       "evidenceId": "docked-Kerbin",
       "rewardFunds": 2500,
@@ -119,6 +123,7 @@ Use this small config to exercise objective completion and rewards quickly:
       "scope": "Server",
       "contractType": "Campaign",
       "issuer": "Server Agency",
+      "category": "Exploration",
       "evidenceType": "VESSEL_LANDED",
       "evidenceId": "landed-Mun",
       "prerequisiteObjectiveIds": [
@@ -151,6 +156,7 @@ Use this small config to exercise objective completion and rewards quickly:
       "scope": "Server",
       "contractType": "Community",
       "issuer": "Network Planning Office",
+      "category": "Infrastructure",
       "evidenceType": "VESSEL_ORBITED",
       "evidenceId": "orbit-Kerbin",
       "progressTarget": 2,
@@ -164,17 +170,20 @@ Use this small config to exercise objective completion and rewards quickly:
 }
 ```
 
-## Agency Objective Filter Smoke Test
+## Space Agency Window Smoke Test
 
 1. Enable `agencyProgressionEnabled` on the server.
-2. Use an `AgencyProgression.json` file with a mix of available, completed, locked, personal, and
-   server-scoped objectives.
+2. Use an `AgencyProgression.json` file with `onboardingText` and a mix of categories, available,
+   completed, locked, personal, and server-scoped objectives.
 3. Connect with the client and open DMP Options.
-4. Open the `Agency` tab and enable `Show Agency Panel`.
-5. Click `All`, `Open`, `Active`, `Done`, `Locked`, and `Shared`.
+4. Open the `Agency` tab and enable `Show Space Agency Window`.
+5. Confirm the standalone `Server Space Agency` window appears.
+6. Click `All`, `Open`, `Active`, `Done`, `Locked`, and `Shared`.
 
 Expected:
 
+- The Options tab only controls whether the standalone Space Agency window is visible.
+- The standalone window shows the server pack name and onboarding text.
 - `All` shows every objective sent by the server.
 - `Open` shows objectives whose status is available.
 - `Active` shows active or in-progress objectives when present.
@@ -182,7 +191,10 @@ Expected:
 - `Locked` shows locked or hidden objectives when present.
 - `Shared` shows server, shared, or community-scoped objectives.
 - Empty filters show `No objectives match this filter.` without throwing errors.
+- Objective details show category, type, scope, issuer, description, rewards, and progress.
 - Objectives with progress targets show `Progress: current / target`, including completed progress.
+- Completing a rewarded objective posts a concise Agency completion notification; UI notification
+  failures should be logged without crashing KSP.
 
 ## Test Cases
 

@@ -24,6 +24,7 @@ namespace DarkMultiPlayerServer
         private static readonly Dictionary<string, long> lastEvidenceReceiveTicks = new Dictionary<string, long>();
 
         public static string PackName { get; private set; }
+        public static string OnboardingText { get; private set; }
 
         public static AgencyObjective[] Objectives
         {
@@ -50,6 +51,7 @@ namespace DarkMultiPlayerServer
             {
                 objectives.Clear();
                 PackName = string.Empty;
+                OnboardingText = string.Empty;
             }
             lock (completions)
             {
@@ -87,6 +89,7 @@ namespace DarkMultiPlayerServer
             LoadProgress();
 
             PackName = CleanText(agencyFileData.packName, "Server Agency");
+            OnboardingText = CleanText(agencyFileData.onboardingText, "Review server-authored objectives, shared progress, and agency rewards.");
             if (agencyFileData.objectives == null)
             {
                 DarkLog.Normal("Loaded agency progression pack '" + PackName + "' with 0 objectives.");
@@ -118,6 +121,7 @@ namespace DarkMultiPlayerServer
                         scope = scope,
                         contractType = CleanText(objective.contractType, "Milestone"),
                         issuer = CleanText(objective.issuer, "Server Agency"),
+                        category = CleanText(objective.category, "General"),
                         evidenceType = CleanText(objective.evidenceType, string.Empty),
                         evidenceId = CleanText(objective.evidenceId, string.Empty),
                         prerequisiteObjectiveIds = CleanPrerequisites(objective.prerequisiteObjectiveIds),
@@ -646,6 +650,7 @@ namespace DarkMultiPlayerServer
                     scope = objective.scope,
                     contractType = objective.contractType,
                     issuer = objective.issuer,
+                    category = objective.category,
                     evidenceType = objective.evidenceType,
                     evidenceId = objective.evidenceId,
                     prerequisiteObjectiveIds = objective.prerequisiteObjectiveIds,
@@ -1028,6 +1033,7 @@ namespace DarkMultiPlayerServer
             AgencyProgressionFile defaultFile = new AgencyProgressionFile
             {
                 packName = "Server Agency",
+                onboardingText = "Mission Control is coordinating shared progression for this server. Review objectives, contribute evidence, and collect server-approved rewards.",
                 objectives = new AgencyObjective[]
                 {
                     new AgencyObjective
@@ -1039,6 +1045,7 @@ namespace DarkMultiPlayerServer
                         scope = "Personal",
                         contractType = "Milestone",
                         issuer = "Server Agency",
+                        category = "Exploration",
                         evidenceType = AgencyEvidenceType.VESSEL_ORBITED.ToString(),
                         evidenceId = "orbit-Kerbin",
                         rewardFunds = 5000,
@@ -1054,6 +1061,7 @@ namespace DarkMultiPlayerServer
                         scope = "Server",
                         contractType = "Campaign",
                         issuer = "Server Agency",
+                        category = "Exploration",
                         prerequisiteObjectiveIds = new string[] { "reach-orbit" }
                     }
                 }
@@ -1085,6 +1093,9 @@ namespace DarkMultiPlayerServer
         public string packName;
 
         [DataMember]
+        public string onboardingText;
+
+        [DataMember]
         public AgencyObjective[] objectives;
     }
 
@@ -1111,6 +1122,9 @@ namespace DarkMultiPlayerServer
 
         [DataMember]
         public string issuer;
+
+        [DataMember]
+        public string category;
 
         [DataMember]
         public string evidenceType;

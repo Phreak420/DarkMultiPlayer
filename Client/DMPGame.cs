@@ -31,6 +31,7 @@ namespace DarkMultiPlayer
         public readonly NetworkWorker networkWorker;
         public readonly ScreenshotWorker screenshotWorker;
         public readonly AgencyProgressionWorker agencyProgressionWorker;
+        public readonly AgencyWindow agencyWindow;
         public readonly FlagSyncer flagSyncer;
         public readonly VesselWorker vesselWorker;
         public readonly TimeSyncer timeSyncer;
@@ -69,6 +70,7 @@ namespace DarkMultiPlayer
             this.vesselRangeBumper = new VesselRangeBumper(this);
             this.networkWorker = new NetworkWorker(this, dmpSettings, connectionWindow, modWorker, configNodeSerializer, profiler, vesselRangeBumper);
             this.agencyProgressionWorker = new AgencyProgressionWorker(this, networkWorker);
+            this.agencyWindow = new AgencyWindow(this);
             this.adminSystem = new AdminSystem(dmpSettings);
             this.flagSyncer = new FlagSyncer(this, dmpSettings, networkWorker);
             this.lockSystem = new LockSystem(dmpSettings, networkWorker);
@@ -114,6 +116,7 @@ namespace DarkMultiPlayer
             this.stopEvent.Add(this.scenarioWorker.Stop);
             this.stopEvent.Add(this.screenshotWorker.Stop);
             this.stopEvent.Add(this.agencyProgressionWorker.Stop);
+            this.stopEvent.Add(this.agencyWindow.Stop);
             this.stopEvent.Add(this.timeSyncer.Stop);
             this.stopEvent.Add(toolbarSupport.Stop);
             this.stopEvent.Add(optionsWindow.Stop);
