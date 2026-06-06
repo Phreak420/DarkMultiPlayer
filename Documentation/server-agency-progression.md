@@ -286,8 +286,8 @@ the trailing field. Authorization still uses the existing name/public-key model.
 - [x] Add a client-side backup action for identity files.
 - Add a future guided import/export flow for identity files.
 - [x] Add server admin commands to inspect identities.
-- Add server admin commands to attach a new key to an existing UUID, rename a display name, and
-  revoke compromised identities.
+- [x] Add server admin command to attach a new key to an existing UUID.
+- Add server admin commands to rename a display name and revoke compromised identities.
 - [x] Add read-only audit visibility before adding recovery mutation commands.
 - Require explicit admin action for account recovery so players cannot claim another player's
   progress by copying a name.
@@ -299,6 +299,13 @@ Implemented audit visibility: identity creation, display-name changes, and publi
 changes are written to `Universe/Players/Identities/IdentityAudit.log`. Server owners can inspect
 the log with `/identity audit [uuid|name|fingerprint]`. This is intentionally read-only; recovery
 commands that alter trust should be added later and must write to the same audit trail.
+
+Implemented key attach command: `/identity attachkey <uuid> <onlinePlayerName> confirm`. The
+source key must come from an online authenticated player, the target account name comes from the
+existing identity record, and the command requires the literal `confirm` token. The command updates
+`Universe/Players/<currentName>.txt`, writes a timestamped `.recovery-*.bak` copy of the previous
+key file when one exists, and records a `key-attached` audit event. It should be used only for
+admin-approved recovery after the server owner verifies the player out of band.
 
 Implemented client backup action: the Player options tab can refresh the local identity backup
 under `saves/DarkMultiPlayer` and copy that backup folder path. The backup includes settings plus

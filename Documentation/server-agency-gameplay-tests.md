@@ -48,6 +48,11 @@ Expected:
 - Run `/identity find <playerName>` and confirm the player can be found by display name.
 - Run `/identity audit <uuid>` and confirm identity creation or metadata-change audit entries are
   displayed when present.
+- For controlled recovery testing only, connect as a temporary online player and run
+  `/identity attachkey <uuid> <temporaryPlayerName> confirm`; confirm
+  `Universe/Players/<currentName>.txt` is updated and `/identity audit <uuid>` shows
+  `key-attached`. Confirm a timestamped `Universe/Players/<currentName>.recovery-*.bak` file was
+  written if the previous key file existed.
 
 ## Suggested Test Campaign Config
 

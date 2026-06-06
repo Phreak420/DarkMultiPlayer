@@ -64,6 +64,7 @@ Current and planned MMO Edition work:
 - [x] ~~Add read-only server commands for inspecting identity metadata.~~
 - [x] ~~Add client identity backup controls for moving installs.~~
 - [x] ~~Add read-only identity audit logs and audit inspection command.~~
+- [x] ~~Add confirmed admin command to attach an online player's key to an existing identity.~~
 - [ ] Improve player identity migration and recovery without breaking existing auth.
 - [ ] Add gameplay profiles for Vanilla Mode, Agency Mode, and optional MMO Campaign Mode.
 - [ ] Add optional compatibility hooks for colony, mapping, construction, tourism,

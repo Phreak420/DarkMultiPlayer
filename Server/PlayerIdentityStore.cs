@@ -26,6 +26,14 @@ namespace DarkMultiPlayerServer
         public string details;
     }
 
+    public class PlayerIdentityRecoveryResult
+    {
+        public bool success;
+        public string message;
+        public string targetPlayerName;
+        public string attachedFingerprint;
+    }
+
     public static class PlayerIdentityStore
     {
         public static bool TryNormalizePlayerUuid(string playerUuid, out string normalizedPlayerUuid)
@@ -132,6 +140,82 @@ namespace DarkMultiPlayerServer
                 }
             }
             return matches.ToArray();
+        }
+
+        public static PlayerIdentityRecoveryResult AttachKeyToIdentity(string uuid, ClientObject sourceClient, bool confirmed)
+        {
+            PlayerIdentityRecoveryResult result = new PlayerIdentityRecoveryResult();
+            if (!confirmed)
+            {
+                result.message = "Confirmation required. Use: /identity attachkey <uuid> <onlinePlayerName> confirm";
+                return result;
+            }
+            if (sourceClient == null || !sourceClient.authenticated || string.IsNullOrEmpty(sourceClient.publicKey))
+            {
+                result.message = "Source player must be online and authenticated.";
+                return result;
+            }
+            string normalizedUuid;
+            if (!TryNormalizePlayerUuid(uuid, out normalizedUuid))
+            {
+                result.message = "Invalid UUID.";
+                return result;
+            }
+
+            PlayerIdentityRecord[] records = FindRecords(normalizedUuid);
+            PlayerIdentityRecord targetRecord = null;
+            foreach (PlayerIdentityRecord record in records)
+            {
+                if (record.uuid == normalizedUuid)
+                {
+                    targetRecord = record;
+                    break;
+                }
+            }
+            if (targetRecord == null)
+            {
+                result.message = "Identity UUID was not found.";
+                return result;
+            }
+            if (string.IsNullOrEmpty(targetRecord.currentName) || !SafeFile.IsNameSafe(targetRecord.currentName))
+            {
+                result.message = "Identity current name is missing or unsafe.";
+                return result;
+            }
+
+            try
+            {
+                string playersDirectory = Path.Combine(Server.universeDirectory, "Players");
+                Directory.CreateDirectory(playersDirectory);
+                string playerKeyFile = Path.Combine(playersDirectory, targetRecord.currentName + ".txt");
+                string previousFingerprint = "";
+                if (File.Exists(playerKeyFile))
+                {
+                    previousFingerprint = GetPublicKeyFingerprint(File.ReadAllText(playerKeyFile));
+                    string backupKeyFile = Path.Combine(playersDirectory, targetRecord.currentName + ".recovery-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss") + ".bak");
+                    File.Copy(playerKeyFile, backupKeyFile, false);
+                }
+                File.WriteAllText(playerKeyFile, sourceClient.publicKey);
+
+                string attachedFingerprint = GetPublicKeyFingerprint(sourceClient.publicKey);
+                RecordAudit(
+                    "key-attached",
+                    normalizedUuid,
+                    targetRecord.currentName,
+                    attachedFingerprint,
+                    "sourcePlayer=" + sourceClient.playerName + ";previousFingerprint=" + previousFingerprint);
+
+                result.success = true;
+                result.targetPlayerName = targetRecord.currentName;
+                result.attachedFingerprint = attachedFingerprint;
+                result.message = "Attached key from online player '" + sourceClient.playerName + "' to identity '" + targetRecord.currentName + "'.";
+                return result;
+            }
+            catch (Exception e)
+            {
+                result.message = "Failed to attach key: " + e.Message;
+                return result;
+            }
         }
 
         public static PlayerIdentityAuditRecord[] GetAuditRecords(string query)

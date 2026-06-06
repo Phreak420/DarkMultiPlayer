@@ -28,8 +28,11 @@ namespace DarkMultiPlayerServer
                 case "audit":
                     ShowAudit(argument);
                     break;
+                case "attachkey":
+                    AttachKey(argument);
+                    break;
                 default:
-                    DarkLog.Normal("Usage: /identity [list|show <uuid|name|fingerprint>|find <text>|audit [uuid|name|fingerprint]]");
+                    DarkLog.Normal("Usage: /identity [list|show <uuid|name|fingerprint>|find <text>|audit [uuid|name|fingerprint]|attachkey <uuid> <onlinePlayerName> confirm]");
                     break;
             }
         }
@@ -97,6 +100,28 @@ namespace DarkMultiPlayerServer
             {
                 PlayerIdentityAuditRecord record = records[i];
                 DarkLog.Normal(record.recordedAtUtc.ToString("u") + " " + record.action + " " + record.uuid + " " + record.playerName + " " + record.publicKeyFingerprint + " " + record.details);
+            }
+        }
+
+        private static void AttachKey(string argument)
+        {
+            string[] args = argument.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (args.Length != 3 || args[2] != "confirm")
+            {
+                DarkLog.Normal("Usage: /identity attachkey <uuid> <onlinePlayerName> confirm");
+                return;
+            }
+
+            ClientObject sourceClient = ClientHandler.GetClientByName(args[1]);
+            PlayerIdentityRecoveryResult result = PlayerIdentityStore.AttachKeyToIdentity(args[0], sourceClient, true);
+            if (result.success)
+            {
+                DarkLog.Normal(result.message);
+                DarkLog.Normal("Target player: " + result.targetPlayerName + ", attached fingerprint: " + result.attachedFingerprint);
+            }
+            else
+            {
+                DarkLog.Normal(result.message);
             }
         }
 

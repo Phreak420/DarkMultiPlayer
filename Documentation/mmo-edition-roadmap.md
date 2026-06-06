@@ -59,6 +59,7 @@ prominently and preserve original license and copyright notices.
 - [x] ~~Add read-only server commands for inspecting identity metadata.~~
 - [x] ~~Add client identity backup controls for moving installs.~~
 - [x] ~~Add read-only identity audit logs and audit inspection command.~~
+- [x] ~~Add confirmed admin command to attach an online player's key to an existing identity.~~
 - [ ] Improve identity migration and recovery while preserving existing auth.
 - [ ] Add gameplay profiles that let servers choose between vanilla multiplayer, stock-friendly
   agency progression, and deeper optional MMO campaign integrations.

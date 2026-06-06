@@ -28,6 +28,7 @@ namespace ServerValidationTests
             Run("Handshake identity metadata records UUID", HandshakeIdentityMetadataRecordsUuid);
             Run("Identity store queries records", IdentityStoreQueriesRecords);
             Run("Identity store records audit events", IdentityStoreRecordsAuditEvents);
+            Run("Identity store attaches key with confirmation", IdentityStoreAttachesKeyWithConfirmation);
             Run("Message size validation rejects invalid lengths", MessageSizeValidationRejectsInvalidLengths);
             Run("Split message rejects oversized declared length", SplitMessageRejectsOversizedDeclaredLength);
             Run("Split message rejects oversized first chunk", SplitMessageRejectsOversizedFirstChunk);
@@ -372,6 +373,39 @@ namespace ServerValidationTests
 
             PlayerIdentityAuditRecord[] nameMatches = PlayerIdentityStore.GetAuditRecords("AliceRenamed");
             Assert(nameMatches.Length == 1, "identity audit did not filter by current name");
+        }
+
+        private static void IdentityStoreAttachesKeyWithConfirmation()
+        {
+            string universe = CreateUniverse();
+            string uuid = Guid.NewGuid().ToString();
+
+            ClientObject oldAlice = CreateClient("Alice");
+            oldAlice.playerUuid = uuid;
+            oldAlice.publicKey = "old-alice-public-key";
+            PlayerIdentityStore.Record(oldAlice);
+
+            string playerKeyFile = Path.Combine(universe, "Players", "Alice.txt");
+            File.WriteAllText(playerKeyFile, oldAlice.publicKey);
+
+            ClientObject recoveryClient = CreateClient("AliceRecovery");
+            recoveryClient.playerUuid = Guid.NewGuid().ToString();
+            recoveryClient.publicKey = "new-alice-public-key";
+
+            PlayerIdentityRecoveryResult rejected = PlayerIdentityStore.AttachKeyToIdentity(uuid, recoveryClient, false);
+            Assert(!rejected.success, "identity key attach succeeded without confirmation");
+            Assert(File.ReadAllText(playerKeyFile) == oldAlice.publicKey, "identity key attach without confirmation changed the player key");
+
+            PlayerIdentityRecoveryResult result = PlayerIdentityStore.AttachKeyToIdentity(uuid, recoveryClient, true);
+            Assert(result.success, "identity key attach failed with confirmation: " + result.message);
+            Assert(result.targetPlayerName == "Alice", "identity key attach targeted the wrong player name");
+            Assert(File.ReadAllText(playerKeyFile) == recoveryClient.publicKey, "identity key attach did not update the player key file");
+            Assert(Directory.GetFiles(Path.Combine(universe, "Players"), "Alice.recovery-*.bak").Length == 1, "identity key attach did not back up the previous key file");
+
+            PlayerIdentityAuditRecord[] auditRecords = PlayerIdentityStore.GetAuditRecords("key-attached");
+            Assert(auditRecords.Length == 1, "identity key attach did not write one audit event");
+            Assert(auditRecords[0].uuid == uuid, "identity key attach audit recorded wrong uuid");
+            Assert(auditRecords[0].details.Contains("sourcePlayer=AliceRecovery"), "identity key attach audit did not include source player");
         }
 
         private static void MessageSizeValidationRejectsInvalidLengths()
