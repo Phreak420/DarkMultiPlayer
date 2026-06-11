@@ -55,6 +55,9 @@ namespace ServerValidationTests
             Run("Agency prerequisites unlock objectives", AgencyPrerequisitesUnlockObjectives);
             Run("Agency any prerequisite mode unlocks objectives", AgencyAnyPrerequisiteModeUnlocksObjectives);
             Run("Agency hidden objectives appear after unlock", AgencyHiddenObjectivesAppearAfterUnlock);
+            Run("Agency campaign phase unlocks objectives", AgencyCampaignPhaseUnlocksObjectives);
+            Run("Agency campaign metric unlocks objectives", AgencyCampaignMetricUnlocksObjectives);
+            Run("Agency hidden campaign objectives appear after unlock", AgencyHiddenCampaignObjectivesAppearAfterUnlock);
             Run("Agency shared progress completes objective", AgencySharedProgressCompletesObjective);
             Run("Agency shared progress reloads and resets", AgencySharedProgressReloadsAndResets);
             Run("Agency unique contributors count once", AgencyUniqueContributorsCountOnce);
@@ -936,6 +939,72 @@ namespace ServerValidationTests
             Assert(aliceObjectives.Length == 2, "hidden objective did not appear after unlock");
             Assert(aliceObjectives[1].id == "secret-mun", "unlocked hidden objective was not visible");
             Assert(aliceObjectives[1].status == "Available", "unlocked hidden objective was not available");
+        }
+
+        private static void AgencyCampaignPhaseUnlocksObjectives()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-campaign-unlock-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "CampaignState.json"),
+                "{\"campaignName\":\"Test Campaign\",\"currentPhaseId\":\"kerbin-foundation\",\"phases\":[{\"id\":\"kerbin-foundation\",\"title\":\"Kerbin\",\"description\":\"Start.\"},{\"id\":\"mun-expansion\",\"title\":\"Mun\",\"description\":\"Expand.\"}],\"metrics\":[]}");
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"mun-buildout\",\"title\":\"Mun Buildout\",\"description\":\"Unlocked in Mun phase.\",\"status\":\"Locked\",\"scope\":\"Server\",\"evidenceType\":\"ADMIN_CONFIRMED\",\"evidenceId\":\"mun-buildout\",\"requiredCampaignPhaseId\":\"mun-expansion\"}]}");
+
+            CampaignState.Load(true);
+            AgencyProgression.Load(true);
+
+            AgencyObjective[] objectives = AgencyProgression.Objectives;
+            Assert(objectives.Length == 1 && objectives[0].status == "Locked", "campaign phase objective was not locked before phase advance");
+            Assert(CampaignState.AdvancePhase("mun-expansion", "test"), "campaign phase advance failed");
+            objectives = AgencyProgression.Objectives;
+            Assert(objectives.Length == 1 && objectives[0].status == "Available", "campaign phase objective did not unlock after phase advance");
+        }
+
+        private static void AgencyCampaignMetricUnlocksObjectives()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-campaign-unlock-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "CampaignState.json"),
+                "{\"campaignName\":\"Test Campaign\",\"currentPhaseId\":\"kerbin-foundation\",\"phases\":[{\"id\":\"kerbin-foundation\",\"title\":\"Kerbin\",\"description\":\"Start.\"}],\"metrics\":[{\"id\":\"survey-progress\",\"title\":\"Survey\",\"category\":\"Exploration\",\"value\":0,\"target\":100,\"unit\":\"%\"}]}");
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"survey-unlock\",\"title\":\"Survey Unlock\",\"description\":\"Unlocked by survey progress.\",\"status\":\"Locked\",\"scope\":\"Server\",\"evidenceType\":\"ADMIN_CONFIRMED\",\"evidenceId\":\"survey-unlock\",\"requiredMetricId\":\"survey-progress\",\"requiredMetricMinimum\":25}]}");
+
+            CampaignState.Load(true);
+            AgencyProgression.Load(true);
+
+            AgencyObjective[] objectives = AgencyProgression.Objectives;
+            Assert(objectives.Length == 1 && objectives[0].status == "Locked", "campaign metric objective was not locked before threshold");
+            Assert(CampaignState.SetMetric("survey-progress", 25, "test"), "campaign metric update failed");
+            objectives = AgencyProgression.Objectives;
+            Assert(objectives.Length == 1 && objectives[0].status == "Available", "campaign metric objective did not unlock at threshold");
+        }
+
+        private static void AgencyHiddenCampaignObjectivesAppearAfterUnlock()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-campaign-unlock-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "CampaignState.json"),
+                "{\"campaignName\":\"Test Campaign\",\"currentPhaseId\":\"kerbin-foundation\",\"phases\":[{\"id\":\"kerbin-foundation\",\"title\":\"Kerbin\",\"description\":\"Start.\"}],\"metrics\":[{\"id\":\"survey-progress\",\"title\":\"Survey\",\"category\":\"Exploration\",\"value\":0,\"target\":100,\"unit\":\"%\"}]}");
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"hidden-survey\",\"title\":\"Hidden Survey\",\"description\":\"Hidden until survey progress.\",\"status\":\"Locked\",\"scope\":\"Personal\",\"evidenceType\":\"ADMIN_CONFIRMED\",\"evidenceId\":\"hidden-survey\",\"requiredMetricId\":\"survey-progress\",\"requiredMetricMinimum\":25,\"hiddenUntilAvailable\":true}]}");
+
+            CampaignState.Load(true);
+            AgencyProgression.Load(true);
+
+            AgencyObjective[] objectives = AgencyProgression.GetObjectivesForPlayer("Alice");
+            Assert(objectives.Length == 0, "hidden campaign objective appeared before metric threshold");
+            Assert(CampaignState.SetMetric("survey-progress", 25, "test"), "campaign metric update failed");
+            objectives = AgencyProgression.GetObjectivesForPlayer("Alice");
+            Assert(objectives.Length == 1 && objectives[0].id == "hidden-survey" && objectives[0].status == "Available", "hidden campaign objective did not appear after metric threshold");
         }
 
         private static void AgencyPersonalObjectiveStateIsPerPlayer()

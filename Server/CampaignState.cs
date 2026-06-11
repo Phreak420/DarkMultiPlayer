@@ -175,6 +175,25 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        public static bool TryGetMetricValue(string metricId, out double value)
+        {
+            value = 0;
+            if (!IsMetricIdSafe(metricId))
+            {
+                return false;
+            }
+            lock (stateLock)
+            {
+                CampaignMetric metric = FindMetric(metricId);
+                if (metric == null)
+                {
+                    return false;
+                }
+                value = metric.value;
+                return true;
+            }
+        }
+
         public static bool AdvancePhase(string phaseId, string actor)
         {
             if (!IsMetricIdSafe(phaseId))

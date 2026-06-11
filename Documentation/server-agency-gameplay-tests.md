@@ -220,6 +220,37 @@ Expected:
 - The Space Agency window updates for connected clients after metric/phase changes.
 - `/campaign reset confirm` writes a `WorldState.reset-*.bak` backup before reloading defaults.
 
+## Campaign Unlock Condition Smoke Test
+
+Use objective fields such as:
+
+```json
+{
+  "id": "mun-expansion-objective",
+  "title": "Begin Mun Expansion",
+  "description": "Unlocks after the server reaches the Mun expansion phase and survey threshold.",
+  "status": "Locked",
+  "scope": "Server",
+  "category": "Campaign",
+  "evidenceType": "ADMIN_CONFIRMED",
+  "evidenceId": "mun-expansion-objective",
+  "requiredCampaignPhaseId": "mun-expansion",
+  "requiredMetricId": "survey-progress",
+  "requiredMetricMinimum": 25,
+  "hiddenUntilAvailable": true
+}
+```
+
+Expected:
+
+- The objective remains locked while the campaign phase is not `mun-expansion`.
+- The objective remains locked while `survey-progress` is below `25`.
+- With `hiddenUntilAvailable = true`, the objective is hidden from players until both campaign
+  conditions are met.
+- `/campaign advance mun-expansion` and `/campaign set survey-progress 25` unlock the objective.
+- Existing `prerequisiteObjectiveIds` behavior still works and can be combined with campaign
+  conditions.
+
 ## Test Cases
 
 ### 1. Disabled Server Compatibility

@@ -46,7 +46,8 @@ prominently and preserve original license and copyright notices.
 - [x] ~~Add admin-confirmed non-vessel objective evidence for infrastructure and campaign milestones.~~
 - [x] ~~Add stock contract completion evidence for agency objectives.~~
 - [ ] Add automatic non-vessel objective evidence from optional mod integrations.
-- [ ] Add richer objective chains and unlock rules beyond completed-objective prerequisites.
+- [x] ~~Add campaign phase and world-state metric unlock rules beyond completed-objective
+  prerequisites.~~
 - [ ] Add server-driven agency contracts or contract-like client experiences.
 - [ ] Add richer global community objectives that multiple players can contribute toward.
 - [x] ~~Add server-owned campaign/world-state foundations with phases, metrics, admin tools, and

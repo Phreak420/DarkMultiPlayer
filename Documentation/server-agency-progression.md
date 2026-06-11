@@ -174,6 +174,7 @@ Implemented console commands: `/agency status`, `/agency reload`, `/agency objec
 - [x] Add objective prerequisites so completed milestones can unlock later objectives.
 - [x] Add `prerequisiteMode` so objective chains can require `All` or `Any` prerequisites.
 - [x] Add `hiddenUntilAvailable` so story objectives can stay hidden until unlocked.
+- [x] Add campaign phase and world-state metric conditions for objective unlocks.
 - [x] Add basic progress targets so multiple players can contribute to shared objectives.
 - [x] Show objective progress values in the Agency UI for partially complete progress objectives.
 - Add group/server-wide milestones that unlock later objective chains.
@@ -184,11 +185,17 @@ Implemented console commands: `/agency status`, `/agency reload`, `/agency objec
 Implemented scopes: `Personal` and `Server`.
 
 Objective definitions can now optionally include `prerequisiteObjectiveIds`, `prerequisiteMode`,
-`hiddenUntilAvailable`, `progressTarget`, `progressPerEvidence`, and `uniqueContributors`.
+`requiredCampaignPhaseId`, `requiredMetricId`, `requiredMetricMinimum`, `hiddenUntilAvailable`,
+`progressTarget`, `progressPerEvidence`, and `uniqueContributors`.
 `prerequisiteMode` defaults to `All`; set it to `Any` when completing any one listed prerequisite
 should unlock the objective. `hiddenUntilAvailable` keeps locked objectives out of the
 client-facing objective list until their prerequisites are met while preserving the full objective
 list for server admins.
+
+Campaign conditions are evaluated by the server alongside completed-objective prerequisites. If an
+objective has `requiredCampaignPhaseId`, it remains locked until `CampaignState.CurrentPhaseId`
+matches. If an objective has `requiredMetricId`, it remains locked until that metric exists and is
+at least `requiredMetricMinimum`.
 
 ### Phase 6: Contract Integration
 

@@ -126,6 +126,9 @@ namespace DarkMultiPlayerServer
                         evidenceId = CleanText(objective.evidenceId, string.Empty),
                         prerequisiteObjectiveIds = CleanPrerequisites(objective.prerequisiteObjectiveIds),
                         prerequisiteMode = CleanPrerequisiteMode(objective.prerequisiteMode),
+                        requiredCampaignPhaseId = CleanText(objective.requiredCampaignPhaseId, string.Empty),
+                        requiredMetricId = CleanText(objective.requiredMetricId, string.Empty),
+                        requiredMetricMinimum = objective.requiredMetricMinimum,
                         hiddenUntilAvailable = objective.hiddenUntilAvailable,
                         progressTarget = Math.Max(0, objective.progressTarget),
                         progressPerEvidence = objective.progressPerEvidence <= 0 ? 1 : objective.progressPerEvidence,
@@ -655,6 +658,9 @@ namespace DarkMultiPlayerServer
                     evidenceId = objective.evidenceId,
                     prerequisiteObjectiveIds = objective.prerequisiteObjectiveIds,
                     prerequisiteMode = objective.prerequisiteMode,
+                    requiredCampaignPhaseId = objective.requiredCampaignPhaseId,
+                    requiredMetricId = objective.requiredMetricId,
+                    requiredMetricMinimum = objective.requiredMetricMinimum,
                     hiddenUntilAvailable = objective.hiddenUntilAvailable,
                     progressTarget = objective.progressTarget,
                     progressPerEvidence = objective.progressPerEvidence,
@@ -709,7 +715,7 @@ namespace DarkMultiPlayerServer
                     return "In Progress " + progressValue.ToString("R") + "/" + objective.progressTarget.ToString("R");
                 }
             }
-            if (objective.prerequisiteObjectiveIds != null && objective.prerequisiteObjectiveIds.Length > 0 && string.Equals(objective.status, LockedStatus, StringComparison.OrdinalIgnoreCase))
+            if (HasUnlockConditions(objective) && string.Equals(objective.status, LockedStatus, StringComparison.OrdinalIgnoreCase))
             {
                 return AvailableStatus;
             }
@@ -717,6 +723,11 @@ namespace DarkMultiPlayerServer
         }
 
         private static bool PrerequisitesMet(AgencyObjective objective, string playerName)
+        {
+            return ObjectivePrerequisitesMet(objective, playerName) && CampaignConditionsMet(objective);
+        }
+
+        private static bool ObjectivePrerequisitesMet(AgencyObjective objective, string playerName)
         {
             if (objective.prerequisiteObjectiveIds == null || objective.prerequisiteObjectiveIds.Length == 0)
             {
@@ -746,6 +757,32 @@ namespace DarkMultiPlayerServer
                 }
             }
             return !anyMode;
+        }
+
+        private static bool CampaignConditionsMet(AgencyObjective objective)
+        {
+            if (!string.IsNullOrEmpty(objective.requiredCampaignPhaseId) && !string.Equals(CampaignState.CurrentPhaseId, objective.requiredCampaignPhaseId, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+            if (!string.IsNullOrEmpty(objective.requiredMetricId))
+            {
+                double metricValue;
+                if (!CampaignState.TryGetMetricValue(objective.requiredMetricId, out metricValue))
+                {
+                    return false;
+                }
+                if (metricValue < objective.requiredMetricMinimum)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static bool HasUnlockConditions(AgencyObjective objective)
+        {
+            return (objective.prerequisiteObjectiveIds != null && objective.prerequisiteObjectiveIds.Length > 0) || !string.IsNullOrEmpty(objective.requiredCampaignPhaseId) || !string.IsNullOrEmpty(objective.requiredMetricId);
         }
 
         private static double AddProgress(AgencyObjective objective, string completionPlayer, AgencyEvidenceRecord evidenceRecord, out bool addedContribution)
@@ -1062,7 +1099,10 @@ namespace DarkMultiPlayerServer
                         contractType = "Campaign",
                         issuer = "Server Agency",
                         category = "Exploration",
-                        prerequisiteObjectiveIds = new string[] { "reach-orbit" }
+                        prerequisiteObjectiveIds = new string[] { "reach-orbit" },
+                        requiredCampaignPhaseId = "mun-expansion",
+                        requiredMetricId = "survey-progress",
+                        requiredMetricMinimum = 25
                     }
                 }
             };
@@ -1137,6 +1177,15 @@ namespace DarkMultiPlayerServer
 
         [DataMember]
         public string prerequisiteMode;
+
+        [DataMember]
+        public string requiredCampaignPhaseId;
+
+        [DataMember]
+        public string requiredMetricId;
+
+        [DataMember]
+        public double requiredMetricMinimum;
 
         [DataMember]
         public bool hiddenUntilAvailable;
