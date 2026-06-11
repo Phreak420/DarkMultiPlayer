@@ -54,6 +54,8 @@ Current and planned MMO Edition work:
 - [ ] Add richer objective chains and unlock rules beyond completed-objective prerequisites.
 - [ ] Add server-driven agency contracts or contract-like player experiences.
 - [ ] Support richer global community objectives that many players can contribute toward.
+- [x] ~~Add server-owned campaign/world-state foundations with phases, metrics, admin tools, and
+  read-only client display.~~
 - [ ] Add shared economy/resource pressure with bounded, recoverable safety rules.
 - [ ] Add story and event-driven campaigns controlled by server configuration.
 - [ ] Add seasonal campaign archives, historical statistics, and Hall of Fame records.
@@ -66,7 +68,7 @@ Current and planned MMO Edition work:
 - [x] ~~Add read-only identity audit logs and audit inspection command.~~
 - [x] ~~Add confirmed admin command to attach an online player's key to an existing identity.~~
 - [x] ~~Improve player identity migration and recovery without breaking existing auth.~~
-- [ ] Add gameplay profiles for Vanilla Mode, Agency Mode, and optional MMO Campaign Mode.
+- [x] ~~Add gameplay profiles for Vanilla Mode, Agency Mode, and optional MMO Campaign Mode.~~
 - [ ] Add optional compatibility hooks for colony, mapping, construction, tourism,
   infrastructure, and hard-mode survival mods.
 

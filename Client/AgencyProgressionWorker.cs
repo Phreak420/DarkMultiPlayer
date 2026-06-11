@@ -10,6 +10,7 @@ namespace DarkMultiPlayer
     {
         private const int MaxEvidenceIdLength = 128;
         private readonly List<AgencyObjectiveSummary> objectives = new List<AgencyObjectiveSummary>();
+        private readonly List<CampaignMetricSummary> campaignMetrics = new List<CampaignMetricSummary>();
         private readonly HashSet<string> sentEvidenceIds = new HashSet<string>();
         private readonly Dictionary<Guid, string> vesselBodies = new Dictionary<Guid, string>();
         private readonly Queue<AgencyRewardSummary> pendingRewards = new Queue<AgencyRewardSummary>();
@@ -19,6 +20,10 @@ namespace DarkMultiPlayer
 
         public string PackName { get; private set; }
         public string OnboardingText { get; private set; }
+        public string CampaignName { get; private set; }
+        public string CampaignPhaseId { get; private set; }
+        public string CampaignPhaseTitle { get; private set; }
+        public string CampaignPhaseDescription { get; private set; }
 
         public AgencyProgressionWorker(DMPGame dmpGame, NetworkWorker networkWorker)
         {
@@ -44,6 +49,17 @@ namespace DarkMultiPlayer
             }
         }
 
+        public CampaignMetricSummary[] CampaignMetrics
+        {
+            get
+            {
+                lock (campaignMetrics)
+                {
+                    return campaignMetrics.ToArray();
+                }
+            }
+        }
+
         public void HandleAgencyProgression(ByteArray messageData)
         {
             using (MessageReader mr = new MessageReader(messageData.data))
@@ -64,10 +80,30 @@ namespace DarkMultiPlayer
                 int objectiveCount = ids.Length;
                 string[] categories = new string[objectiveCount];
                 OnboardingText = string.Empty;
+                string campaignName = string.Empty;
+                string campaignPhaseId = string.Empty;
+                string campaignPhaseTitle = string.Empty;
+                string campaignPhaseDescription = string.Empty;
+                string[] metricIds = new string[0];
+                string[] metricTitles = new string[0];
+                string[] metricCategories = new string[0];
+                string[] metricUnits = new string[0];
+                double[] metricValues = new double[0];
+                double[] metricTargets = new double[0];
                 try
                 {
                     categories = mr.Read<string[]>();
                     OnboardingText = mr.Read<string>();
+                    campaignName = mr.Read<string>();
+                    campaignPhaseId = mr.Read<string>();
+                    campaignPhaseTitle = mr.Read<string>();
+                    campaignPhaseDescription = mr.Read<string>();
+                    metricIds = mr.Read<string[]>();
+                    metricTitles = mr.Read<string[]>();
+                    metricCategories = mr.Read<string[]>();
+                    metricUnits = mr.Read<string[]>();
+                    metricValues = mr.Read<double[]>();
+                    metricTargets = mr.Read<double[]>();
                 }
                 catch (Exception)
                 {
@@ -79,6 +115,16 @@ namespace DarkMultiPlayer
                 {
                     DarkLog.Debug("Received invalid agency progression data from server.");
                     return;
+                }
+                if (metricTitles.Length != metricIds.Length || metricCategories.Length != metricIds.Length || metricUnits.Length != metricIds.Length || metricValues.Length != metricIds.Length || metricTargets.Length != metricIds.Length)
+                {
+                    DarkLog.Debug("Received invalid campaign metric data from server.");
+                    metricIds = new string[0];
+                    metricTitles = new string[0];
+                    metricCategories = new string[0];
+                    metricUnits = new string[0];
+                    metricValues = new double[0];
+                    metricTargets = new double[0];
                 }
 
                 lock (objectives)
@@ -102,6 +148,26 @@ namespace DarkMultiPlayer
                             rewardFunds = rewardFunds[i],
                             rewardScience = rewardScience[i],
                             rewardReputation = rewardReputation[i]
+                        });
+                    }
+                }
+                lock (campaignMetrics)
+                {
+                    campaignMetrics.Clear();
+                    CampaignName = campaignName;
+                    CampaignPhaseId = campaignPhaseId;
+                    CampaignPhaseTitle = campaignPhaseTitle;
+                    CampaignPhaseDescription = campaignPhaseDescription;
+                    for (int i = 0; i < metricIds.Length; i++)
+                    {
+                        campaignMetrics.Add(new CampaignMetricSummary
+                        {
+                            id = metricIds[i],
+                            title = metricTitles[i],
+                            category = metricCategories[i],
+                            unit = metricUnits[i],
+                            value = metricValues[i],
+                            target = metricTargets[i]
                         });
                     }
                 }
@@ -149,6 +215,14 @@ namespace DarkMultiPlayer
                 objectives.Clear();
                 PackName = null;
                 OnboardingText = null;
+            }
+            lock (campaignMetrics)
+            {
+                campaignMetrics.Clear();
+                CampaignName = null;
+                CampaignPhaseId = null;
+                CampaignPhaseTitle = null;
+                CampaignPhaseDescription = null;
             }
             sentEvidenceIds.Clear();
             vesselBodies.Clear();
@@ -427,5 +501,15 @@ namespace DarkMultiPlayer
         public double funds;
         public float science;
         public float reputation;
+    }
+
+    public class CampaignMetricSummary
+    {
+        public string id;
+        public string title;
+        public string category;
+        public string unit;
+        public double value;
+        public double target;
     }
 }

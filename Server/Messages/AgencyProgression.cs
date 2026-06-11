@@ -26,6 +26,14 @@ namespace DarkMultiPlayerServer.Messages
             double[] objectiveRewardFunds = new double[objectives.Length];
             float[] objectiveRewardScience = new float[objectives.Length];
             float[] objectiveRewardReputation = new float[objectives.Length];
+            CampaignPhase currentPhase = DarkMultiPlayerServer.CampaignState.CurrentPhase;
+            CampaignMetric[] campaignMetrics = DarkMultiPlayerServer.CampaignState.Metrics;
+            string[] metricIds = new string[campaignMetrics.Length];
+            string[] metricTitles = new string[campaignMetrics.Length];
+            string[] metricCategories = new string[campaignMetrics.Length];
+            string[] metricUnits = new string[campaignMetrics.Length];
+            double[] metricValues = new double[campaignMetrics.Length];
+            double[] metricTargets = new double[campaignMetrics.Length];
 
             for (int i = 0; i < objectives.Length; i++)
             {
@@ -42,6 +50,15 @@ namespace DarkMultiPlayerServer.Messages
                 objectiveRewardFunds[i] = objectives[i].rewardFunds;
                 objectiveRewardScience[i] = objectives[i].rewardScience;
                 objectiveRewardReputation[i] = objectives[i].rewardReputation;
+            }
+            for (int i = 0; i < campaignMetrics.Length; i++)
+            {
+                metricIds[i] = campaignMetrics[i].id;
+                metricTitles[i] = campaignMetrics[i].title;
+                metricCategories[i] = campaignMetrics[i].category;
+                metricUnits[i] = campaignMetrics[i].unit;
+                metricValues[i] = campaignMetrics[i].value;
+                metricTargets[i] = campaignMetrics[i].target;
             }
 
             ServerMessage newMessage = new ServerMessage();
@@ -63,6 +80,16 @@ namespace DarkMultiPlayerServer.Messages
                 mw.Write<float[]>(objectiveRewardReputation);
                 mw.Write<string[]>(objectiveCategories);
                 mw.Write<string>(DarkMultiPlayerServer.AgencyProgression.OnboardingText);
+                mw.Write<string>(DarkMultiPlayerServer.CampaignState.CampaignName);
+                mw.Write<string>(currentPhase == null ? string.Empty : currentPhase.id);
+                mw.Write<string>(currentPhase == null ? string.Empty : currentPhase.title);
+                mw.Write<string>(currentPhase == null ? string.Empty : currentPhase.description);
+                mw.Write<string[]>(metricIds);
+                mw.Write<string[]>(metricTitles);
+                mw.Write<string[]>(metricCategories);
+                mw.Write<string[]>(metricUnits);
+                mw.Write<double[]>(metricValues);
+                mw.Write<double[]>(metricTargets);
                 newMessage.data = mw.GetMessageBytes();
             }
             ClientHandler.SendToClient(client, newMessage, true);

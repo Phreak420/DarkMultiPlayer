@@ -49,6 +49,8 @@ prominently and preserve original license and copyright notices.
 - [ ] Add richer objective chains and unlock rules beyond completed-objective prerequisites.
 - [ ] Add server-driven agency contracts or contract-like client experiences.
 - [ ] Add richer global community objectives that multiple players can contribute toward.
+- [x] ~~Add server-owned campaign/world-state foundations with phases, metrics, admin tools, and
+  read-only client display.~~
 - [ ] Add shared economy and resource pressure with strong safety limits.
 - [ ] Add story/event-driven campaigns with configurable phases.
 - [ ] Add seasonal campaign archives, historical statistics, and Hall of Fame records.
@@ -280,6 +282,18 @@ World state should be auditable, configurable, and bounded. It should extend the
 evidence/objective/reward architecture rather than replacing it. Server owners should be able to
 inspect current values, understand why they changed, override them when needed, and disable the
 systems entirely for vanilla or stock-friendly servers.
+
+Implemented foundation:
+
+- `Config/CampaignState.json` defines the campaign name, available phases, current/default phase,
+  and global metrics.
+- `Universe/CampaignState/WorldState.txt` stores mutable server-owned phase and metric values.
+- `Universe/CampaignState/CampaignAudit.log` records admin state changes.
+- `/campaign status` shows current phase and metrics.
+- `/campaign set <metric> <value>` updates a global metric and refreshes connected clients.
+- `/campaign advance <phase>` changes the current campaign phase and refreshes connected clients.
+- `/campaign reset confirm` backs up the previous state and reloads configured defaults.
+- The Space Agency window displays current campaign phase and read-only global metrics.
 
 ## Server Telemetry And External Dashboard Support
 

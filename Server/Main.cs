@@ -153,6 +153,7 @@ namespace DarkMultiPlayerServer
             CommandHandler.RegisterCommand("admin", AdminCommand.HandleCommand, "Sets a player as admin/removes admin from the player");
             CommandHandler.RegisterCommand("whitelist", WhitelistCommand.HandleCommand, "Change the server whitelist");
             CommandHandler.RegisterCommand("agency", AgencyCommand.HandleCommand, "Agency progression tools");
+            CommandHandler.RegisterCommand("campaign", CampaignCommand.HandleCommand, "Campaign world state tools");
             CommandHandler.RegisterCommand("identity", IdentityCommand.HandleCommand, "Player identity metadata tools");
 
             //Register the ctrl+c event
@@ -214,6 +215,7 @@ namespace DarkMultiPlayerServer
                 DarkLog.Normal("Starting DMPServer " + Common.PROGRAM_VERSION + ", protocol " + Common.PROTOCOL_VERSION);
                 DarkLog.Normal(Settings.GetGameplayProfileSummary());
                 AgencyProgression.Load(Settings.IsAgencyProgressionActive());
+                CampaignState.Load(Settings.IsAgencyProgressionActive());
 
                 if (Settings.settingsStore.gameDifficulty == GameDifficulty.CUSTOM)
                 {

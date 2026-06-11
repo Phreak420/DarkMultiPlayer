@@ -413,6 +413,12 @@ Phases should be data-driven. A campaign file should be able to express phase or
 prerequisites, optional side objectives, hidden future objectives, and server-wide unlocks without
 requiring a new DMP build.
 
+Implemented foundation: `Config/CampaignState.json` can define a campaign name, phases, and global
+metrics. Mutable values are stored in `Universe/CampaignState/WorldState.txt`, admin changes are
+audited in `Universe/CampaignState/CampaignAudit.log`, and players can view the current phase plus
+global metrics in the Space Agency window. This does not yet implement automatic phase unlocks,
+events, economy effects, or mod integration hooks.
+
 ### Event System
 
 A future campaign director may support temporary server events. Events should be optional,

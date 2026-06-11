@@ -37,6 +37,9 @@ namespace ServerValidationTests
             Run("Split message rejects oversized first chunk", SplitMessageRejectsOversizedFirstChunk);
             Run("Agency progression disabled clears objectives", AgencyProgressionDisabledClearsObjectives);
             Run("Agency progression enabled creates default objectives", AgencyProgressionEnabledCreatesDefaultObjectives);
+            Run("Campaign state loads defaults", CampaignStateLoadsDefaults);
+            Run("Campaign state updates metrics and phases", CampaignStateUpdatesMetricsAndPhases);
+            Run("Campaign state resets with backup", CampaignStateResetsWithBackup);
             Run("Agency progression skips invalid objective IDs", AgencyProgressionSkipsInvalidObjectiveIds);
             Run("Agency objective contract metadata loads", AgencyObjectiveContractMetadataLoads);
             Run("Agency evidence disabled is ignored", AgencyEvidenceDisabledIsIgnored);
@@ -563,6 +566,73 @@ namespace ServerValidationTests
             Assert(File.Exists(Path.Combine(Server.configDirectory, "AgencyProgression.json")), "enabled agency progression did not create a default config file");
             Assert(AgencyProgression.PackName == "Server Agency", "default agency pack name was not loaded");
             Assert(AgencyProgression.Objectives.Length == 2, "default agency objectives were not loaded");
+        }
+
+        private static void CampaignStateLoadsDefaults()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-campaign-" + Guid.NewGuid().ToString("N"));
+
+            CampaignState.Load(true);
+
+            Assert(File.Exists(Path.Combine(Server.configDirectory, "CampaignState.json")), "default campaign state config was not created");
+            Assert(CampaignState.Metrics.Length == 2, "default campaign metrics were not loaded");
+            Assert(CampaignState.Phases.Length == 2, "default campaign phases were not loaded");
+            Assert(CampaignState.CurrentPhaseId == "kerbin-foundation", "default campaign phase was not selected");
+            Assert(File.Exists(Path.Combine(Server.universeDirectory, "CampaignState", "WorldState.txt")), "campaign world state file was not written");
+        }
+
+        private static void CampaignStateUpdatesMetricsAndPhases()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-campaign-" + Guid.NewGuid().ToString("N"));
+            CampaignState.Load(true);
+
+            Assert(CampaignState.SetMetric("survey-progress", 25, "test"), "campaign metric update failed");
+            Assert(CampaignState.AdvancePhase("mun-expansion", "test"), "campaign phase advance failed");
+
+            CampaignMetric surveyProgress = null;
+            foreach (CampaignMetric metric in CampaignState.Metrics)
+            {
+                if (metric.id == "survey-progress")
+                {
+                    surveyProgress = metric;
+                    break;
+                }
+            }
+
+            Assert(surveyProgress != null && surveyProgress.value == 25, "campaign metric value was not updated");
+            Assert(CampaignState.CurrentPhaseId == "mun-expansion", "campaign phase was not advanced");
+            string auditFile = Path.Combine(Server.universeDirectory, "CampaignState", "CampaignAudit.log");
+            Assert(File.Exists(auditFile), "campaign audit log was not written");
+            string audit = File.ReadAllText(auditFile);
+            Assert(audit.Contains("metric-set"), "campaign audit did not include metric update");
+            Assert(audit.Contains("phase-advanced"), "campaign audit did not include phase advance");
+        }
+
+        private static void CampaignStateResetsWithBackup()
+        {
+            string universe = CreateUniverse();
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-campaign-" + Guid.NewGuid().ToString("N"));
+            CampaignState.Load(true);
+            Assert(CampaignState.SetMetric("survey-progress", 25, "test"), "campaign metric update failed before reset");
+
+            Assert(!CampaignState.ResetState(false, "test"), "campaign reset succeeded without confirmation");
+            Assert(CampaignState.ResetState(true, "test"), "campaign reset failed with confirmation");
+
+            string campaignDirectory = Path.Combine(universe, "CampaignState");
+            Assert(Directory.GetFiles(campaignDirectory, "WorldState.reset-*.bak").Length == 1, "campaign reset did not back up previous state");
+            CampaignMetric surveyProgress = null;
+            foreach (CampaignMetric metric in CampaignState.Metrics)
+            {
+                if (metric.id == "survey-progress")
+                {
+                    surveyProgress = metric;
+                    break;
+                }
+            }
+            Assert(surveyProgress != null && surveyProgress.value == 0, "campaign reset did not restore configured metric default");
         }
 
         private static void AgencyProgressionSkipsInvalidObjectiveIds()

@@ -195,8 +195,30 @@ Expected:
 - Empty filters show `No objectives match this filter.` without throwing errors.
 - Objective details show category, type, scope, issuer, description, rewards, and progress.
 - Objectives with progress targets show `Progress: current / target`, including completed progress.
+- If `CampaignState.json` exists, the window shows current campaign phase and read-only global
+  metrics above the objective filters.
 - Completing a rewarded objective posts a concise Agency completion notification; UI notification
   failures should be logged without crashing KSP.
+
+## Campaign State Smoke Test
+
+1. Enable Agency systems on the server.
+2. Confirm `Config/CampaignState.json` is created on startup.
+3. Run `/campaign status`.
+4. Run `/campaign set survey-progress 25`.
+5. Run `/campaign advance mun-expansion`.
+6. Reopen the Space Agency window.
+7. Run `/campaign reset confirm` only after confirming you want to reset test campaign state.
+
+Expected:
+
+- `Universe/CampaignState/WorldState.txt` is created.
+- `/campaign status` lists the current phase and configured metrics.
+- `/campaign set survey-progress 25` updates the stored metric.
+- `/campaign advance mun-expansion` changes the current phase.
+- `Universe/CampaignState/CampaignAudit.log` records metric and phase changes.
+- The Space Agency window updates for connected clients after metric/phase changes.
+- `/campaign reset confirm` writes a `WorldState.reset-*.bak` backup before reloading defaults.
 
 ## Test Cases
 
@@ -504,4 +526,5 @@ Expected:
 - Rewards are personal to the player whose evidence completed the objective unless an admin
   intentionally replays or revokes a reward.
 - Generated stock KSP contracts are not implemented yet.
-- Campaign phases and events are documented future work.
+- Campaign phases and global metrics can be configured and changed by admins; automatic phase
+  unlock rules and campaign events are future work.

@@ -111,6 +111,8 @@ namespace DarkMultiPlayer
             GUILayout.BeginVertical();
             DrawHeader();
             GUILayout.Space(6);
+            DrawCampaignState();
+            GUILayout.Space(6);
             DrawFilters();
             GUILayout.Space(6);
             DrawObjectiveBrowser();
@@ -150,6 +152,37 @@ namespace DarkMultiPlayer
             DrawFilterButton(AgencyObjectiveFilter.LOCKED, "Locked");
             DrawFilterButton(AgencyObjectiveFilter.SHARED, "Shared");
             GUILayout.EndHorizontal();
+        }
+
+        private void DrawCampaignState()
+        {
+            string campaignName = dmpGame.agencyProgressionWorker.CampaignName;
+            CampaignMetricSummary[] metrics = dmpGame.agencyProgressionWorker.CampaignMetrics;
+            if (string.IsNullOrEmpty(campaignName) && metrics.Length == 0)
+            {
+                return;
+            }
+
+            string phaseTitle = dmpGame.agencyProgressionWorker.CampaignPhaseTitle;
+            if (string.IsNullOrEmpty(phaseTitle))
+            {
+                phaseTitle = dmpGame.agencyProgressionWorker.CampaignPhaseId;
+            }
+            GUILayout.Label("Campaign: " + (string.IsNullOrEmpty(campaignName) ? "Server Campaign" : campaignName), subHeaderStyle);
+            if (!string.IsNullOrEmpty(phaseTitle))
+            {
+                GUILayout.Label("Phase: " + phaseTitle, noteStyle, GUILayout.Height(18));
+            }
+            if (!string.IsNullOrEmpty(dmpGame.agencyProgressionWorker.CampaignPhaseDescription))
+            {
+                GUILayout.Label(dmpGame.agencyProgressionWorker.CampaignPhaseDescription, noteStyle, GUILayout.Height(28));
+            }
+
+            int shownMetrics = Math.Min(metrics.Length, 3);
+            for (int i = 0; i < shownMetrics; i++)
+            {
+                GUILayout.Label(BuildMetricSummary(metrics[i]), noteStyle, GUILayout.Height(18));
+            }
         }
 
         private void DrawFilterButton(AgencyObjectiveFilter filter, string label)
@@ -380,6 +413,14 @@ namespace DarkMultiPlayer
                 rewardSummary = AppendReward(rewardSummary, "Rep " + objective.rewardReputation.ToString("0.##"));
             }
             return rewardSummary;
+        }
+
+        private string BuildMetricSummary(CampaignMetricSummary metric)
+        {
+            string title = string.IsNullOrEmpty(metric.title) ? metric.id : metric.title;
+            string category = string.IsNullOrEmpty(metric.category) ? "General" : metric.category;
+            string target = metric.target > 0 ? " / " + metric.target.ToString("0.##") : string.Empty;
+            return category + ": " + title + " " + metric.value.ToString("0.##") + target + metric.unit;
         }
 
         private string AppendReward(string rewardSummary, string reward)
