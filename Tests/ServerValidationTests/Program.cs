@@ -58,6 +58,10 @@ namespace ServerValidationTests
             Run("Agency campaign phase unlocks objectives", AgencyCampaignPhaseUnlocksObjectives);
             Run("Agency campaign metric unlocks objectives", AgencyCampaignMetricUnlocksObjectives);
             Run("Agency hidden campaign objectives appear after unlock", AgencyHiddenCampaignObjectivesAppearAfterUnlock);
+            Run("Agency objective completion contributes campaign metric", AgencyObjectiveCompletionContributesCampaignMetric);
+            Run("Agency completed objective does not repeat metric contribution", AgencyCompletedObjectiveDoesNotRepeatMetricContribution);
+            Run("Agency progress objective contributes metric on completion", AgencyProgressObjectiveContributesMetricOnCompletion);
+            Run("Agency metric contribution clamps to max", AgencyMetricContributionClampsToMax);
             Run("Agency shared progress completes objective", AgencySharedProgressCompletesObjective);
             Run("Agency shared progress reloads and resets", AgencySharedProgressReloadsAndResets);
             Run("Agency unique contributors count once", AgencyUniqueContributorsCountOnce);
@@ -1007,6 +1011,86 @@ namespace ServerValidationTests
             Assert(objectives.Length == 1 && objectives[0].id == "hidden-survey" && objectives[0].status == "Available", "hidden campaign objective did not appear after metric threshold");
         }
 
+        private static void AgencyObjectiveCompletionContributesCampaignMetric()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-campaign-contribution-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            WriteCampaignMetricConfig("communications-strength", 0);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"orbit-relay\",\"title\":\"Orbit Relay\",\"description\":\"Orbit contributes comms.\",\"status\":\"Available\",\"scope\":\"Server\",\"evidenceType\":\"VESSEL_ORBITED\",\"evidenceId\":\"orbit-Kerbin\",\"metricContributionId\":\"communications-strength\",\"metricContributionAmount\":10}]}");
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            ClientObject alice = CreateClient("Alice");
+
+            CampaignState.Load(true);
+            AgencyProgression.Load(true);
+            SendAgencyEvidence(alice, AgencyEvidenceType.VESSEL_ORBITED, "orbit-Kerbin");
+
+            Assert(GetCampaignMetricValue("communications-strength") == 10, "objective completion did not contribute campaign metric");
+        }
+
+        private static void AgencyCompletedObjectiveDoesNotRepeatMetricContribution()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-campaign-contribution-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            WriteCampaignMetricConfig("communications-strength", 0);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"orbit-relay\",\"title\":\"Orbit Relay\",\"description\":\"Orbit contributes comms once.\",\"status\":\"Available\",\"scope\":\"Server\",\"evidenceType\":\"VESSEL_ORBITED\",\"evidenceId\":\"orbit-Kerbin\",\"metricContributionId\":\"communications-strength\",\"metricContributionAmount\":10}]}");
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            ClientObject alice = CreateClient("Alice");
+
+            CampaignState.Load(true);
+            AgencyProgression.Load(true);
+            SendAgencyEvidence(alice, AgencyEvidenceType.VESSEL_ORBITED, "orbit-Kerbin");
+            SendAgencyEvidence(alice, AgencyEvidenceType.VESSEL_ORBITED, "orbit-Kerbin");
+
+            Assert(GetCampaignMetricValue("communications-strength") == 10, "completed objective repeated campaign metric contribution");
+        }
+
+        private static void AgencyProgressObjectiveContributesMetricOnCompletion()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-campaign-contribution-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            WriteCampaignMetricConfig("infrastructure-coverage", 0);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"relay-network\",\"title\":\"Relay Network\",\"description\":\"Two contributors complete relay network.\",\"status\":\"Available\",\"scope\":\"Server\",\"evidenceType\":\"VESSEL_ORBITED\",\"evidenceId\":\"orbit-Kerbin\",\"progressTarget\":2,\"progressPerEvidence\":1,\"uniqueContributors\":true,\"metricContributionId\":\"infrastructure-coverage\",\"metricContributionAmount\":20}]}");
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            ClientObject alice = CreateClient("Alice");
+            ClientObject bob = CreateClient("Bob");
+
+            CampaignState.Load(true);
+            AgencyProgression.Load(true);
+            SendAgencyEvidence(alice, AgencyEvidenceType.VESSEL_ORBITED, "orbit-Kerbin");
+            Assert(GetCampaignMetricValue("infrastructure-coverage") == 0, "progress objective contributed metric before completion");
+            SendAgencyEvidence(bob, AgencyEvidenceType.VESSEL_ORBITED, "orbit-Kerbin");
+
+            Assert(GetCampaignMetricValue("infrastructure-coverage") == 20, "progress objective did not contribute metric on completion");
+        }
+
+        private static void AgencyMetricContributionClampsToMax()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-campaign-contribution-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            WriteCampaignMetricConfig("survey-progress", 95);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"survey-objective\",\"title\":\"Survey Objective\",\"description\":\"Survey contribution clamps.\",\"status\":\"Available\",\"scope\":\"Server\",\"evidenceType\":\"SCIENCE_RECEIVED\",\"evidenceId\":\"crewReport@KerbinSrfLandedLaunchPad\",\"metricContributionId\":\"survey-progress\",\"metricContributionAmount\":10,\"metricContributionMax\":100}]}");
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            ClientObject alice = CreateClient("Alice");
+
+            CampaignState.Load(true);
+            AgencyProgression.Load(true);
+            SendAgencyEvidence(alice, AgencyEvidenceType.SCIENCE_RECEIVED, "crewReport@KerbinSrfLandedLaunchPad");
+
+            Assert(GetCampaignMetricValue("survey-progress") == 100, "metric contribution did not clamp to max");
+        }
+
         private static void AgencyPersonalObjectiveStateIsPerPlayer()
         {
             CreateUniverse();
@@ -1192,6 +1276,23 @@ namespace ServerValidationTests
             Settings.settingsStore.gameplayProfile = GameplayProfile.Vanilla;
             Settings.settingsStore.agencyProgressionEnabled = false;
             return universe;
+        }
+
+        private static void WriteCampaignMetricConfig(string metricId, double value)
+        {
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "CampaignState.json"),
+                "{\"campaignName\":\"Test Campaign\",\"currentPhaseId\":\"kerbin-foundation\",\"phases\":[{\"id\":\"kerbin-foundation\",\"title\":\"Kerbin\",\"description\":\"Start.\"}],\"metrics\":[{\"id\":\"" + metricId + "\",\"title\":\"" + metricId + "\",\"category\":\"Test\",\"value\":" + value.ToString("R") + ",\"target\":100,\"unit\":\"\"}]}");
+        }
+
+        private static double GetCampaignMetricValue(string metricId)
+        {
+            double value;
+            if (!CampaignState.TryGetMetricValue(metricId, out value))
+            {
+                throw new Exception("campaign metric was not found: " + metricId);
+            }
+            return value;
         }
 
         private static ClientObject CreateClient(string playerName)

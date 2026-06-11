@@ -53,6 +53,7 @@ Current and planned MMO Edition work:
 - [ ] Add automatic non-vessel evidence from optional mod integrations.
 - [x] ~~Add campaign phase and world-state metric unlock rules beyond completed-objective
   prerequisites.~~
+- [x] ~~Allow completed agency objectives to contribute to server-owned campaign metrics.~~
 - [ ] Add server-driven agency contracts or contract-like player experiences.
 - [ ] Support richer global community objectives that many players can contribute toward.
 - [x] ~~Add server-owned campaign/world-state foundations with phases, metrics, admin tools, and

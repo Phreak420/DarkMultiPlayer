@@ -295,6 +295,8 @@ Implemented foundation:
 - `/campaign advance <phase>` changes the current campaign phase and refreshes connected clients.
 - `/campaign reset confirm` backs up the previous state and reloads configured defaults.
 - The Space Agency window displays current campaign phase and read-only global metrics.
+- Agency objective completions can optionally add bounded contributions to configured campaign
+  metrics, allowing evidence-driven missions to move server-owned world state forward.
 
 ## Server Telemetry And External Dashboard Support
 

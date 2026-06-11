@@ -175,6 +175,7 @@ Implemented console commands: `/agency status`, `/agency reload`, `/agency objec
 - [x] Add `prerequisiteMode` so objective chains can require `All` or `Any` prerequisites.
 - [x] Add `hiddenUntilAvailable` so story objectives can stay hidden until unlocked.
 - [x] Add campaign phase and world-state metric conditions for objective unlocks.
+- [x] Allow completed objectives to contribute to server-owned campaign/world-state metrics.
 - [x] Add basic progress targets so multiple players can contribute to shared objectives.
 - [x] Show objective progress values in the Agency UI for partially complete progress objectives.
 - Add group/server-wide milestones that unlock later objective chains.
@@ -186,7 +187,8 @@ Implemented scopes: `Personal` and `Server`.
 
 Objective definitions can now optionally include `prerequisiteObjectiveIds`, `prerequisiteMode`,
 `requiredCampaignPhaseId`, `requiredMetricId`, `requiredMetricMinimum`, `hiddenUntilAvailable`,
-`progressTarget`, `progressPerEvidence`, and `uniqueContributors`.
+`progressTarget`, `progressPerEvidence`, `uniqueContributors`, `metricContributionId`,
+`metricContributionAmount`, and `metricContributionMax`.
 `prerequisiteMode` defaults to `All`; set it to `Any` when completing any one listed prerequisite
 should unlock the objective. `hiddenUntilAvailable` keeps locked objectives out of the
 client-facing objective list until their prerequisites are met while preserving the full objective
@@ -196,6 +198,13 @@ Campaign conditions are evaluated by the server alongside completed-objective pr
 objective has `requiredCampaignPhaseId`, it remains locked until `CampaignState.CurrentPhaseId`
 matches. If an objective has `requiredMetricId`, it remains locked until that metric exists and is
 at least `requiredMetricMinimum`.
+
+Metric contributions are optional server-side objective effects. When an objective completes, the
+server can add `metricContributionAmount` to the campaign metric named by `metricContributionId`.
+If `metricContributionMax` is greater than zero, the resulting metric value is clamped to that
+maximum. Contributions are applied once per objective completion, including progress objectives
+that complete after multiple players contribute. Metric changes are recorded through the campaign
+state audit log.
 
 ### Phase 6: Contract Integration
 

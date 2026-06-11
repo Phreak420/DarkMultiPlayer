@@ -248,6 +248,34 @@ Expected:
 - With `hiddenUntilAvailable = true`, the objective is hidden from players until both campaign
   conditions are met.
 - `/campaign advance mun-expansion` and `/campaign set survey-progress 25` unlock the objective.
+
+## Objective Metric Contribution Smoke Test
+
+Use an agency objective with metric contribution fields:
+
+```json
+{
+  "id": "relay-network",
+  "title": "Build Kerbin Relay Network",
+  "description": "Contribute to the server communication coverage metric.",
+  "status": "Available",
+  "scope": "Server",
+  "category": "Infrastructure",
+  "evidenceType": "VESSEL_ORBITED",
+  "evidenceId": "orbit-Kerbin",
+  "metricContributionId": "communications-strength",
+  "metricContributionAmount": 10,
+  "metricContributionMax": 100
+}
+```
+
+Expected:
+
+- Completing the objective adds `10` to `communications-strength`.
+- `/campaign status` shows the updated metric value.
+- `Universe/CampaignState/CampaignAudit.log` records the objective-driven metric change.
+- Repeating the same evidence after the objective is complete does not keep increasing the metric.
+- For progress objectives, the metric changes only when the objective reaches completion.
 - Existing `prerequisiteObjectiveIds` behavior still works and can be combined with campaign
   conditions.
 

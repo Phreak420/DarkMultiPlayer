@@ -129,6 +129,9 @@ namespace DarkMultiPlayerServer
                         requiredCampaignPhaseId = CleanText(objective.requiredCampaignPhaseId, string.Empty),
                         requiredMetricId = CleanText(objective.requiredMetricId, string.Empty),
                         requiredMetricMinimum = objective.requiredMetricMinimum,
+                        metricContributionId = CleanText(objective.metricContributionId, string.Empty),
+                        metricContributionAmount = objective.metricContributionAmount,
+                        metricContributionMax = Math.Max(0, objective.metricContributionMax),
                         hiddenUntilAvailable = objective.hiddenUntilAvailable,
                         progressTarget = Math.Max(0, objective.progressTarget),
                         progressPerEvidence = objective.progressPerEvidence <= 0 ? 1 : objective.progressPerEvidence,
@@ -440,6 +443,7 @@ namespace DarkMultiPlayerServer
                     changedAny = true;
                     completedAny = true;
                     DarkLog.Normal("Agency objective complete: " + objective.id + " by " + evidenceRecord.playerName);
+                    ApplyMetricContribution(objective, evidenceRecord.playerName);
                     RecordAndSendReward(evidenceRecord.playerName, objective.id, objective.rewardFunds, objective.rewardScience, objective.rewardReputation, true, client);
                 }
             }
@@ -476,6 +480,31 @@ namespace DarkMultiPlayerServer
                 DarkMultiPlayerServer.Messages.AgencyReward.SendAgencyReward(client, objectiveId, funds, science, reputation);
             }
             return true;
+        }
+
+        private static void ApplyMetricContribution(AgencyObjective objective, string playerName)
+        {
+            if (string.IsNullOrEmpty(objective.metricContributionId) || objective.metricContributionAmount == 0)
+            {
+                return;
+            }
+            double currentValue;
+            if (!CampaignState.TryGetMetricValue(objective.metricContributionId, out currentValue))
+            {
+                DarkLog.Debug("Skipped agency metric contribution for " + objective.id + ": unknown metric " + objective.metricContributionId);
+                return;
+            }
+
+            double nextValue = currentValue + objective.metricContributionAmount;
+            if (objective.metricContributionMax > 0 && nextValue > objective.metricContributionMax)
+            {
+                nextValue = objective.metricContributionMax;
+            }
+
+            if (CampaignState.SetMetric(objective.metricContributionId, nextValue, "objective:" + objective.id + ":" + playerName))
+            {
+                DarkLog.Normal("Agency objective " + objective.id + " contributed " + objective.metricContributionAmount.ToString("R") + " to campaign metric " + objective.metricContributionId + ".");
+            }
         }
 
         private static bool IsEvidenceIdSafe(string evidenceId)
@@ -661,6 +690,9 @@ namespace DarkMultiPlayerServer
                     requiredCampaignPhaseId = objective.requiredCampaignPhaseId,
                     requiredMetricId = objective.requiredMetricId,
                     requiredMetricMinimum = objective.requiredMetricMinimum,
+                    metricContributionId = objective.metricContributionId,
+                    metricContributionAmount = objective.metricContributionAmount,
+                    metricContributionMax = objective.metricContributionMax,
                     hiddenUntilAvailable = objective.hiddenUntilAvailable,
                     progressTarget = objective.progressTarget,
                     progressPerEvidence = objective.progressPerEvidence,
@@ -1085,6 +1117,9 @@ namespace DarkMultiPlayerServer
                         category = "Exploration",
                         evidenceType = AgencyEvidenceType.VESSEL_ORBITED.ToString(),
                         evidenceId = "orbit-Kerbin",
+                        metricContributionId = "communications-strength",
+                        metricContributionAmount = 10,
+                        metricContributionMax = 100,
                         rewardFunds = 5000,
                         rewardScience = 5,
                         rewardReputation = 2
@@ -1186,6 +1221,15 @@ namespace DarkMultiPlayerServer
 
         [DataMember]
         public double requiredMetricMinimum;
+
+        [DataMember]
+        public string metricContributionId;
+
+        [DataMember]
+        public double metricContributionAmount;
+
+        [DataMember]
+        public double metricContributionMax;
 
         [DataMember]
         public bool hiddenUntilAvailable;
