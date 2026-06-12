@@ -276,6 +276,23 @@ Expected:
 - `Universe/CampaignState/CampaignAudit.log` records the objective-driven metric change.
 - Repeating the same evidence after the objective is complete does not keep increasing the metric.
 - For progress objectives, the metric changes only when the objective reaches completion.
+
+## Space Agency Mission Board Smoke Test
+
+1. Connect to an Agency-enabled server with several objectives configured.
+2. Open the Space Agency window from the DMP UI.
+3. Switch between `All`, `Open`, `Active`, `Done`, `Locked`, and `Shared`.
+4. Select an objective with `progressTarget` configured.
+5. Select an objective with `metricContributionId` configured.
+
+Expected:
+
+- The window title remains `Server Space Agency`.
+- The mission board summary shows open, active, shared, and completed mission counts.
+- Mission list entries show compact progress such as `(1/3)` for progress objectives.
+- The detail panel shows rewards when configured.
+- The detail panel shows `World State` for objectives with metric contributions.
+- Filtering does not select an objective outside the current filter.
 - Existing `prerequisiteObjectiveIds` behavior still works and can be combined with campaign
   conditions.
 

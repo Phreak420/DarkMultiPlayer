@@ -214,6 +214,8 @@ state audit log.
 - [x] Show contract type, issuer, and reward summary for agency objectives.
 - [x] Add a compact mission-board layout with selectable objectives and a focused mission detail
   view inside the gated Agency tab.
+- [x] Add mission-board counts, compact progress summaries, and objective world-state effect
+  details to make server-authored missions easier to scan.
 - Avoid hard dependency on Contract Configurator in the core mod.
 - Treat stock KSP contract state as client UI/experience, not as authoritative server truth.
 

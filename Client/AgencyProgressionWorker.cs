@@ -90,6 +90,9 @@ namespace DarkMultiPlayer
                 string[] metricUnits = new string[0];
                 double[] metricValues = new double[0];
                 double[] metricTargets = new double[0];
+                string[] metricContributionIds = new string[objectiveCount];
+                double[] metricContributionAmounts = new double[objectiveCount];
+                double[] metricContributionMaxes = new double[objectiveCount];
                 try
                 {
                     categories = mr.Read<string[]>();
@@ -104,6 +107,18 @@ namespace DarkMultiPlayer
                     metricUnits = mr.Read<string[]>();
                     metricValues = mr.Read<double[]>();
                     metricTargets = mr.Read<double[]>();
+                    try
+                    {
+                        metricContributionIds = mr.Read<string[]>();
+                        metricContributionAmounts = mr.Read<double[]>();
+                        metricContributionMaxes = mr.Read<double[]>();
+                    }
+                    catch (Exception)
+                    {
+                        metricContributionIds = new string[objectiveCount];
+                        metricContributionAmounts = new double[objectiveCount];
+                        metricContributionMaxes = new double[objectiveCount];
+                    }
                 }
                 catch (Exception)
                 {
@@ -126,6 +141,13 @@ namespace DarkMultiPlayer
                     metricValues = new double[0];
                     metricTargets = new double[0];
                 }
+                if (metricContributionIds.Length != objectiveCount || metricContributionAmounts.Length != objectiveCount || metricContributionMaxes.Length != objectiveCount)
+                {
+                    DarkLog.Debug("Received invalid agency metric contribution data from server.");
+                    metricContributionIds = new string[objectiveCount];
+                    metricContributionAmounts = new double[objectiveCount];
+                    metricContributionMaxes = new double[objectiveCount];
+                }
 
                 lock (objectives)
                 {
@@ -147,7 +169,10 @@ namespace DarkMultiPlayer
                             progressTarget = progressTargets[i],
                             rewardFunds = rewardFunds[i],
                             rewardScience = rewardScience[i],
-                            rewardReputation = rewardReputation[i]
+                            rewardReputation = rewardReputation[i],
+                            metricContributionId = metricContributionIds[i],
+                            metricContributionAmount = metricContributionAmounts[i],
+                            metricContributionMax = metricContributionMaxes[i]
                         });
                     }
                 }
@@ -493,6 +518,9 @@ namespace DarkMultiPlayer
         public double rewardFunds;
         public float rewardScience;
         public float rewardReputation;
+        public string metricContributionId;
+        public double metricContributionAmount;
+        public double metricContributionMax;
     }
 
     public class AgencyRewardSummary

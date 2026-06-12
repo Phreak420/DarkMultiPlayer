@@ -113,6 +113,8 @@ namespace DarkMultiPlayer
             GUILayout.Space(6);
             DrawCampaignState();
             GUILayout.Space(6);
+            DrawMissionSummary();
+            GUILayout.Space(4);
             DrawFilters();
             GUILayout.Space(6);
             DrawObjectiveBrowser();
@@ -152,6 +154,42 @@ namespace DarkMultiPlayer
             DrawFilterButton(AgencyObjectiveFilter.LOCKED, "Locked");
             DrawFilterButton(AgencyObjectiveFilter.SHARED, "Shared");
             GUILayout.EndHorizontal();
+        }
+
+        private void DrawMissionSummary()
+        {
+            AgencyObjectiveSummary[] objectives = dmpGame.agencyProgressionWorker.Objectives;
+            if (objectives.Length == 0)
+            {
+                GUILayout.Label("Mission board: no objectives available.", noteStyle, GUILayout.Height(18));
+                return;
+            }
+
+            int openCount = 0;
+            int activeCount = 0;
+            int completedCount = 0;
+            int sharedCount = 0;
+            for (int i = 0; i < objectives.Length; i++)
+            {
+                if (MatchesText(objectives[i].status, "available"))
+                {
+                    openCount++;
+                }
+                if (MatchesText(objectives[i].status, "active") || MatchesText(objectives[i].status, "in progress"))
+                {
+                    activeCount++;
+                }
+                if (MatchesText(objectives[i].status, "complete"))
+                {
+                    completedCount++;
+                }
+                if (MatchesText(objectives[i].scope, "server") || MatchesText(objectives[i].scope, "shared") || MatchesText(objectives[i].scope, "community"))
+                {
+                    sharedCount++;
+                }
+            }
+
+            GUILayout.Label("Mission board: " + openCount + " open | " + activeCount + " active | " + sharedCount + " shared | " + completedCount + " done", noteStyle, GUILayout.Height(18));
         }
 
         private void DrawCampaignState()
@@ -201,7 +239,7 @@ namespace DarkMultiPlayer
             AgencyObjectiveSummary[] filteredObjectives = FilterAgencyObjectives(dmpGame.agencyProgressionWorker.Objectives);
             GUILayout.BeginHorizontal();
             GUILayout.BeginVertical(GUILayout.Width(225));
-            GUILayout.Label("Objectives", subHeaderStyle);
+            GUILayout.Label("Missions", subHeaderStyle);
             if (filteredObjectives.Length == 0)
             {
                 selectedObjectiveId = null;
@@ -281,6 +319,7 @@ namespace DarkMultiPlayer
             GUILayout.Space(8);
             DrawDetailLine("Progress", BuildProgressSummary(objective));
             DrawDetailLine("Rewards", BuildRewardSummary(objective));
+            DrawDetailLine("World State", BuildWorldStateSummary(objective));
             DrawDetailLine("Category", string.IsNullOrEmpty(objective.category) ? "General" : objective.category);
             DrawDetailLine("Scope", string.IsNullOrEmpty(objective.scope) ? "Server" : objective.scope);
             DrawDetailLine("Status", string.IsNullOrEmpty(objective.status) ? "Available" : objective.status);
@@ -365,7 +404,8 @@ namespace DarkMultiPlayer
         {
             string title = string.IsNullOrEmpty(objective.title) ? objective.id : objective.title;
             string category = string.IsNullOrEmpty(objective.category) ? "" : objective.category + " | ";
-            return category + "[" + objective.status + "] " + title;
+            string progress = BuildCompactProgressSummary(objective);
+            return category + "[" + objective.status + "] " + title + progress;
         }
 
         private string BuildObjectiveTitle(AgencyObjectiveSummary objective)
@@ -415,12 +455,51 @@ namespace DarkMultiPlayer
             return rewardSummary;
         }
 
+        private string BuildWorldStateSummary(AgencyObjectiveSummary objective)
+        {
+            if (string.IsNullOrEmpty(objective.metricContributionId) || objective.metricContributionAmount == 0)
+            {
+                return string.Empty;
+            }
+
+            string amount = objective.metricContributionAmount > 0 ? "+" + objective.metricContributionAmount.ToString("0.##") : objective.metricContributionAmount.ToString("0.##");
+            string metricName = GetMetricTitle(objective.metricContributionId);
+            string summary = amount + " " + metricName;
+            if (objective.metricContributionMax > 0)
+            {
+                summary += " up to " + objective.metricContributionMax.ToString("0.##");
+            }
+            return summary;
+        }
+
+        private string BuildCompactProgressSummary(AgencyObjectiveSummary objective)
+        {
+            if (objective.progressTarget <= 0)
+            {
+                return string.Empty;
+            }
+            return " (" + objective.progressValue.ToString("0.##") + "/" + objective.progressTarget.ToString("0.##") + ")";
+        }
+
         private string BuildMetricSummary(CampaignMetricSummary metric)
         {
             string title = string.IsNullOrEmpty(metric.title) ? metric.id : metric.title;
             string category = string.IsNullOrEmpty(metric.category) ? "General" : metric.category;
             string target = metric.target > 0 ? " / " + metric.target.ToString("0.##") : string.Empty;
             return category + ": " + title + " " + metric.value.ToString("0.##") + target + metric.unit;
+        }
+
+        private string GetMetricTitle(string metricId)
+        {
+            CampaignMetricSummary[] metrics = dmpGame.agencyProgressionWorker.CampaignMetrics;
+            for (int i = 0; i < metrics.Length; i++)
+            {
+                if (metrics[i].id == metricId)
+                {
+                    return string.IsNullOrEmpty(metrics[i].title) ? metricId : metrics[i].title;
+                }
+            }
+            return metricId;
         }
 
         private string AppendReward(string rewardSummary, string reward)

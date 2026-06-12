@@ -45,6 +45,8 @@ Current and planned MMO Edition work:
 - [x] ~~Add admin progress inspection/reset and clearer progress display.~~
 - [x] ~~Add optional unique-contributor tracking for shared objectives.~~
 - [x] ~~Start DMP-owned contract-like objective presentation.~~
+- [x] ~~Improve the Space Agency mission board with mission counts, progress summaries, and
+  world-state effects.~~
 - [x] ~~Expand vessel evidence types for more mission milestones.~~
 - [x] ~~Add any/all prerequisite modes for branching objective chains.~~
 - [x] ~~Add hidden-until-unlocked objectives for spoiler-free campaign chains.~~

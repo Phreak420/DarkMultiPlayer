@@ -26,6 +26,9 @@ namespace DarkMultiPlayerServer.Messages
             double[] objectiveRewardFunds = new double[objectives.Length];
             float[] objectiveRewardScience = new float[objectives.Length];
             float[] objectiveRewardReputation = new float[objectives.Length];
+            string[] objectiveMetricContributionIds = new string[objectives.Length];
+            double[] objectiveMetricContributionAmounts = new double[objectives.Length];
+            double[] objectiveMetricContributionMaxes = new double[objectives.Length];
             CampaignPhase currentPhase = DarkMultiPlayerServer.CampaignState.CurrentPhase;
             CampaignMetric[] campaignMetrics = DarkMultiPlayerServer.CampaignState.Metrics;
             string[] metricIds = new string[campaignMetrics.Length];
@@ -50,6 +53,9 @@ namespace DarkMultiPlayerServer.Messages
                 objectiveRewardFunds[i] = objectives[i].rewardFunds;
                 objectiveRewardScience[i] = objectives[i].rewardScience;
                 objectiveRewardReputation[i] = objectives[i].rewardReputation;
+                objectiveMetricContributionIds[i] = objectives[i].metricContributionId;
+                objectiveMetricContributionAmounts[i] = objectives[i].metricContributionAmount;
+                objectiveMetricContributionMaxes[i] = objectives[i].metricContributionMax;
             }
             for (int i = 0; i < campaignMetrics.Length; i++)
             {
@@ -90,6 +96,9 @@ namespace DarkMultiPlayerServer.Messages
                 mw.Write<string[]>(metricUnits);
                 mw.Write<double[]>(metricValues);
                 mw.Write<double[]>(metricTargets);
+                mw.Write<string[]>(objectiveMetricContributionIds);
+                mw.Write<double[]>(objectiveMetricContributionAmounts);
+                mw.Write<double[]>(objectiveMetricContributionMaxes);
                 newMessage.data = mw.GetMessageBytes();
             }
             ClientHandler.SendToClient(client, newMessage, true);

@@ -297,6 +297,8 @@ Implemented foundation:
 - The Space Agency window displays current campaign phase and read-only global metrics.
 - Agency objective completions can optionally add bounded contributions to configured campaign
   metrics, allowing evidence-driven missions to move server-owned world state forward.
+- The Space Agency mission board shows mission counts, progress summaries, rewards, and optional
+  world-state effects for configured objectives.
 
 ## Server Telemetry And External Dashboard Support
 
