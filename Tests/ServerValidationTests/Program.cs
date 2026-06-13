@@ -65,6 +65,8 @@ namespace ServerValidationTests
             Run("Agency shared progress completes objective", AgencySharedProgressCompletesObjective);
             Run("Agency shared progress reloads and resets", AgencySharedProgressReloadsAndResets);
             Run("Agency unique contributors count once", AgencyUniqueContributorsCountOnce);
+            Run("Agency repeat contributions allow solo progress", AgencyRepeatContributionsAllowSoloProgress);
+            Run("Agency contribution metadata loads and displays", AgencyContributionMetadataLoadsAndDisplays);
             Run("Agency personal objective state is per-player", AgencyPersonalObjectiveStateIsPerPlayer);
             Run("Agency objective completion queues reward", AgencyObjectiveCompletionQueuesReward);
             Run("Agency reward query returns records", AgencyRewardQueryReturnsRecords);
@@ -1193,6 +1195,49 @@ namespace ServerValidationTests
 
             objectives = AgencyProgression.Objectives;
             Assert(objectives[0].status == "Complete", "second unique contributor did not complete shared progress");
+        }
+
+        private static void AgencyRepeatContributionsAllowSoloProgress()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-agency-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"supply-runs\",\"title\":\"Supply Runs\",\"description\":\"Repeatable solo-friendly shared progress.\",\"status\":\"Available\",\"scope\":\"Server\",\"evidenceType\":\"ADMIN_CONFIRMED\",\"evidenceId\":\"supply-run\",\"progressTarget\":2,\"progressPerEvidence\":1,\"progressUnit\":\"deliveries\",\"contributionLabel\":\"Supply delivery\",\"uniqueContributors\":false}]}");
+            Settings.settingsStore.agencyProgressionEnabled = true;
+
+            AgencyProgression.Load(true);
+            Assert(AgencyProgression.RecordAdminEvidence("Alice", (int)AgencyEvidenceType.ADMIN_CONFIRMED, "supply-run"), "first admin contribution failed");
+            Assert(AgencyProgression.RecordAdminEvidence("Alice", (int)AgencyEvidenceType.ADMIN_CONFIRMED, "supply-run"), "second admin contribution failed");
+
+            AgencyObjective[] objectives = AgencyProgression.Objectives;
+            Assert(objectives[0].status == "Complete", "repeat contributions from one player did not complete shared progress");
+            AgencyObjectiveProgress[] progressRecords = AgencyProgression.GetProgressRecordsForObjective("supply-runs");
+            Assert(progressRecords.Length == 1, "repeat contribution objective returned wrong progress record count");
+            Assert(progressRecords[0].progressValue == 2, "repeat contribution objective recorded wrong progress value");
+            Assert(progressRecords[0].contributedBy == "Alice", "repeat contribution objective duplicated contributor display");
+        }
+
+        private static void AgencyContributionMetadataLoadsAndDisplays()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-agency-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"survey-grid\",\"title\":\"Survey Grid\",\"description\":\"Survey progress metadata.\",\"status\":\"Available\",\"scope\":\"Server\",\"evidenceType\":\"ADMIN_CONFIRMED\",\"evidenceId\":\"survey-grid\",\"progressTarget\":3,\"progressPerEvidence\":1.5,\"progressUnit\":\"sectors\",\"contributionLabel\":\"Validated survey sector\",\"uniqueContributors\":false}]}");
+            Settings.settingsStore.agencyProgressionEnabled = true;
+
+            AgencyProgression.Load(true);
+            Assert(AgencyProgression.RecordAdminEvidence("Alice", (int)AgencyEvidenceType.ADMIN_CONFIRMED, "survey-grid"), "admin contribution failed");
+
+            AgencyObjective[] objectives = AgencyProgression.Objectives;
+            Assert(objectives[0].progressUnit == "sectors", "progress unit did not load");
+            Assert(objectives[0].contributionLabel == "Validated survey sector", "contribution label did not load");
+            Assert(objectives[0].progressValue == 1.5, "metadata objective returned wrong progress value");
+            Assert(objectives[0].contributorCount == 1, "metadata objective returned wrong contributor count");
+            Assert(objectives[0].contributors == "Alice", "metadata objective returned wrong contributors");
         }
 
         private static void AgencyRewardQueryReturnsRecords()

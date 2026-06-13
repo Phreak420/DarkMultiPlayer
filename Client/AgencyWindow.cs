@@ -318,6 +318,8 @@ namespace DarkMultiPlayer
             GUILayout.Label(objective.description, noteStyle);
             GUILayout.Space(8);
             DrawDetailLine("Progress", BuildProgressSummary(objective));
+            DrawDetailLine("Contributors", BuildContributorSummary(objective));
+            DrawDetailLine("Contribution", BuildContributionSummary(objective));
             DrawDetailLine("Rewards", BuildRewardSummary(objective));
             DrawDetailLine("World State", BuildWorldStateSummary(objective));
             DrawDetailLine("Category", string.IsNullOrEmpty(objective.category) ? "General" : objective.category);
@@ -333,7 +335,7 @@ namespace DarkMultiPlayer
                 return;
             }
             GUILayout.BeginHorizontal();
-            GUILayout.Label(label + ":", subHeaderStyle, GUILayout.Width(80));
+            GUILayout.Label(label + ":", subHeaderStyle, GUILayout.Width(88));
             GUILayout.Label(value, noteStyle, GUILayout.ExpandWidth(true));
             GUILayout.EndHorizontal();
         }
@@ -430,11 +432,48 @@ namespace DarkMultiPlayer
                 return string.Empty;
             }
             string progressSummary = objective.progressValue.ToString("0.##") + " / " + objective.progressTarget.ToString("0.##");
+            if (!string.IsNullOrEmpty(objective.progressUnit))
+            {
+                progressSummary += " " + objective.progressUnit;
+            }
             if (objective.progressValue >= objective.progressTarget)
             {
                 progressSummary += " complete";
             }
             return progressSummary;
+        }
+
+        private string BuildContributorSummary(AgencyObjectiveSummary objective)
+        {
+            if (objective.progressTarget <= 0 && objective.contributorCount <= 0)
+            {
+                return string.Empty;
+            }
+            string summary = objective.contributorCount.ToString() + " contributor" + (objective.contributorCount == 1 ? string.Empty : "s");
+            if (objective.uniqueContributors)
+            {
+                summary += "; each player counts once";
+            }
+            else if (objective.progressTarget > 0)
+            {
+                summary += "; repeat contributions allowed";
+            }
+            if (!string.IsNullOrEmpty(objective.contributors))
+            {
+                summary += " (" + objective.contributors + ")";
+            }
+            return summary;
+        }
+
+        private string BuildContributionSummary(AgencyObjectiveSummary objective)
+        {
+            if (objective.progressTarget <= 0)
+            {
+                return string.Empty;
+            }
+            string label = string.IsNullOrEmpty(objective.contributionLabel) ? "Matching evidence" : objective.contributionLabel;
+            string unit = string.IsNullOrEmpty(objective.progressUnit) ? string.Empty : " " + objective.progressUnit;
+            return label + ": +" + objective.progressPerEvidence.ToString("0.##") + unit;
         }
 
         private string BuildRewardSummary(AgencyObjectiveSummary objective)
@@ -478,7 +517,8 @@ namespace DarkMultiPlayer
             {
                 return string.Empty;
             }
-            return " (" + objective.progressValue.ToString("0.##") + "/" + objective.progressTarget.ToString("0.##") + ")";
+            string unit = string.IsNullOrEmpty(objective.progressUnit) ? string.Empty : " " + objective.progressUnit;
+            return " (" + objective.progressValue.ToString("0.##") + "/" + objective.progressTarget.ToString("0.##") + unit + ")";
         }
 
         private string BuildMetricSummary(CampaignMetricSummary metric)

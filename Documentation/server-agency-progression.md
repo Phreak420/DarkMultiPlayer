@@ -161,7 +161,7 @@ Objective definitions can now optionally include `rewardFunds`, `rewardScience`,
 
 Implemented console commands: `/agency status`, `/agency reload`, `/agency objectives`,
 `/agency evidence [player]`, `/agency rewards [player]`, `/agency progress [player]`,
-`/agency resetprogress <player|server> <objective>`,
+`/agency contributions <objective>`, `/agency resetprogress <player|server> <objective>`,
 `/agency record <player|server> <evidenceType> <evidenceId>`,
 `/agency replay <player> <objective>`, and `/agency revoke <player> <objective>`.
 
@@ -178,6 +178,11 @@ Implemented console commands: `/agency status`, `/agency reload`, `/agency objec
 - [x] Allow completed objectives to contribute to server-owned campaign/world-state metrics.
 - [x] Add basic progress targets so multiple players can contribute to shared objectives.
 - [x] Show objective progress values in the Agency UI for partially complete progress objectives.
+- [x] Add optional `progressUnit` and `contributionLabel` metadata for clearer community
+  objectives.
+- [x] Track contributor counts/names for progress objectives while allowing solo-friendly repeated
+  contributions unless `uniqueContributors` is enabled.
+- [x] Add `/agency contributions <objective>` for focused admin inspection of shared progress.
 - Add group/server-wide milestones that unlock later objective chains.
 - Support opt-in shared projects such as stations, relays, and bases.
 - Let server owners choose whether completion is first-to-complete, all-players, team-based, or
@@ -187,12 +192,19 @@ Implemented scopes: `Personal` and `Server`.
 
 Objective definitions can now optionally include `prerequisiteObjectiveIds`, `prerequisiteMode`,
 `requiredCampaignPhaseId`, `requiredMetricId`, `requiredMetricMinimum`, `hiddenUntilAvailable`,
-`progressTarget`, `progressPerEvidence`, `uniqueContributors`, `metricContributionId`,
-`metricContributionAmount`, and `metricContributionMax`.
+`progressTarget`, `progressPerEvidence`, `progressUnit`, `contributionLabel`,
+`uniqueContributors`, `metricContributionId`, `metricContributionAmount`, and
+`metricContributionMax`.
 `prerequisiteMode` defaults to `All`; set it to `Any` when completing any one listed prerequisite
 should unlock the objective. `hiddenUntilAvailable` keeps locked objectives out of the
 client-facing objective list until their prerequisites are met while preserving the full objective
 list for server admins.
+
+Shared progress objectives are intentionally not required to need multiple players. By default,
+one player can contribute more than once, which keeps low-population servers playable.
+`uniqueContributors = true` should be reserved for objectives that explicitly require distinct
+participants. Contributor names are stored uniquely for display and admin inspection even when
+repeat contributions are allowed.
 
 Campaign conditions are evaluated by the server alongside completed-objective prerequisites. If an
 objective has `requiredCampaignPhaseId`, it remains locked until `CampaignState.CurrentPhaseId`

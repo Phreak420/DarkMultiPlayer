@@ -292,9 +292,41 @@ Expected:
 - Mission list entries show compact progress such as `(1/3)` for progress objectives.
 - The detail panel shows rewards when configured.
 - The detail panel shows `World State` for objectives with metric contributions.
+- Progress objectives show contributor counts and contribution rules when configured.
 - Filtering does not select an objective outside the current filter.
 - Existing `prerequisiteObjectiveIds` behavior still works and can be combined with campaign
   conditions.
+
+## Solo-Friendly Community Objective Smoke Test
+
+Use a shared progress objective that allows repeat contributions:
+
+```json
+{
+  "id": "supply-runs",
+  "title": "Supply Runs",
+  "description": "Deliver supplies for the server agency.",
+  "status": "Available",
+  "scope": "Server",
+  "category": "Logistics",
+  "evidenceType": "ADMIN_CONFIRMED",
+  "evidenceId": "supply-run",
+  "progressTarget": 3,
+  "progressPerEvidence": 1,
+  "progressUnit": "deliveries",
+  "contributionLabel": "Supply delivery",
+  "uniqueContributors": false
+}
+```
+
+Expected:
+
+- One player can contribute multiple times and advance the objective.
+- The contributor display counts that player once even if they contribute more than once.
+- The Space Agency detail panel shows `repeat contributions allowed`.
+- `/agency contributions supply-runs` shows the progress value, last contributor, and unique
+  contributor list.
+- Setting `uniqueContributors = true` changes the behavior so the same player only counts once.
 
 ## Test Cases
 

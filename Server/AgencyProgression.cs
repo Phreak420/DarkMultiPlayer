@@ -135,6 +135,8 @@ namespace DarkMultiPlayerServer
                         hiddenUntilAvailable = objective.hiddenUntilAvailable,
                         progressTarget = Math.Max(0, objective.progressTarget),
                         progressPerEvidence = objective.progressPerEvidence <= 0 ? 1 : objective.progressPerEvidence,
+                        progressUnit = CleanText(objective.progressUnit, string.Empty),
+                        contributionLabel = CleanText(objective.contributionLabel, string.Empty),
                         uniqueContributors = objective.uniqueContributors,
                         rewardFunds = objective.rewardFunds,
                         rewardScience = objective.rewardScience,
@@ -308,6 +310,27 @@ namespace DarkMultiPlayerServer
                 foreach (AgencyObjectiveProgress progressRecord in progress.Values)
                 {
                     if (progressRecord.playerName == playerName)
+                    {
+                        records.Add(CloneProgress(progressRecord));
+                    }
+                }
+                return records.ToArray();
+            }
+        }
+
+        public static AgencyObjectiveProgress[] GetProgressRecordsForObjective(string objectiveId)
+        {
+            if (!SafeFile.IsNameSafe(objectiveId))
+            {
+                return new AgencyObjectiveProgress[0];
+            }
+
+            lock (progress)
+            {
+                List<AgencyObjectiveProgress> records = new List<AgencyObjectiveProgress>();
+                foreach (AgencyObjectiveProgress progressRecord in progress.Values)
+                {
+                    if (progressRecord.objectiveId == objectiveId)
                     {
                         records.Add(CloneProgress(progressRecord));
                     }
@@ -697,7 +720,11 @@ namespace DarkMultiPlayerServer
                     progressTarget = objective.progressTarget,
                     progressPerEvidence = objective.progressPerEvidence,
                     progressValue = GetProgressValue(objective, playerName),
+                    progressUnit = objective.progressUnit,
+                    contributionLabel = objective.contributionLabel,
                     uniqueContributors = objective.uniqueContributors,
+                    contributorCount = GetContributorCount(objective, playerName),
+                    contributors = GetContributors(objective, playerName),
                     rewardFunds = objective.rewardFunds,
                     rewardScience = objective.rewardScience,
                     rewardReputation = objective.rewardReputation,
@@ -901,11 +928,39 @@ namespace DarkMultiPlayerServer
             {
                 return contributedBy;
             }
+            if (HasContributor(new AgencyObjectiveProgress { contributedBy = contributedBy }, playerName))
+            {
+                return contributedBy;
+            }
             if (string.IsNullOrEmpty(contributedBy))
             {
                 return playerName;
             }
             return contributedBy + "," + playerName;
+        }
+
+        private static int GetContributorCount(AgencyObjective objective, string playerName)
+        {
+            string contributors = GetContributors(objective, playerName);
+            if (string.IsNullOrEmpty(contributors))
+            {
+                return 0;
+            }
+            return contributors.Split(',').Length;
+        }
+
+        private static string GetContributors(AgencyObjective objective, string playerName)
+        {
+            string progressPlayer = IsServerObjective(objective.scope) ? string.Empty : playerName;
+            lock (progress)
+            {
+                AgencyObjectiveProgress progressRecord;
+                if (progress.TryGetValue(BuildCompletionKey(objective.id, progressPlayer), out progressRecord))
+                {
+                    return progressRecord.contributedBy;
+                }
+            }
+            return string.Empty;
         }
 
         private static bool IsProgressResetTargetSafe(string playerName, string objectiveId)
@@ -1241,9 +1296,17 @@ namespace DarkMultiPlayerServer
         public double progressPerEvidence;
 
         [DataMember]
+        public string progressUnit;
+
+        [DataMember]
+        public string contributionLabel;
+
+        [DataMember]
         public bool uniqueContributors;
 
         public double progressValue;
+        public int contributorCount;
+        public string contributors;
 
         [DataMember]
         public double rewardFunds;

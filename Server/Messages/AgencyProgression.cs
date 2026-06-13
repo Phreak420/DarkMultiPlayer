@@ -23,12 +23,18 @@ namespace DarkMultiPlayerServer.Messages
             string[] objectiveCategories = new string[objectives.Length];
             double[] objectiveProgressValues = new double[objectives.Length];
             double[] objectiveProgressTargets = new double[objectives.Length];
+            double[] objectiveProgressPerEvidence = new double[objectives.Length];
             double[] objectiveRewardFunds = new double[objectives.Length];
             float[] objectiveRewardScience = new float[objectives.Length];
             float[] objectiveRewardReputation = new float[objectives.Length];
             string[] objectiveMetricContributionIds = new string[objectives.Length];
             double[] objectiveMetricContributionAmounts = new double[objectives.Length];
             double[] objectiveMetricContributionMaxes = new double[objectives.Length];
+            string[] objectiveProgressUnits = new string[objectives.Length];
+            string[] objectiveContributionLabels = new string[objectives.Length];
+            int[] objectiveContributorCounts = new int[objectives.Length];
+            string[] objectiveContributors = new string[objectives.Length];
+            bool[] objectiveUniqueContributors = new bool[objectives.Length];
             CampaignPhase currentPhase = DarkMultiPlayerServer.CampaignState.CurrentPhase;
             CampaignMetric[] campaignMetrics = DarkMultiPlayerServer.CampaignState.Metrics;
             string[] metricIds = new string[campaignMetrics.Length];
@@ -50,12 +56,18 @@ namespace DarkMultiPlayerServer.Messages
                 objectiveCategories[i] = objectives[i].category;
                 objectiveProgressValues[i] = objectives[i].progressValue;
                 objectiveProgressTargets[i] = objectives[i].progressTarget;
+                objectiveProgressPerEvidence[i] = objectives[i].progressPerEvidence;
                 objectiveRewardFunds[i] = objectives[i].rewardFunds;
                 objectiveRewardScience[i] = objectives[i].rewardScience;
                 objectiveRewardReputation[i] = objectives[i].rewardReputation;
                 objectiveMetricContributionIds[i] = objectives[i].metricContributionId;
                 objectiveMetricContributionAmounts[i] = objectives[i].metricContributionAmount;
                 objectiveMetricContributionMaxes[i] = objectives[i].metricContributionMax;
+                objectiveProgressUnits[i] = objectives[i].progressUnit;
+                objectiveContributionLabels[i] = objectives[i].contributionLabel;
+                objectiveContributorCounts[i] = objectives[i].contributorCount;
+                objectiveContributors[i] = objectives[i].contributors;
+                objectiveUniqueContributors[i] = objectives[i].uniqueContributors;
             }
             for (int i = 0; i < campaignMetrics.Length; i++)
             {
@@ -99,6 +111,12 @@ namespace DarkMultiPlayerServer.Messages
                 mw.Write<string[]>(objectiveMetricContributionIds);
                 mw.Write<double[]>(objectiveMetricContributionAmounts);
                 mw.Write<double[]>(objectiveMetricContributionMaxes);
+                mw.Write<string[]>(objectiveProgressUnits);
+                mw.Write<string[]>(objectiveContributionLabels);
+                mw.Write<int[]>(objectiveContributorCounts);
+                mw.Write<string[]>(objectiveContributors);
+                mw.Write<double[]>(objectiveProgressPerEvidence);
+                mw.Write<bool[]>(objectiveUniqueContributors);
                 newMessage.data = mw.GetMessageBytes();
             }
             ClientHandler.SendToClient(client, newMessage, true);

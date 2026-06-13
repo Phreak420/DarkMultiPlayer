@@ -44,6 +44,7 @@ Current and planned MMO Edition work:
 - [x] ~~Add basic progress targets for shared community objectives.~~
 - [x] ~~Add admin progress inspection/reset and clearer progress display.~~
 - [x] ~~Add optional unique-contributor tracking for shared objectives.~~
+- [x] ~~Add solo-friendly community objective contribution metadata and admin inspection.~~
 - [x] ~~Start DMP-owned contract-like objective presentation.~~
 - [x] ~~Improve the Space Agency mission board with mission counts, progress summaries, and
   world-state effects.~~
@@ -57,7 +58,8 @@ Current and planned MMO Edition work:
   prerequisites.~~
 - [x] ~~Allow completed agency objectives to contribute to server-owned campaign metrics.~~
 - [ ] Add server-driven agency contracts or contract-like player experiences.
-- [ ] Support richer global community objectives that many players can contribute toward.
+- [x] ~~Support richer global community objectives that one or many players can contribute
+  toward.~~
 - [x] ~~Add server-owned campaign/world-state foundations with phases, metrics, admin tools, and
   read-only client display.~~
 - [ ] Add shared economy/resource pressure with bounded, recoverable safety rules.

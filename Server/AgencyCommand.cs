@@ -35,6 +35,9 @@ namespace DarkMultiPlayerServer
                 case "progress":
                     ShowProgress(argument);
                     break;
+                case "contributions":
+                    ShowContributions(argument);
+                    break;
                 case "resetprogress":
                     ResetProgress(argument);
                     break;
@@ -48,7 +51,7 @@ namespace DarkMultiPlayerServer
                     RevokeReward(argument);
                     break;
                 default:
-                    DarkLog.Normal("Usage: /agency [status|reload|objectives|evidence [player]|rewards [player]|progress [player]|resetprogress <player|server> <objective>|record <player|server> <evidenceType> <evidenceId>|replay <player> <objective>|revoke <player> <objective>]");
+                    DarkLog.Normal("Usage: /agency [status|reload|objectives|evidence [player]|rewards [player]|progress [player]|contributions <objective>|resetprogress <player|server> <objective>|record <player|server> <evidenceType> <evidenceId>|replay <player> <objective>|revoke <player> <objective>]");
                     break;
             }
         }
@@ -131,6 +134,25 @@ namespace DarkMultiPlayerServer
                 AgencyObjectiveProgress record = records[i];
                 string owner = string.IsNullOrEmpty(record.playerName) ? "server" : record.playerName;
                 DarkLog.Normal(record.updatedAtUtc + " " + owner + " " + record.objectiveId + " progress=" + record.progressValue + " lastBy=" + record.lastContributedBy + " contributors=" + record.contributedBy);
+            }
+        }
+
+        private static void ShowContributions(string objectiveId)
+        {
+            if (string.IsNullOrEmpty(objectiveId) || !SafeFile.IsNameSafe(objectiveId))
+            {
+                DarkLog.Normal("Usage: /agency contributions <objective>");
+                return;
+            }
+
+            AgencyObjectiveProgress[] records = AgencyProgression.GetProgressRecordsForObjective(objectiveId);
+            DarkLog.Normal("Agency contribution records for " + objectiveId + ": " + records.Length);
+            for (int i = 0; i < records.Length; i++)
+            {
+                AgencyObjectiveProgress record = records[i];
+                string owner = string.IsNullOrEmpty(record.playerName) ? "server" : record.playerName;
+                string contributors = string.IsNullOrEmpty(record.contributedBy) ? "none" : record.contributedBy;
+                DarkLog.Normal(record.updatedAtUtc + " owner=" + owner + " progress=" + record.progressValue + " lastBy=" + record.lastContributedBy + " contributors=" + contributors);
             }
         }
 

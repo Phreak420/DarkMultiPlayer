@@ -93,6 +93,12 @@ namespace DarkMultiPlayer
                 string[] metricContributionIds = new string[objectiveCount];
                 double[] metricContributionAmounts = new double[objectiveCount];
                 double[] metricContributionMaxes = new double[objectiveCount];
+                string[] progressUnits = new string[objectiveCount];
+                string[] contributionLabels = new string[objectiveCount];
+                int[] contributorCounts = new int[objectiveCount];
+                string[] contributors = new string[objectiveCount];
+                double[] progressPerEvidence = new double[objectiveCount];
+                bool[] uniqueContributors = new bool[objectiveCount];
                 try
                 {
                     categories = mr.Read<string[]>();
@@ -112,12 +118,36 @@ namespace DarkMultiPlayer
                         metricContributionIds = mr.Read<string[]>();
                         metricContributionAmounts = mr.Read<double[]>();
                         metricContributionMaxes = mr.Read<double[]>();
+                        try
+                        {
+                            progressUnits = mr.Read<string[]>();
+                            contributionLabels = mr.Read<string[]>();
+                            contributorCounts = mr.Read<int[]>();
+                            contributors = mr.Read<string[]>();
+                            progressPerEvidence = mr.Read<double[]>();
+                            uniqueContributors = mr.Read<bool[]>();
+                        }
+                        catch (Exception)
+                        {
+                            progressUnits = new string[objectiveCount];
+                            contributionLabels = new string[objectiveCount];
+                            contributorCounts = new int[objectiveCount];
+                            contributors = new string[objectiveCount];
+                            progressPerEvidence = new double[objectiveCount];
+                            uniqueContributors = new bool[objectiveCount];
+                        }
                     }
                     catch (Exception)
                     {
                         metricContributionIds = new string[objectiveCount];
                         metricContributionAmounts = new double[objectiveCount];
                         metricContributionMaxes = new double[objectiveCount];
+                        progressUnits = new string[objectiveCount];
+                        contributionLabels = new string[objectiveCount];
+                        contributorCounts = new int[objectiveCount];
+                        contributors = new string[objectiveCount];
+                        progressPerEvidence = new double[objectiveCount];
+                        uniqueContributors = new bool[objectiveCount];
                     }
                 }
                 catch (Exception)
@@ -148,6 +178,20 @@ namespace DarkMultiPlayer
                     metricContributionAmounts = new double[objectiveCount];
                     metricContributionMaxes = new double[objectiveCount];
                 }
+                if (progressUnits.Length != objectiveCount || contributionLabels.Length != objectiveCount || contributorCounts.Length != objectiveCount || contributors.Length != objectiveCount)
+                {
+                    DarkLog.Debug("Received invalid agency contribution summary data from server.");
+                    progressUnits = new string[objectiveCount];
+                    contributionLabels = new string[objectiveCount];
+                    contributorCounts = new int[objectiveCount];
+                    contributors = new string[objectiveCount];
+                }
+                if (progressPerEvidence.Length != objectiveCount || uniqueContributors.Length != objectiveCount)
+                {
+                    DarkLog.Debug("Received invalid agency contribution rule data from server.");
+                    progressPerEvidence = new double[objectiveCount];
+                    uniqueContributors = new bool[objectiveCount];
+                }
 
                 lock (objectives)
                 {
@@ -172,7 +216,13 @@ namespace DarkMultiPlayer
                             rewardReputation = rewardReputation[i],
                             metricContributionId = metricContributionIds[i],
                             metricContributionAmount = metricContributionAmounts[i],
-                            metricContributionMax = metricContributionMaxes[i]
+                            metricContributionMax = metricContributionMaxes[i],
+                            progressUnit = progressUnits[i],
+                            contributionLabel = contributionLabels[i],
+                            contributorCount = contributorCounts[i],
+                            contributors = contributors[i],
+                            progressPerEvidence = progressPerEvidence[i],
+                            uniqueContributors = uniqueContributors[i]
                         });
                     }
                 }
@@ -521,6 +571,12 @@ namespace DarkMultiPlayer
         public string metricContributionId;
         public double metricContributionAmount;
         public double metricContributionMax;
+        public string progressUnit;
+        public string contributionLabel;
+        public int contributorCount;
+        public string contributors;
+        public double progressPerEvidence;
+        public bool uniqueContributors;
     }
 
     public class AgencyRewardSummary

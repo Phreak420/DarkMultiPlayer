@@ -49,7 +49,7 @@ prominently and preserve original license and copyright notices.
 - [x] ~~Add campaign phase and world-state metric unlock rules beyond completed-objective
   prerequisites.~~
 - [ ] Add server-driven agency contracts or contract-like client experiences.
-- [ ] Add richer global community objectives that multiple players can contribute toward.
+- [x] ~~Add richer global community objectives that one or many players can contribute toward.~~
 - [x] ~~Add server-owned campaign/world-state foundations with phases, metrics, admin tools, and
   read-only client display.~~
 - [ ] Add shared economy and resource pressure with strong safety limits.
@@ -299,6 +299,9 @@ Implemented foundation:
   metrics, allowing evidence-driven missions to move server-owned world state forward.
 - The Space Agency mission board shows mission counts, progress summaries, rewards, and optional
   world-state effects for configured objectives.
+- Shared progress objectives expose contribution labels, progress units, unique contributor
+  settings, contributor counts, and admin contribution inspection while preserving solo-friendly
+  server play.
 
 ## Server Telemetry And External Dashboard Support
 
