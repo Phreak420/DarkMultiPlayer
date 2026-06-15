@@ -42,6 +42,9 @@ namespace ServerValidationTests
             Run("Campaign state resets with backup", CampaignStateResetsWithBackup);
             Run("Campaign phase auto-advances from metric", CampaignPhaseAutoAdvancesFromMetric);
             Run("Campaign events become available and can be completed", CampaignEventsBecomeAvailableAndCanBeCompleted);
+            Run("Economy state loads defaults", EconomyStateLoadsDefaults);
+            Run("Economy state clamps and audits resources", EconomyStateClampsAndAuditsResources);
+            Run("Economy state resets with backup", EconomyStateResetsWithBackup);
             Run("Agency progression skips invalid objective IDs", AgencyProgressionSkipsInvalidObjectiveIds);
             Run("Agency objective contract metadata loads", AgencyObjectiveContractMetadataLoads);
             Run("Agency evidence disabled is ignored", AgencyEvidenceDisabledIsIgnored);
@@ -65,6 +68,7 @@ namespace ServerValidationTests
             Run("Agency completed objective does not repeat metric contribution", AgencyCompletedObjectiveDoesNotRepeatMetricContribution);
             Run("Agency progress objective contributes metric on completion", AgencyProgressObjectiveContributesMetricOnCompletion);
             Run("Agency metric contribution clamps to max", AgencyMetricContributionClampsToMax);
+            Run("Agency objective completion adjusts economy resource", AgencyObjectiveCompletionAdjustsEconomyResource);
             Run("Agency shared progress completes objective", AgencySharedProgressCompletesObjective);
             Run("Agency shared progress reloads and resets", AgencySharedProgressReloadsAndResets);
             Run("Agency unique contributors count once", AgencyUniqueContributorsCountOnce);
@@ -685,6 +689,64 @@ namespace ServerValidationTests
             Assert(CampaignState.Events[0].status == "Complete", "campaign event did not complete");
         }
 
+        private static void EconomyStateLoadsDefaults()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-economy-" + Guid.NewGuid().ToString("N"));
+
+            EconomyState.Load(true);
+
+            Assert(File.Exists(Path.Combine(Server.configDirectory, "EconomyState.json")), "default economy state config was not created");
+            Assert(EconomyState.Resources.Length == 2, "default economy resources were not loaded");
+            Assert(File.Exists(Path.Combine(Server.universeDirectory, "EconomyState", "EconomyState.txt")), "economy state file was not written");
+        }
+
+        private static void EconomyStateClampsAndAuditsResources()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-economy-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            WriteEconomyResourceConfig("fuel-reserve", 50);
+
+            EconomyState.Load(true);
+            Assert(EconomyState.SetResource("fuel-reserve", 800, "test"), "economy resource set failed");
+
+            double value;
+            Assert(EconomyState.TryGetResourceValue("fuel-reserve", out value), "economy resource value query failed");
+            Assert(value == 100, "economy resource did not clamp to max");
+            Assert(EconomyState.AdjustResource("fuel-reserve", -250, "test"), "economy resource adjustment failed");
+            Assert(EconomyState.TryGetResourceValue("fuel-reserve", out value), "economy resource value query after adjustment failed");
+            Assert(value == 0, "economy resource did not clamp to min");
+
+            EconomyResource resource = EconomyState.Resources[0];
+            Assert(resource.state == "Scarce", "economy resource did not report scarce state");
+            Assert(resource.boundedModifier == 0.15, "economy resource did not report bounded positive modifier");
+            string auditFile = Path.Combine(Server.universeDirectory, "EconomyState", "EconomyAudit.log");
+            Assert(File.Exists(auditFile), "economy audit log was not written");
+            string audit = File.ReadAllText(auditFile);
+            Assert(audit.Contains("resource-set") && audit.Contains("resource-adjusted"), "economy audit did not record resource changes");
+        }
+
+        private static void EconomyStateResetsWithBackup()
+        {
+            string universe = CreateUniverse();
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-economy-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            WriteEconomyResourceConfig("fuel-reserve", 50);
+
+            EconomyState.Load(true);
+            Assert(EconomyState.SetResource("fuel-reserve", 20, "test"), "economy resource update failed before reset");
+            Assert(!EconomyState.ResetState(false, "test"), "economy reset succeeded without confirmation");
+            Assert(EconomyState.ResetState(true, "test"), "economy reset failed with confirmation");
+
+            string economyDirectory = Path.Combine(universe, "EconomyState");
+            Assert(Directory.GetFiles(economyDirectory, "EconomyState.reset-*.bak").Length == 1, "economy reset did not back up previous state");
+            double value;
+            Assert(EconomyState.TryGetResourceValue("fuel-reserve", out value), "economy resource value query after reset failed");
+            Assert(value == 50, "economy reset did not restore configured resource default");
+        }
+
         private static void AgencyProgressionSkipsInvalidObjectiveIds()
         {
             Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-agency-" + Guid.NewGuid().ToString("N"));
@@ -1156,6 +1218,26 @@ namespace ServerValidationTests
             Assert(GetCampaignMetricValue("survey-progress") == 100, "metric contribution did not clamp to max");
         }
 
+        private static void AgencyObjectiveCompletionAdjustsEconomyResource()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-economy-contribution-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            WriteEconomyResourceConfig("fuel-reserve", 50);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"fuel-delivery\",\"title\":\"Fuel Delivery\",\"description\":\"Resupply fuel.\",\"status\":\"Available\",\"scope\":\"Server\",\"evidenceType\":\"ADMIN_CONFIRMED\",\"evidenceId\":\"fuel-delivery\",\"economyResourceId\":\"fuel-reserve\",\"economyResourceDelta\":15}]}");
+            Settings.settingsStore.agencyProgressionEnabled = true;
+
+            EconomyState.Load(true);
+            AgencyProgression.Load(true);
+            Assert(AgencyProgression.RecordAdminEvidence("Alice", (int)AgencyEvidenceType.ADMIN_CONFIRMED, "fuel-delivery"), "admin economy contribution evidence failed");
+
+            double value;
+            Assert(EconomyState.TryGetResourceValue("fuel-reserve", out value), "economy resource value query failed after objective");
+            Assert(value == 65, "objective completion did not adjust economy resource");
+        }
+
         private static void AgencyPersonalObjectiveStateIsPerPlayer()
         {
             CreateUniverse();
@@ -1391,6 +1473,13 @@ namespace ServerValidationTests
             File.WriteAllText(
                 Path.Combine(Server.configDirectory, "CampaignState.json"),
                 "{\"campaignName\":\"Test Campaign\",\"currentPhaseId\":\"kerbin-foundation\",\"phases\":[{\"id\":\"kerbin-foundation\",\"title\":\"Kerbin\",\"description\":\"Start.\"}],\"metrics\":[{\"id\":\"" + metricId + "\",\"title\":\"" + metricId + "\",\"category\":\"Test\",\"value\":" + value.ToString("R") + ",\"target\":100,\"unit\":\"\"}]}");
+        }
+
+        private static void WriteEconomyResourceConfig(string resourceId, double value)
+        {
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "EconomyState.json"),
+                "{\"economyName\":\"Test Economy\",\"resources\":[{\"id\":\"" + resourceId + "\",\"title\":\"" + resourceId + "\",\"category\":\"Test\",\"value\":" + value.ToString("R") + ",\"minValue\":0,\"maxValue\":100,\"unit\":\"%\",\"scarcityThreshold\":25,\"abundanceThreshold\":85,\"maxPositiveModifier\":0.15,\"maxNegativeModifier\":0.05,\"recoveryContractHint\":\"Offer recovery work.\"}]}");
         }
 
         private static double GetCampaignMetricValue(string metricId)

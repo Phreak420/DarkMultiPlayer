@@ -194,7 +194,7 @@ Objective definitions can now optionally include `prerequisiteObjectiveIds`, `pr
 `requiredCampaignPhaseId`, `requiredMetricId`, `requiredMetricMinimum`, `hiddenUntilAvailable`,
 `requiredCampaignEventId`, `progressTarget`, `progressPerEvidence`, `progressUnit`,
 `contributionLabel`, `uniqueContributors`, `metricContributionId`, `metricContributionAmount`,
-and `metricContributionMax`.
+`metricContributionMax`, `economyResourceId`, and `economyResourceDelta`.
 `prerequisiteMode` defaults to `All`; set it to `Any` when completing any one listed prerequisite
 should unlock the objective. `hiddenUntilAvailable` keeps locked objectives out of the
 client-facing objective list until their prerequisites are met while preserving the full objective
@@ -533,6 +533,15 @@ Better outcome:
 
 - Fuel prices increased 15%, and the Agency is offering premium logistics contracts to replenish
   reserves.
+
+Implemented foundation: `Config/EconomyState.json` defines bounded resource pools with `minValue`,
+`maxValue`, scarcity/abundance thresholds, and maximum positive/negative modifiers. Mutable values
+are stored in `Universe/EconomyState/EconomyState.txt`, admin changes are audited in
+`Universe/EconomyState/EconomyAudit.log`, and players can view read-only resource state in the
+Space Agency window. Server admins can inspect and control the state with `/economy status`,
+`/economy set <resource> <value>`, `/economy adjust <resource> <delta>`, and
+`/economy reset confirm`. Agency objectives can optionally include `economyResourceId` and
+`economyResourceDelta` to adjust a bounded resource once when the objective completes.
 
 Scarcity should usually create opportunities. If fuel, funds, reputation, or resources become
 strained, the campaign director should offer useful work that helps players recover rather than

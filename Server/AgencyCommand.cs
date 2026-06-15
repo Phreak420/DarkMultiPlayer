@@ -84,6 +84,7 @@ namespace DarkMultiPlayerServer
         {
             AgencyProgression.Load(Settings.IsAgencyProgressionActive());
             CampaignState.Load(Settings.IsAgencyProgressionActive());
+            EconomyState.Load(Settings.IsAgencyProgressionActive());
             DarkMultiPlayerServer.Messages.AgencyProgression.SendAgencyProgressionToAll();
             DarkLog.Normal("Agency progression reloaded.");
         }

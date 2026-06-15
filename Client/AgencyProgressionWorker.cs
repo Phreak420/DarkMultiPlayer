@@ -12,6 +12,7 @@ namespace DarkMultiPlayer
         private readonly List<AgencyObjectiveSummary> objectives = new List<AgencyObjectiveSummary>();
         private readonly List<CampaignMetricSummary> campaignMetrics = new List<CampaignMetricSummary>();
         private readonly List<CampaignEventSummary> campaignEvents = new List<CampaignEventSummary>();
+        private readonly List<EconomyResourceSummary> economyResources = new List<EconomyResourceSummary>();
         private readonly HashSet<string> sentEvidenceIds = new HashSet<string>();
         private readonly Dictionary<Guid, string> vesselBodies = new Dictionary<Guid, string>();
         private readonly Queue<AgencyRewardSummary> pendingRewards = new Queue<AgencyRewardSummary>();
@@ -25,6 +26,7 @@ namespace DarkMultiPlayer
         public string CampaignPhaseId { get; private set; }
         public string CampaignPhaseTitle { get; private set; }
         public string CampaignPhaseDescription { get; private set; }
+        public string EconomyName { get; private set; }
 
         public AgencyProgressionWorker(DMPGame dmpGame, NetworkWorker networkWorker)
         {
@@ -72,6 +74,17 @@ namespace DarkMultiPlayer
             }
         }
 
+        public EconomyResourceSummary[] EconomyResources
+        {
+            get
+            {
+                lock (economyResources)
+                {
+                    return economyResources.ToArray();
+                }
+            }
+        }
+
         public void HandleAgencyProgression(ByteArray messageData)
         {
             using (MessageReader mr = new MessageReader(messageData.data))
@@ -105,6 +118,8 @@ namespace DarkMultiPlayer
                 string[] metricContributionIds = new string[objectiveCount];
                 double[] metricContributionAmounts = new double[objectiveCount];
                 double[] metricContributionMaxes = new double[objectiveCount];
+                string[] objectiveEconomyResourceIds = new string[objectiveCount];
+                double[] objectiveEconomyResourceDeltas = new double[objectiveCount];
                 string[] progressUnits = new string[objectiveCount];
                 string[] contributionLabels = new string[objectiveCount];
                 int[] contributorCounts = new int[objectiveCount];
@@ -115,6 +130,15 @@ namespace DarkMultiPlayer
                 string[] eventTitles = new string[0];
                 string[] eventDescriptions = new string[0];
                 string[] eventStatuses = new string[0];
+                string economyName = string.Empty;
+                string[] economyResourceIds = new string[0];
+                string[] economyResourceTitles = new string[0];
+                string[] economyResourceCategories = new string[0];
+                string[] economyResourceUnits = new string[0];
+                string[] economyResourceStates = new string[0];
+                double[] economyResourceValues = new double[0];
+                double[] economyResourceMaxValues = new double[0];
+                double[] economyResourceModifiers = new double[0];
                 try
                 {
                     categories = mr.Read<string[]>();
@@ -148,6 +172,32 @@ namespace DarkMultiPlayer
                                 eventTitles = mr.Read<string[]>();
                                 eventDescriptions = mr.Read<string[]>();
                                 eventStatuses = mr.Read<string[]>();
+                                try
+                                {
+                                    objectiveEconomyResourceIds = mr.Read<string[]>();
+                                    objectiveEconomyResourceDeltas = mr.Read<double[]>();
+                                    economyName = mr.Read<string>();
+                                    economyResourceIds = mr.Read<string[]>();
+                                    economyResourceTitles = mr.Read<string[]>();
+                                    economyResourceCategories = mr.Read<string[]>();
+                                    economyResourceUnits = mr.Read<string[]>();
+                                    economyResourceStates = mr.Read<string[]>();
+                                    economyResourceValues = mr.Read<double[]>();
+                                    economyResourceMaxValues = mr.Read<double[]>();
+                                    economyResourceModifiers = mr.Read<double[]>();
+                                }
+                                catch (Exception)
+                                {
+                                    economyName = string.Empty;
+                                    economyResourceIds = new string[0];
+                                    economyResourceTitles = new string[0];
+                                    economyResourceCategories = new string[0];
+                                    economyResourceUnits = new string[0];
+                                    economyResourceStates = new string[0];
+                                    economyResourceValues = new double[0];
+                                    economyResourceMaxValues = new double[0];
+                                    economyResourceModifiers = new double[0];
+                                }
                             }
                             catch (Exception)
                             {
@@ -159,6 +209,8 @@ namespace DarkMultiPlayer
                         }
                         catch (Exception)
                         {
+                            objectiveEconomyResourceIds = new string[objectiveCount];
+                            objectiveEconomyResourceDeltas = new double[objectiveCount];
                             progressUnits = new string[objectiveCount];
                             contributionLabels = new string[objectiveCount];
                             contributorCounts = new int[objectiveCount];
@@ -172,6 +224,8 @@ namespace DarkMultiPlayer
                         metricContributionIds = new string[objectiveCount];
                         metricContributionAmounts = new double[objectiveCount];
                         metricContributionMaxes = new double[objectiveCount];
+                        objectiveEconomyResourceIds = new string[objectiveCount];
+                        objectiveEconomyResourceDeltas = new double[objectiveCount];
                         progressUnits = new string[objectiveCount];
                         contributionLabels = new string[objectiveCount];
                         contributorCounts = new int[objectiveCount];
@@ -208,6 +262,12 @@ namespace DarkMultiPlayer
                     metricContributionAmounts = new double[objectiveCount];
                     metricContributionMaxes = new double[objectiveCount];
                 }
+                if (objectiveEconomyResourceIds.Length != objectiveCount || objectiveEconomyResourceDeltas.Length != objectiveCount)
+                {
+                    DarkLog.Debug("Received invalid agency economy contribution data from server.");
+                    objectiveEconomyResourceIds = new string[objectiveCount];
+                    objectiveEconomyResourceDeltas = new double[objectiveCount];
+                }
                 if (progressUnits.Length != objectiveCount || contributionLabels.Length != objectiveCount || contributorCounts.Length != objectiveCount || contributors.Length != objectiveCount)
                 {
                     DarkLog.Debug("Received invalid agency contribution summary data from server.");
@@ -229,6 +289,19 @@ namespace DarkMultiPlayer
                     eventTitles = new string[0];
                     eventDescriptions = new string[0];
                     eventStatuses = new string[0];
+                }
+                if (economyResourceTitles.Length != economyResourceIds.Length || economyResourceCategories.Length != economyResourceIds.Length || economyResourceUnits.Length != economyResourceIds.Length || economyResourceStates.Length != economyResourceIds.Length || economyResourceValues.Length != economyResourceIds.Length || economyResourceMaxValues.Length != economyResourceIds.Length || economyResourceModifiers.Length != economyResourceIds.Length)
+                {
+                    DarkLog.Debug("Received invalid economy resource data from server.");
+                    economyName = string.Empty;
+                    economyResourceIds = new string[0];
+                    economyResourceTitles = new string[0];
+                    economyResourceCategories = new string[0];
+                    economyResourceUnits = new string[0];
+                    economyResourceStates = new string[0];
+                    economyResourceValues = new double[0];
+                    economyResourceMaxValues = new double[0];
+                    economyResourceModifiers = new double[0];
                 }
 
                 lock (objectives)
@@ -255,6 +328,8 @@ namespace DarkMultiPlayer
                             metricContributionId = metricContributionIds[i],
                             metricContributionAmount = metricContributionAmounts[i],
                             metricContributionMax = metricContributionMaxes[i],
+                            economyResourceId = objectiveEconomyResourceIds[i],
+                            economyResourceDelta = objectiveEconomyResourceDeltas[i],
                             progressUnit = progressUnits[i],
                             contributionLabel = contributionLabels[i],
                             contributorCount = contributorCounts[i],
@@ -295,6 +370,25 @@ namespace DarkMultiPlayer
                             title = eventTitles[i],
                             description = eventDescriptions[i],
                             status = eventStatuses[i]
+                        });
+                    }
+                }
+                lock (economyResources)
+                {
+                    economyResources.Clear();
+                    EconomyName = economyName;
+                    for (int i = 0; i < economyResourceIds.Length; i++)
+                    {
+                        economyResources.Add(new EconomyResourceSummary
+                        {
+                            id = economyResourceIds[i],
+                            title = economyResourceTitles[i],
+                            category = economyResourceCategories[i],
+                            unit = economyResourceUnits[i],
+                            state = economyResourceStates[i],
+                            value = economyResourceValues[i],
+                            maxValue = economyResourceMaxValues[i],
+                            boundedModifier = economyResourceModifiers[i]
                         });
                     }
                 }
@@ -354,6 +448,11 @@ namespace DarkMultiPlayer
             lock (campaignEvents)
             {
                 campaignEvents.Clear();
+            }
+            lock (economyResources)
+            {
+                economyResources.Clear();
+                EconomyName = null;
             }
             sentEvidenceIds.Clear();
             vesselBodies.Clear();
@@ -627,6 +726,8 @@ namespace DarkMultiPlayer
         public string metricContributionId;
         public double metricContributionAmount;
         public double metricContributionMax;
+        public string economyResourceId;
+        public double economyResourceDelta;
         public string progressUnit;
         public string contributionLabel;
         public int contributorCount;
@@ -659,5 +760,17 @@ namespace DarkMultiPlayer
         public string title;
         public string description;
         public string status;
+    }
+
+    public class EconomyResourceSummary
+    {
+        public string id;
+        public string title;
+        public string category;
+        public string unit;
+        public string state;
+        public double value;
+        public double maxValue;
+        public double boundedModifier;
     }
 }

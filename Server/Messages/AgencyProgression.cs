@@ -30,6 +30,8 @@ namespace DarkMultiPlayerServer.Messages
             string[] objectiveMetricContributionIds = new string[objectives.Length];
             double[] objectiveMetricContributionAmounts = new double[objectives.Length];
             double[] objectiveMetricContributionMaxes = new double[objectives.Length];
+            string[] objectiveEconomyResourceIds = new string[objectives.Length];
+            double[] objectiveEconomyResourceDeltas = new double[objectives.Length];
             string[] objectiveProgressUnits = new string[objectives.Length];
             string[] objectiveContributionLabels = new string[objectives.Length];
             int[] objectiveContributorCounts = new int[objectives.Length];
@@ -48,6 +50,15 @@ namespace DarkMultiPlayerServer.Messages
             string[] eventTitles = new string[campaignEvents.Length];
             string[] eventDescriptions = new string[campaignEvents.Length];
             string[] eventStatuses = new string[campaignEvents.Length];
+            EconomyResource[] economyResources = DarkMultiPlayerServer.EconomyState.Resources;
+            string[] economyResourceIds = new string[economyResources.Length];
+            string[] economyResourceTitles = new string[economyResources.Length];
+            string[] economyResourceCategories = new string[economyResources.Length];
+            string[] economyResourceUnits = new string[economyResources.Length];
+            string[] economyResourceStates = new string[economyResources.Length];
+            double[] economyResourceValues = new double[economyResources.Length];
+            double[] economyResourceMaxValues = new double[economyResources.Length];
+            double[] economyResourceModifiers = new double[economyResources.Length];
 
             for (int i = 0; i < objectives.Length; i++)
             {
@@ -68,6 +79,8 @@ namespace DarkMultiPlayerServer.Messages
                 objectiveMetricContributionIds[i] = objectives[i].metricContributionId;
                 objectiveMetricContributionAmounts[i] = objectives[i].metricContributionAmount;
                 objectiveMetricContributionMaxes[i] = objectives[i].metricContributionMax;
+                objectiveEconomyResourceIds[i] = objectives[i].economyResourceId;
+                objectiveEconomyResourceDeltas[i] = objectives[i].economyResourceDelta;
                 objectiveProgressUnits[i] = objectives[i].progressUnit;
                 objectiveContributionLabels[i] = objectives[i].contributionLabel;
                 objectiveContributorCounts[i] = objectives[i].contributorCount;
@@ -89,6 +102,17 @@ namespace DarkMultiPlayerServer.Messages
                 eventTitles[i] = campaignEvents[i].title;
                 eventDescriptions[i] = campaignEvents[i].description;
                 eventStatuses[i] = campaignEvents[i].status;
+            }
+            for (int i = 0; i < economyResources.Length; i++)
+            {
+                economyResourceIds[i] = economyResources[i].id;
+                economyResourceTitles[i] = economyResources[i].title;
+                economyResourceCategories[i] = economyResources[i].category;
+                economyResourceUnits[i] = economyResources[i].unit;
+                economyResourceStates[i] = economyResources[i].state;
+                economyResourceValues[i] = economyResources[i].value;
+                economyResourceMaxValues[i] = economyResources[i].maxValue;
+                economyResourceModifiers[i] = economyResources[i].boundedModifier;
             }
 
             ServerMessage newMessage = new ServerMessage();
@@ -133,6 +157,17 @@ namespace DarkMultiPlayerServer.Messages
                 mw.Write<string[]>(eventTitles);
                 mw.Write<string[]>(eventDescriptions);
                 mw.Write<string[]>(eventStatuses);
+                mw.Write<string[]>(objectiveEconomyResourceIds);
+                mw.Write<double[]>(objectiveEconomyResourceDeltas);
+                mw.Write<string>(DarkMultiPlayerServer.EconomyState.EconomyName);
+                mw.Write<string[]>(economyResourceIds);
+                mw.Write<string[]>(economyResourceTitles);
+                mw.Write<string[]>(economyResourceCategories);
+                mw.Write<string[]>(economyResourceUnits);
+                mw.Write<string[]>(economyResourceStates);
+                mw.Write<double[]>(economyResourceValues);
+                mw.Write<double[]>(economyResourceMaxValues);
+                mw.Write<double[]>(economyResourceModifiers);
                 newMessage.data = mw.GetMessageBytes();
             }
             ClientHandler.SendToClient(client, newMessage, true);

@@ -221,7 +221,23 @@ namespace DarkMultiPlayer
             {
                 GUILayout.Label(BuildMetricSummary(metrics[i]), noteStyle, GUILayout.Height(18));
             }
+            DrawEconomyState();
             DrawCampaignEvents();
+        }
+
+        private void DrawEconomyState()
+        {
+            EconomyResourceSummary[] resources = dmpGame.agencyProgressionWorker.EconomyResources;
+            if (resources.Length == 0)
+            {
+                return;
+            }
+
+            int shownResources = Math.Min(resources.Length, 2);
+            for (int i = 0; i < shownResources; i++)
+            {
+                GUILayout.Label(BuildEconomySummary(resources[i]), noteStyle, GUILayout.Height(18));
+            }
         }
 
         private void DrawCampaignEvents()
@@ -339,6 +355,7 @@ namespace DarkMultiPlayer
             DrawDetailLine("Contribution", BuildContributionSummary(objective));
             DrawDetailLine("Rewards", BuildRewardSummary(objective));
             DrawDetailLine("World State", BuildWorldStateSummary(objective));
+            DrawDetailLine("Economy", BuildObjectiveEconomySummary(objective));
             DrawDetailLine("Category", string.IsNullOrEmpty(objective.category) ? "General" : objective.category);
             DrawDetailLine("Scope", string.IsNullOrEmpty(objective.scope) ? "Server" : objective.scope);
             DrawDetailLine("Status", string.IsNullOrEmpty(objective.status) ? "Available" : objective.status);
@@ -528,6 +545,17 @@ namespace DarkMultiPlayer
             return summary;
         }
 
+        private string BuildObjectiveEconomySummary(AgencyObjectiveSummary objective)
+        {
+            if (string.IsNullOrEmpty(objective.economyResourceId) || objective.economyResourceDelta == 0)
+            {
+                return string.Empty;
+            }
+
+            string amount = objective.economyResourceDelta > 0 ? "+" + objective.economyResourceDelta.ToString("0.##") : objective.economyResourceDelta.ToString("0.##");
+            return amount + " " + GetEconomyResourceTitle(objective.economyResourceId);
+        }
+
         private string BuildCompactProgressSummary(AgencyObjectiveSummary objective)
         {
             if (objective.progressTarget <= 0)
@@ -546,6 +574,15 @@ namespace DarkMultiPlayer
             return category + ": " + title + " " + metric.value.ToString("0.##") + target + metric.unit;
         }
 
+        private string BuildEconomySummary(EconomyResourceSummary resource)
+        {
+            string title = string.IsNullOrEmpty(resource.title) ? resource.id : resource.title;
+            string category = string.IsNullOrEmpty(resource.category) ? "Economy" : resource.category;
+            string maxValue = resource.maxValue > 0 ? " / " + resource.maxValue.ToString("0.##") : string.Empty;
+            string modifier = resource.boundedModifier == 0 ? string.Empty : " (" + (resource.boundedModifier * 100).ToString("+0.##;-0.##") + "%)";
+            return category + ": " + title + " " + resource.value.ToString("0.##") + maxValue + resource.unit + " " + resource.state + modifier;
+        }
+
         private string GetMetricTitle(string metricId)
         {
             CampaignMetricSummary[] metrics = dmpGame.agencyProgressionWorker.CampaignMetrics;
@@ -557,6 +594,19 @@ namespace DarkMultiPlayer
                 }
             }
             return metricId;
+        }
+
+        private string GetEconomyResourceTitle(string resourceId)
+        {
+            EconomyResourceSummary[] resources = dmpGame.agencyProgressionWorker.EconomyResources;
+            for (int i = 0; i < resources.Length; i++)
+            {
+                if (resources[i].id == resourceId)
+                {
+                    return string.IsNullOrEmpty(resources[i].title) ? resourceId : resources[i].title;
+                }
+            }
+            return resourceId;
         }
 
         private string AppendReward(string rewardSummary, string reward)

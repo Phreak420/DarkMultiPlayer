@@ -53,6 +53,7 @@ prominently and preserve original license and copyright notices.
 - [x] ~~Add server-owned campaign/world-state foundations with phases, metrics, admin tools, and
   read-only client display.~~
 - [x] ~~Add configurable campaign phase automation and campaign event state.~~
+- [x] ~~Add bounded server-owned economy/resource state with admin tools and read-only display.~~
 - [ ] Add shared economy and resource pressure with strong safety limits.
 - [ ] Add story/event-driven campaigns with configurable phases.
 - [ ] Add seasonal campaign archives, historical statistics, and Hall of Fame records.
@@ -307,6 +308,11 @@ Implemented foundation:
   are met.
 - Campaign events can be configured, audited, shown to clients, and controlled with
   `/campaign events`, `/campaign activate <event>`, and `/campaign complete <event>`.
+- `Config/EconomyState.json` defines bounded resource pools. Mutable values are stored in
+  `Universe/EconomyState/EconomyState.txt`, audited in `Universe/EconomyState/EconomyAudit.log`,
+  and exposed read-only in the Space Agency window.
+- `/economy status`, `/economy set <resource> <value>`, `/economy adjust <resource> <delta>`,
+  and `/economy reset confirm` provide admin control with configured min/max bounds applied.
 
 ## Server Telemetry And External Dashboard Support
 

@@ -133,6 +133,8 @@ namespace DarkMultiPlayerServer
                         metricContributionId = CleanText(objective.metricContributionId, string.Empty),
                         metricContributionAmount = objective.metricContributionAmount,
                         metricContributionMax = Math.Max(0, objective.metricContributionMax),
+                        economyResourceId = CleanText(objective.economyResourceId, string.Empty),
+                        economyResourceDelta = objective.economyResourceDelta,
                         hiddenUntilAvailable = objective.hiddenUntilAvailable,
                         progressTarget = Math.Max(0, objective.progressTarget),
                         progressPerEvidence = objective.progressPerEvidence <= 0 ? 1 : objective.progressPerEvidence,
@@ -477,6 +479,7 @@ namespace DarkMultiPlayerServer
                     completedAny = true;
                     DarkLog.Normal("Agency objective complete: " + objective.id + " by " + evidenceRecord.playerName);
                     ApplyMetricContribution(objective, evidenceRecord.playerName);
+                    ApplyEconomyContribution(objective, evidenceRecord.playerName);
                     RecordAndSendReward(evidenceRecord.playerName, objective.id, objective.rewardFunds, objective.rewardScience, objective.rewardReputation, true, client);
                 }
             }
@@ -538,6 +541,22 @@ namespace DarkMultiPlayerServer
             if (CampaignState.SetMetric(objective.metricContributionId, nextValue, "objective:" + objective.id + ":" + playerName))
             {
                 DarkLog.Normal("Agency objective " + objective.id + " contributed " + objective.metricContributionAmount.ToString("R") + " to campaign metric " + objective.metricContributionId + ".");
+            }
+        }
+
+        private static void ApplyEconomyContribution(AgencyObjective objective, string playerName)
+        {
+            if (string.IsNullOrEmpty(objective.economyResourceId) || objective.economyResourceDelta == 0)
+            {
+                return;
+            }
+            if (EconomyState.AdjustResource(objective.economyResourceId, objective.economyResourceDelta, "objective:" + objective.id + ":" + playerName))
+            {
+                DarkLog.Normal("Agency objective " + objective.id + " adjusted economy resource " + objective.economyResourceId + " by " + objective.economyResourceDelta.ToString("R") + ".");
+            }
+            else
+            {
+                DarkLog.Debug("Skipped agency economy contribution for " + objective.id + ": unknown resource " + objective.economyResourceId);
             }
         }
 
@@ -728,6 +747,8 @@ namespace DarkMultiPlayerServer
                     metricContributionId = objective.metricContributionId,
                     metricContributionAmount = objective.metricContributionAmount,
                     metricContributionMax = objective.metricContributionMax,
+                    economyResourceId = objective.economyResourceId,
+                    economyResourceDelta = objective.economyResourceDelta,
                     hiddenUntilAvailable = objective.hiddenUntilAvailable,
                     progressTarget = objective.progressTarget,
                     progressPerEvidence = objective.progressPerEvidence,
@@ -1304,6 +1325,12 @@ namespace DarkMultiPlayerServer
 
         [DataMember]
         public double metricContributionMax;
+
+        [DataMember]
+        public string economyResourceId;
+
+        [DataMember]
+        public double economyResourceDelta;
 
         [DataMember]
         public bool hiddenUntilAvailable;

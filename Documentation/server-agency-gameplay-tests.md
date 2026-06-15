@@ -261,6 +261,48 @@ Expected:
 - Objectives with `requiredCampaignEventId` unlock when the event is `Active` or `Complete`.
 - Event changes are written to `Universe/CampaignState/CampaignAudit.log`.
 
+## Economy State Smoke Test
+
+1. Enable Agency systems on the server.
+2. Confirm `Config/EconomyState.json` is created on startup.
+3. Run `/economy status`.
+4. Run `/economy set fuel-reserve 10`.
+5. Run `/economy adjust fuel-reserve 500`.
+6. Reopen the Space Agency window.
+7. Run `/economy reset confirm` only after confirming you want to reset test economy state.
+
+Expected:
+
+- `Universe/EconomyState/EconomyState.txt` is created.
+- `/economy status` lists configured resources, state, and bounded modifier values.
+- `/economy set fuel-reserve 10` marks the sample fuel reserve as scarce.
+- `/economy adjust fuel-reserve 500` clamps to the configured maximum rather than exceeding it.
+- `Universe/EconomyState/EconomyAudit.log` records set, adjust, and reset actions.
+- The Space Agency window shows read-only economy resource summaries.
+- `/economy reset confirm` writes an `EconomyState.reset-*.bak` backup before reloading defaults.
+
+Optional objective economy fields:
+
+```json
+{
+  "id": "fuel-delivery",
+  "title": "Fuel Delivery",
+  "description": "Deliver fuel to replenish agency reserves.",
+  "status": "Available",
+  "scope": "Server",
+  "evidenceType": "ADMIN_CONFIRMED",
+  "evidenceId": "fuel-delivery",
+  "economyResourceId": "fuel-reserve",
+  "economyResourceDelta": 15
+}
+```
+
+Expected:
+
+- Completing the objective adjusts `fuel-reserve` once.
+- Resource values remain clamped by configured min/max bounds.
+- The mission detail panel shows the objective's economy effect.
+
 ## Campaign Unlock Condition Smoke Test
 
 Use objective fields such as:

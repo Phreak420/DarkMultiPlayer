@@ -63,6 +63,7 @@ Current and planned MMO Edition work:
 - [x] ~~Add server-owned campaign/world-state foundations with phases, metrics, admin tools, and
   read-only client display.~~
 - [x] ~~Add configurable campaign phase automation and campaign event state.~~
+- [x] ~~Add bounded server-owned economy/resource state with admin tools and read-only display.~~
 - [ ] Add shared economy/resource pressure with bounded, recoverable safety rules.
 - [ ] Add story and event-driven campaigns controlled by server configuration.
 - [ ] Add seasonal campaign archives, historical statistics, and Hall of Fame records.

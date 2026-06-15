@@ -154,6 +154,7 @@ namespace DarkMultiPlayerServer
             CommandHandler.RegisterCommand("whitelist", WhitelistCommand.HandleCommand, "Change the server whitelist");
             CommandHandler.RegisterCommand("agency", AgencyCommand.HandleCommand, "Agency progression tools");
             CommandHandler.RegisterCommand("campaign", CampaignCommand.HandleCommand, "Campaign world state tools");
+            CommandHandler.RegisterCommand("economy", EconomyCommand.HandleCommand, "Bounded economy state tools");
             CommandHandler.RegisterCommand("identity", IdentityCommand.HandleCommand, "Player identity metadata tools");
 
             //Register the ctrl+c event
@@ -216,6 +217,7 @@ namespace DarkMultiPlayerServer
                 DarkLog.Normal(Settings.GetGameplayProfileSummary());
                 AgencyProgression.Load(Settings.IsAgencyProgressionActive());
                 CampaignState.Load(Settings.IsAgencyProgressionActive());
+                EconomyState.Load(Settings.IsAgencyProgressionActive());
 
                 if (Settings.settingsStore.gameDifficulty == GameDifficulty.CUSTOM)
                 {
