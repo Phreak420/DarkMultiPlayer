@@ -354,6 +354,7 @@ namespace DarkMultiPlayer
             DrawDetailLine("Contributors", BuildContributorSummary(objective));
             DrawDetailLine("Contribution", BuildContributionSummary(objective));
             DrawDetailLine("Rewards", BuildRewardSummary(objective));
+            DrawDetailLine("Reward Mod", BuildRewardModifierSummary(objective));
             DrawDetailLine("World State", BuildWorldStateSummary(objective));
             DrawDetailLine("Economy", BuildObjectiveEconomySummary(objective));
             DrawDetailLine("Category", string.IsNullOrEmpty(objective.category) ? "General" : objective.category);
@@ -556,6 +557,49 @@ namespace DarkMultiPlayer
             return amount + " " + GetEconomyResourceTitle(objective.economyResourceId);
         }
 
+        private string BuildRewardModifierSummary(AgencyObjectiveSummary objective)
+        {
+            if (string.IsNullOrEmpty(objective.rewardModifierResourceId))
+            {
+                return string.Empty;
+            }
+
+            EconomyResourceSummary resource = FindEconomyResource(objective.rewardModifierResourceId);
+            if (resource == null)
+            {
+                return "Uses " + objective.rewardModifierResourceId;
+            }
+
+            double modifier = 0;
+            if (MatchesText(resource.state, "scarce") && objective.allowScarcityRewardBonus)
+            {
+                modifier = Math.Abs(resource.boundedModifier);
+            }
+            else if (MatchesText(resource.state, "abundant") && objective.allowAbundanceRewardReduction)
+            {
+                modifier = -Math.Abs(resource.boundedModifier);
+            }
+            if (objective.maxRewardModifierOverride > 0)
+            {
+                double maxModifier = Math.Abs(objective.maxRewardModifierOverride);
+                if (modifier > maxModifier)
+                {
+                    modifier = maxModifier;
+                }
+                if (modifier < -maxModifier)
+                {
+                    modifier = -maxModifier;
+                }
+            }
+
+            string title = string.IsNullOrEmpty(resource.title) ? resource.id : resource.title;
+            if (modifier == 0)
+            {
+                return title + " " + resource.state;
+            }
+            return title + " " + resource.state + " " + (modifier * 100).ToString("+0.##;-0.##") + "% rewards";
+        }
+
         private string BuildCompactProgressSummary(AgencyObjectiveSummary objective)
         {
             if (objective.progressTarget <= 0)
@@ -598,15 +642,25 @@ namespace DarkMultiPlayer
 
         private string GetEconomyResourceTitle(string resourceId)
         {
+            EconomyResourceSummary resource = FindEconomyResource(resourceId);
+            if (resource != null)
+            {
+                return string.IsNullOrEmpty(resource.title) ? resourceId : resource.title;
+            }
+            return resourceId;
+        }
+
+        private EconomyResourceSummary FindEconomyResource(string resourceId)
+        {
             EconomyResourceSummary[] resources = dmpGame.agencyProgressionWorker.EconomyResources;
             for (int i = 0; i < resources.Length; i++)
             {
                 if (resources[i].id == resourceId)
                 {
-                    return string.IsNullOrEmpty(resources[i].title) ? resourceId : resources[i].title;
+                    return resources[i];
                 }
             }
-            return resourceId;
+            return null;
         }
 
         private string AppendReward(string rewardSummary, string reward)

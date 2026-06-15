@@ -32,6 +32,10 @@ namespace DarkMultiPlayerServer.Messages
             double[] objectiveMetricContributionMaxes = new double[objectives.Length];
             string[] objectiveEconomyResourceIds = new string[objectives.Length];
             double[] objectiveEconomyResourceDeltas = new double[objectives.Length];
+            string[] objectiveRewardModifierResourceIds = new string[objectives.Length];
+            bool[] objectiveAllowScarcityRewardBonuses = new bool[objectives.Length];
+            bool[] objectiveAllowAbundanceRewardReductions = new bool[objectives.Length];
+            double[] objectiveMaxRewardModifierOverrides = new double[objectives.Length];
             string[] objectiveProgressUnits = new string[objectives.Length];
             string[] objectiveContributionLabels = new string[objectives.Length];
             int[] objectiveContributorCounts = new int[objectives.Length];
@@ -81,6 +85,10 @@ namespace DarkMultiPlayerServer.Messages
                 objectiveMetricContributionMaxes[i] = objectives[i].metricContributionMax;
                 objectiveEconomyResourceIds[i] = objectives[i].economyResourceId;
                 objectiveEconomyResourceDeltas[i] = objectives[i].economyResourceDelta;
+                objectiveRewardModifierResourceIds[i] = objectives[i].rewardModifierResourceId;
+                objectiveAllowScarcityRewardBonuses[i] = objectives[i].allowScarcityRewardBonus;
+                objectiveAllowAbundanceRewardReductions[i] = objectives[i].allowAbundanceRewardReduction;
+                objectiveMaxRewardModifierOverrides[i] = objectives[i].maxRewardModifierOverride;
                 objectiveProgressUnits[i] = objectives[i].progressUnit;
                 objectiveContributionLabels[i] = objectives[i].contributionLabel;
                 objectiveContributorCounts[i] = objectives[i].contributorCount;
@@ -168,6 +176,10 @@ namespace DarkMultiPlayerServer.Messages
                 mw.Write<double[]>(economyResourceValues);
                 mw.Write<double[]>(economyResourceMaxValues);
                 mw.Write<double[]>(economyResourceModifiers);
+                mw.Write<string[]>(objectiveRewardModifierResourceIds);
+                mw.Write<bool[]>(objectiveAllowScarcityRewardBonuses);
+                mw.Write<bool[]>(objectiveAllowAbundanceRewardReductions);
+                mw.Write<double[]>(objectiveMaxRewardModifierOverrides);
                 newMessage.data = mw.GetMessageBytes();
             }
             ClientHandler.SendToClient(client, newMessage, true);

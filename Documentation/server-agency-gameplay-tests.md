@@ -303,6 +303,48 @@ Expected:
 - Resource values remain clamped by configured min/max bounds.
 - The mission detail panel shows the objective's economy effect.
 
+## Economy Reward Modifier Smoke Test
+
+Use an Agency objective with explicit reward modifier fields:
+
+```json
+{
+  "id": "fuel-recovery",
+  "title": "Fuel Recovery",
+  "description": "Recover fuel while reserves are scarce.",
+  "status": "Available",
+  "scope": "Server",
+  "evidenceType": "ADMIN_CONFIRMED",
+  "evidenceId": "fuel-recovery",
+  "rewardFunds": 10000,
+  "rewardScience": 5,
+  "rewardReputation": 2,
+  "rewardModifierResourceId": "fuel-reserve",
+  "allowScarcityRewardBonus": true,
+  "allowAbundanceRewardReduction": false
+}
+```
+
+Steps:
+
+1. Run `/economy set fuel-reserve 10`.
+2. Reload Agency state or restart the server after adding the objective.
+3. Reopen the Space Agency window and select the objective.
+4. Complete it with `/agency record Alice ADMIN_CONFIRMED fuel-recovery`.
+5. Run `/agency rewards Alice`.
+6. Repeat with a separate test objective and `fuel-reserve` set above the abundance threshold.
+
+Expected:
+
+- The mission detail panel shows `Reward Mod` for `fuel-reserve`.
+- Scarce resources increase the configured reward by the resource's bounded positive modifier.
+- Abundant resources do not reduce rewards unless `allowAbundanceRewardReduction` is `true`.
+- `Universe/AgencyRewards/Alice.log` records effective reward values plus modifier context when
+  a modifier applies.
+- `/agency rewards Alice` shows modifier resource/state and base reward values when a modifier
+  applied.
+- No passive economy decay or inactivity punishment is introduced by this feature.
+
 ## Campaign Unlock Condition Smoke Test
 
 Use objective fields such as:

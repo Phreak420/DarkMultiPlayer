@@ -157,7 +157,18 @@ Implemented evidence IDs:
 - [x] Add admin commands to inspect and reset agency objective progress.
 
 Objective definitions can now optionally include `rewardFunds`, `rewardScience`, and
-`rewardReputation`.
+`rewardReputation`. Objectives can also opt into bounded economy-based reward modifiers with
+`rewardModifierResourceId`, `allowScarcityRewardBonus`, `allowAbundanceRewardReduction`, and
+`maxRewardModifierOverride`.
+
+Reward modifier safety rules:
+
+- Scarcity bonuses apply only when `allowScarcityRewardBonus` is `true`.
+- Abundance reductions apply only when `allowAbundanceRewardReduction` is `true`.
+- The modifier comes from the configured economy resource's bounded modifier.
+- `maxRewardModifierOverride` can clamp an objective to a smaller absolute modifier.
+- Reward audit records preserve the effective reward, modifier resource/state, modifier value,
+  and original base reward values when a modifier applies.
 
 Implemented console commands: `/agency status`, `/agency reload`, `/agency objectives`,
 `/agency evidence [player]`, `/agency rewards [player]`, `/agency progress [player]`,
@@ -194,7 +205,9 @@ Objective definitions can now optionally include `prerequisiteObjectiveIds`, `pr
 `requiredCampaignPhaseId`, `requiredMetricId`, `requiredMetricMinimum`, `hiddenUntilAvailable`,
 `requiredCampaignEventId`, `progressTarget`, `progressPerEvidence`, `progressUnit`,
 `contributionLabel`, `uniqueContributors`, `metricContributionId`, `metricContributionAmount`,
-`metricContributionMax`, `economyResourceId`, and `economyResourceDelta`.
+`metricContributionMax`, `economyResourceId`, `economyResourceDelta`,
+`rewardModifierResourceId`, `allowScarcityRewardBonus`, `allowAbundanceRewardReduction`, and
+`maxRewardModifierOverride`.
 `prerequisiteMode` defaults to `All`; set it to `Any` when completing any one listed prerequisite
 should unlock the objective. `hiddenUntilAvailable` keeps locked objectives out of the
 client-facing objective list until their prerequisites are met while preserving the full objective
@@ -541,7 +554,11 @@ are stored in `Universe/EconomyState/EconomyState.txt`, admin changes are audite
 Space Agency window. Server admins can inspect and control the state with `/economy status`,
 `/economy set <resource> <value>`, `/economy adjust <resource> <delta>`, and
 `/economy reset confirm`. Agency objectives can optionally include `economyResourceId` and
-`economyResourceDelta` to adjust a bounded resource once when the objective completes.
+`economyResourceDelta` to adjust a bounded resource once when the objective completes. They can
+also include `rewardModifierResourceId` plus explicit scarcity/abundance flags to adjust
+science/funds/reputation rewards from current economy state. Scarcity can create attractive
+recovery rewards, while reductions remain opt-in so normal MMO servers do not punish players just
+because a resource is temporarily abundant.
 
 Scarcity should usually create opportunities. If fuel, funds, reputation, or resources become
 strained, the campaign director should offer useful work that helps players recover rather than

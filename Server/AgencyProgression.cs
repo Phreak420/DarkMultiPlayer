@@ -135,6 +135,10 @@ namespace DarkMultiPlayerServer
                         metricContributionMax = Math.Max(0, objective.metricContributionMax),
                         economyResourceId = CleanText(objective.economyResourceId, string.Empty),
                         economyResourceDelta = objective.economyResourceDelta,
+                        rewardModifierResourceId = CleanText(objective.rewardModifierResourceId, string.Empty),
+                        allowScarcityRewardBonus = objective.allowScarcityRewardBonus,
+                        allowAbundanceRewardReduction = objective.allowAbundanceRewardReduction,
+                        maxRewardModifierOverride = Math.Max(0, objective.maxRewardModifierOverride),
                         hiddenUntilAvailable = objective.hiddenUntilAvailable,
                         progressTarget = Math.Max(0, objective.progressTarget),
                         progressPerEvidence = objective.progressPerEvidence <= 0 ? 1 : objective.progressPerEvidence,
@@ -480,7 +484,8 @@ namespace DarkMultiPlayerServer
                     DarkLog.Normal("Agency objective complete: " + objective.id + " by " + evidenceRecord.playerName);
                     ApplyMetricContribution(objective, evidenceRecord.playerName);
                     ApplyEconomyContribution(objective, evidenceRecord.playerName);
-                    RecordAndSendReward(evidenceRecord.playerName, objective.id, objective.rewardFunds, objective.rewardScience, objective.rewardReputation, true, client);
+                    AgencyRewardModifier rewardModifier = CalculateRewardModifier(objective);
+                    RecordAndSendReward(evidenceRecord.playerName, objective.id, objective.rewardFunds, objective.rewardScience, objective.rewardReputation, true, client, rewardModifier);
                 }
             }
             if (completedAny)
@@ -495,9 +500,13 @@ namespace DarkMultiPlayerServer
             return changedAny;
         }
 
-        private static bool RecordAndSendReward(string playerName, string objectiveId, double funds, float science, float reputation, bool sendIfOnline, ClientObject connectedClient = null)
+        private static bool RecordAndSendReward(string playerName, string objectiveId, double funds, float science, float reputation, bool sendIfOnline, ClientObject connectedClient = null, AgencyRewardModifier rewardModifier = null)
         {
-            if (funds == 0 && science == 0 && reputation == 0)
+            double modifier = rewardModifier == null ? 0 : rewardModifier.modifier;
+            double effectiveFunds = ApplyRewardModifier(funds, modifier);
+            float effectiveScience = (float)ApplyRewardModifier(science, modifier);
+            float effectiveReputation = (float)ApplyRewardModifier(reputation, modifier);
+            if (effectiveFunds == 0 && effectiveScience == 0 && effectiveReputation == 0)
             {
                 return false;
             }
@@ -505,7 +514,12 @@ namespace DarkMultiPlayerServer
             string rewardDirectory = Path.Combine(Server.universeDirectory, "AgencyRewards");
             Directory.CreateDirectory(rewardDirectory);
             string rewardFile = Path.Combine(rewardDirectory, playerName + ".log");
-            string record = DateTime.UtcNow.ToString("o") + "\t" + playerName + "\t" + objectiveId + "\t" + funds.ToString("R") + "\t" + science.ToString("R") + "\t" + reputation.ToString("R") + Environment.NewLine;
+            string record = DateTime.UtcNow.ToString("o") + "\t" + playerName + "\t" + objectiveId + "\t" + effectiveFunds.ToString("R") + "\t" + effectiveScience.ToString("R") + "\t" + effectiveReputation.ToString("R");
+            if (rewardModifier != null && rewardModifier.applied)
+            {
+                record += "\t" + rewardModifier.resourceId + "\t" + rewardModifier.resourceState + "\t" + rewardModifier.modifier.ToString("R") + "\t" + funds.ToString("R") + "\t" + science.ToString("R") + "\t" + reputation.ToString("R");
+            }
+            record += Environment.NewLine;
             lock (Server.universeSizeLock)
             {
                 File.AppendAllText(rewardFile, record);
@@ -514,9 +528,68 @@ namespace DarkMultiPlayerServer
             ClientObject client = connectedClient ?? ClientHandler.GetClientByName(playerName);
             if (sendIfOnline && client != null && client.authenticated)
             {
-                DarkMultiPlayerServer.Messages.AgencyReward.SendAgencyReward(client, objectiveId, funds, science, reputation);
+                DarkMultiPlayerServer.Messages.AgencyReward.SendAgencyReward(client, objectiveId, effectiveFunds, effectiveScience, effectiveReputation);
             }
             return true;
+        }
+
+        private static double ApplyRewardModifier(double value, double modifier)
+        {
+            if (value == 0 || modifier == 0)
+            {
+                return value;
+            }
+            return value + (value * modifier);
+        }
+
+        private static AgencyRewardModifier CalculateRewardModifier(AgencyObjective objective)
+        {
+            AgencyRewardModifier result = new AgencyRewardModifier();
+            if (string.IsNullOrEmpty(objective.rewardModifierResourceId))
+            {
+                return result;
+            }
+
+            EconomyResource resource;
+            if (!EconomyState.TryGetResource(objective.rewardModifierResourceId, out resource))
+            {
+                DarkLog.Debug("Skipped agency reward modifier for " + objective.id + ": unknown economy resource " + objective.rewardModifierResourceId);
+                return result;
+            }
+
+            double modifier = 0;
+            if (string.Equals(resource.state, "Scarce", StringComparison.OrdinalIgnoreCase) && objective.allowScarcityRewardBonus)
+            {
+                modifier = Math.Abs(resource.boundedModifier);
+            }
+            else if (string.Equals(resource.state, "Abundant", StringComparison.OrdinalIgnoreCase) && objective.allowAbundanceRewardReduction)
+            {
+                modifier = -Math.Abs(resource.boundedModifier);
+            }
+
+            if (objective.maxRewardModifierOverride > 0)
+            {
+                double maxModifier = Math.Abs(objective.maxRewardModifierOverride);
+                if (modifier > maxModifier)
+                {
+                    modifier = maxModifier;
+                }
+                if (modifier < -maxModifier)
+                {
+                    modifier = -maxModifier;
+                }
+            }
+
+            if (modifier == 0)
+            {
+                return result;
+            }
+
+            result.applied = true;
+            result.resourceId = resource.id;
+            result.resourceState = resource.state;
+            result.modifier = modifier;
+            return result;
         }
 
         private static void ApplyMetricContribution(AgencyObjective objective, string playerName)
@@ -749,6 +822,10 @@ namespace DarkMultiPlayerServer
                     metricContributionMax = objective.metricContributionMax,
                     economyResourceId = objective.economyResourceId,
                     economyResourceDelta = objective.economyResourceDelta,
+                    rewardModifierResourceId = objective.rewardModifierResourceId,
+                    allowScarcityRewardBonus = objective.allowScarcityRewardBonus,
+                    allowAbundanceRewardReduction = objective.allowAbundanceRewardReduction,
+                    maxRewardModifierOverride = objective.maxRewardModifierOverride,
                     hiddenUntilAvailable = objective.hiddenUntilAvailable,
                     progressTarget = objective.progressTarget,
                     progressPerEvidence = objective.progressPerEvidence,
@@ -1142,7 +1219,7 @@ namespace DarkMultiPlayerServer
             }
 
             string[] parts = line.Split('\t');
-            if (parts.Length != 6)
+            if (parts.Length != 6 && parts.Length != 12)
             {
                 return false;
             }
@@ -1151,6 +1228,10 @@ namespace DarkMultiPlayerServer
             double funds;
             float science;
             float reputation;
+            double rewardModifier = 0;
+            double baseFunds;
+            float baseScience;
+            float baseReputation;
             if (!DateTime.TryParse(parts[0], null, System.Globalization.DateTimeStyles.RoundtripKind, out awardedAtUtc))
             {
                 return false;
@@ -1158,6 +1239,16 @@ namespace DarkMultiPlayerServer
             if (!double.TryParse(parts[3], out funds) || !float.TryParse(parts[4], out science) || !float.TryParse(parts[5], out reputation))
             {
                 return false;
+            }
+            baseFunds = funds;
+            baseScience = science;
+            baseReputation = reputation;
+            if (parts.Length == 12)
+            {
+                if (!double.TryParse(parts[8], out rewardModifier) || !double.TryParse(parts[9], out baseFunds) || !float.TryParse(parts[10], out baseScience) || !float.TryParse(parts[11], out baseReputation))
+                {
+                    return false;
+                }
             }
 
             record = new AgencyRewardRecord
@@ -1167,7 +1258,13 @@ namespace DarkMultiPlayerServer
                 objectiveId = parts[2],
                 funds = funds,
                 science = science,
-                reputation = reputation
+                reputation = reputation,
+                modifierResourceId = parts.Length == 12 ? parts[6] : string.Empty,
+                modifierResourceState = parts.Length == 12 ? parts[7] : string.Empty,
+                rewardModifier = rewardModifier,
+                baseFunds = baseFunds,
+                baseScience = baseScience,
+                baseReputation = baseReputation
             };
             return true;
         }
@@ -1333,6 +1430,18 @@ namespace DarkMultiPlayerServer
         public double economyResourceDelta;
 
         [DataMember]
+        public string rewardModifierResourceId;
+
+        [DataMember]
+        public bool allowScarcityRewardBonus;
+
+        [DataMember]
+        public bool allowAbundanceRewardReduction;
+
+        [DataMember]
+        public double maxRewardModifierOverride;
+
+        [DataMember]
         public bool hiddenUntilAvailable;
 
         [DataMember]
@@ -1393,6 +1502,20 @@ namespace DarkMultiPlayerServer
         public double funds;
         public float science;
         public float reputation;
+        public string modifierResourceId;
+        public string modifierResourceState;
+        public double rewardModifier;
+        public double baseFunds;
+        public float baseScience;
+        public float baseReputation;
+    }
+
+    public class AgencyRewardModifier
+    {
+        public bool applied;
+        public string resourceId;
+        public string resourceState;
+        public double modifier;
     }
 
     public class AgencyObjectiveProgress

@@ -174,6 +174,25 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        public static bool TryGetResource(string resourceId, out EconomyResource resource)
+        {
+            resource = null;
+            if (!IsResourceIdSafe(resourceId))
+            {
+                return false;
+            }
+            lock (stateLock)
+            {
+                EconomyResource foundResource = FindResource(resourceId);
+                if (foundResource == null)
+                {
+                    return false;
+                }
+                resource = CloneResource(foundResource);
+                return true;
+            }
+        }
+
         public static bool ResetState(bool confirmed, string actor)
         {
             if (!confirmed)

@@ -54,6 +54,7 @@ prominently and preserve original license and copyright notices.
   read-only client display.~~
 - [x] ~~Add configurable campaign phase automation and campaign event state.~~
 - [x] ~~Add bounded server-owned economy/resource state with admin tools and read-only display.~~
+- [x] ~~Add safe economy-driven reward modifiers for Agency objectives.~~
 - [ ] Add shared economy and resource pressure with strong safety limits.
 - [ ] Add story/event-driven campaigns with configurable phases.
 - [ ] Add seasonal campaign archives, historical statistics, and Hall of Fame records.
@@ -313,6 +314,9 @@ Implemented foundation:
   and exposed read-only in the Space Agency window.
 - `/economy status`, `/economy set <resource> <value>`, `/economy adjust <resource> <delta>`,
   and `/economy reset confirm` provide admin control with configured min/max bounds applied.
+- Agency objectives can opt into economy-driven reward modifiers with bounded scarcity bonuses
+  and explicitly enabled abundance reductions. This creates light resource pressure without
+  passive economic collapse or punishing returning players by default.
 
 ## Server Telemetry And External Dashboard Support
 

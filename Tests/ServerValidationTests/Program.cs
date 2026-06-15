@@ -69,6 +69,8 @@ namespace ServerValidationTests
             Run("Agency progress objective contributes metric on completion", AgencyProgressObjectiveContributesMetricOnCompletion);
             Run("Agency metric contribution clamps to max", AgencyMetricContributionClampsToMax);
             Run("Agency objective completion adjusts economy resource", AgencyObjectiveCompletionAdjustsEconomyResource);
+            Run("Agency scarcity reward modifier applies bounded bonus", AgencyScarcityRewardModifierAppliesBoundedBonus);
+            Run("Agency abundance reward reduction is opt-in", AgencyAbundanceRewardReductionIsOptIn);
             Run("Agency shared progress completes objective", AgencySharedProgressCompletesObjective);
             Run("Agency shared progress reloads and resets", AgencySharedProgressReloadsAndResets);
             Run("Agency unique contributors count once", AgencyUniqueContributorsCountOnce);
@@ -1238,6 +1240,55 @@ namespace ServerValidationTests
             Assert(value == 65, "objective completion did not adjust economy resource");
         }
 
+        private static void AgencyScarcityRewardModifierAppliesBoundedBonus()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-economy-reward-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            WriteEconomyResourceConfig("fuel-reserve", 10);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"fuel-recovery\",\"title\":\"Fuel Recovery\",\"description\":\"Recover scarce fuel.\",\"status\":\"Available\",\"scope\":\"Server\",\"evidenceType\":\"ADMIN_CONFIRMED\",\"evidenceId\":\"fuel-recovery\",\"rewardFunds\":100,\"rewardScience\":10,\"rewardReputation\":2,\"rewardModifierResourceId\":\"fuel-reserve\",\"allowScarcityRewardBonus\":true}]}");
+            Settings.settingsStore.agencyProgressionEnabled = true;
+
+            EconomyState.Load(true);
+            AgencyProgression.Load(true);
+            Assert(AgencyProgression.RecordAdminEvidence("Alice", (int)AgencyEvidenceType.ADMIN_CONFIRMED, "fuel-recovery"), "admin scarcity reward evidence failed");
+
+            AgencyRewardRecord[] rewardRecords = AgencyProgression.GetRewardRecords("Alice");
+            Assert(rewardRecords.Length == 1, "scarcity reward query returned unexpected record count");
+            AssertNear(rewardRecords[0].funds, 115, "scarcity reward funds did not include bounded bonus");
+            AssertNear(rewardRecords[0].science, 11.5, "scarcity reward science did not include bounded bonus");
+            AssertNear(rewardRecords[0].reputation, 2.3, "scarcity reward reputation did not include bounded bonus");
+            Assert(rewardRecords[0].modifierResourceId == "fuel-reserve", "scarcity reward record did not include modifier resource");
+            AssertNear(rewardRecords[0].rewardModifier, 0.15, "scarcity reward record did not include expected modifier");
+            AssertNear(rewardRecords[0].baseFunds, 100, "scarcity reward record did not preserve base funds");
+        }
+
+        private static void AgencyAbundanceRewardReductionIsOptIn()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-economy-reward-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            WriteEconomyResourceConfig("fuel-reserve", 90);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"no-reduction\",\"title\":\"No Reduction\",\"description\":\"Abundance reduction disabled.\",\"status\":\"Available\",\"scope\":\"Server\",\"evidenceType\":\"ADMIN_CONFIRMED\",\"evidenceId\":\"no-reduction\",\"rewardFunds\":100,\"rewardModifierResourceId\":\"fuel-reserve\"},{\"id\":\"with-reduction\",\"title\":\"With Reduction\",\"description\":\"Abundance reduction enabled.\",\"status\":\"Available\",\"scope\":\"Personal\",\"evidenceType\":\"ADMIN_CONFIRMED\",\"evidenceId\":\"with-reduction\",\"rewardFunds\":100,\"rewardModifierResourceId\":\"fuel-reserve\",\"allowAbundanceRewardReduction\":true}]}");
+            Settings.settingsStore.agencyProgressionEnabled = true;
+
+            EconomyState.Load(true);
+            AgencyProgression.Load(true);
+            Assert(AgencyProgression.RecordAdminEvidence("Alice", (int)AgencyEvidenceType.ADMIN_CONFIRMED, "no-reduction"), "admin no-reduction reward evidence failed");
+            Assert(AgencyProgression.RecordAdminEvidence("Alice", (int)AgencyEvidenceType.ADMIN_CONFIRMED, "with-reduction"), "admin reduction reward evidence failed");
+
+            AgencyRewardRecord[] rewardRecords = AgencyProgression.GetRewardRecords("Alice");
+            Assert(rewardRecords.Length == 2, "abundance reward query returned unexpected record count");
+            AssertNear(rewardRecords[0].funds, 100, "abundance reward reduction applied without opt-in");
+            AssertNear(rewardRecords[0].rewardModifier, 0, "abundance no-reduction record included modifier");
+            AssertNear(rewardRecords[1].funds, 95, "abundance reward reduction did not apply after opt-in");
+            AssertNear(rewardRecords[1].rewardModifier, -0.05, "abundance reward record did not include expected modifier");
+        }
+
         private static void AgencyPersonalObjectiveStateIsPerPlayer()
         {
             CreateUniverse();
@@ -1532,6 +1583,11 @@ namespace ServerValidationTests
         {
             Assert(client.sendMessageQueueHigh.TryDequeue(out ServerMessage message), "no high-priority response was queued");
             Assert(message.type == ServerMessageType.CONNECTION_END, "expected CONNECTION_END but received " + message.type);
+        }
+
+        private static void AssertNear(double actual, double expected, string message)
+        {
+            Assert(Math.Abs(actual - expected) < 0.0001, message + " (expected " + expected + ", got " + actual + ")");
         }
 
         private static void Assert(bool condition, string message)

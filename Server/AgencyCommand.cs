@@ -117,7 +117,8 @@ namespace DarkMultiPlayerServer
             for (int i = start; i < records.Length; i++)
             {
                 AgencyRewardRecord record = records[i];
-                DarkLog.Normal(record.awardedAtUtc.ToString("u") + " " + record.playerName + " " + record.objectiveId + " funds=" + record.funds + " science=" + record.science + " reputation=" + record.reputation);
+                string modifier = record.rewardModifier == 0 ? string.Empty : " modifier=" + (record.rewardModifier * 100).ToString("+0.##;-0.##") + "% resource=" + record.modifierResourceId + " state=" + record.modifierResourceState + " baseFunds=" + record.baseFunds + " baseScience=" + record.baseScience + " baseReputation=" + record.baseReputation;
+                DarkLog.Normal(record.awardedAtUtc.ToString("u") + " " + record.playerName + " " + record.objectiveId + " funds=" + record.funds + " science=" + record.science + " reputation=" + record.reputation + modifier);
             }
         }
 

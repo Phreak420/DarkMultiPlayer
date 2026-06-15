@@ -120,6 +120,10 @@ namespace DarkMultiPlayer
                 double[] metricContributionMaxes = new double[objectiveCount];
                 string[] objectiveEconomyResourceIds = new string[objectiveCount];
                 double[] objectiveEconomyResourceDeltas = new double[objectiveCount];
+                string[] objectiveRewardModifierResourceIds = new string[objectiveCount];
+                bool[] objectiveAllowScarcityRewardBonuses = new bool[objectiveCount];
+                bool[] objectiveAllowAbundanceRewardReductions = new bool[objectiveCount];
+                double[] objectiveMaxRewardModifierOverrides = new double[objectiveCount];
                 string[] progressUnits = new string[objectiveCount];
                 string[] contributionLabels = new string[objectiveCount];
                 int[] contributorCounts = new int[objectiveCount];
@@ -185,6 +189,20 @@ namespace DarkMultiPlayer
                                     economyResourceValues = mr.Read<double[]>();
                                     economyResourceMaxValues = mr.Read<double[]>();
                                     economyResourceModifiers = mr.Read<double[]>();
+                                    try
+                                    {
+                                        objectiveRewardModifierResourceIds = mr.Read<string[]>();
+                                        objectiveAllowScarcityRewardBonuses = mr.Read<bool[]>();
+                                        objectiveAllowAbundanceRewardReductions = mr.Read<bool[]>();
+                                        objectiveMaxRewardModifierOverrides = mr.Read<double[]>();
+                                    }
+                                    catch (Exception)
+                                    {
+                                        objectiveRewardModifierResourceIds = new string[objectiveCount];
+                                        objectiveAllowScarcityRewardBonuses = new bool[objectiveCount];
+                                        objectiveAllowAbundanceRewardReductions = new bool[objectiveCount];
+                                        objectiveMaxRewardModifierOverrides = new double[objectiveCount];
+                                    }
                                 }
                                 catch (Exception)
                                 {
@@ -197,6 +215,10 @@ namespace DarkMultiPlayer
                                     economyResourceValues = new double[0];
                                     economyResourceMaxValues = new double[0];
                                     economyResourceModifiers = new double[0];
+                                    objectiveRewardModifierResourceIds = new string[objectiveCount];
+                                    objectiveAllowScarcityRewardBonuses = new bool[objectiveCount];
+                                    objectiveAllowAbundanceRewardReductions = new bool[objectiveCount];
+                                    objectiveMaxRewardModifierOverrides = new double[objectiveCount];
                                 }
                             }
                             catch (Exception)
@@ -211,6 +233,10 @@ namespace DarkMultiPlayer
                         {
                             objectiveEconomyResourceIds = new string[objectiveCount];
                             objectiveEconomyResourceDeltas = new double[objectiveCount];
+                            objectiveRewardModifierResourceIds = new string[objectiveCount];
+                            objectiveAllowScarcityRewardBonuses = new bool[objectiveCount];
+                            objectiveAllowAbundanceRewardReductions = new bool[objectiveCount];
+                            objectiveMaxRewardModifierOverrides = new double[objectiveCount];
                             progressUnits = new string[objectiveCount];
                             contributionLabels = new string[objectiveCount];
                             contributorCounts = new int[objectiveCount];
@@ -226,6 +252,10 @@ namespace DarkMultiPlayer
                         metricContributionMaxes = new double[objectiveCount];
                         objectiveEconomyResourceIds = new string[objectiveCount];
                         objectiveEconomyResourceDeltas = new double[objectiveCount];
+                        objectiveRewardModifierResourceIds = new string[objectiveCount];
+                        objectiveAllowScarcityRewardBonuses = new bool[objectiveCount];
+                        objectiveAllowAbundanceRewardReductions = new bool[objectiveCount];
+                        objectiveMaxRewardModifierOverrides = new double[objectiveCount];
                         progressUnits = new string[objectiveCount];
                         contributionLabels = new string[objectiveCount];
                         contributorCounts = new int[objectiveCount];
@@ -267,6 +297,14 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Received invalid agency economy contribution data from server.");
                     objectiveEconomyResourceIds = new string[objectiveCount];
                     objectiveEconomyResourceDeltas = new double[objectiveCount];
+                }
+                if (objectiveRewardModifierResourceIds.Length != objectiveCount || objectiveAllowScarcityRewardBonuses.Length != objectiveCount || objectiveAllowAbundanceRewardReductions.Length != objectiveCount || objectiveMaxRewardModifierOverrides.Length != objectiveCount)
+                {
+                    DarkLog.Debug("Received invalid agency reward modifier data from server.");
+                    objectiveRewardModifierResourceIds = new string[objectiveCount];
+                    objectiveAllowScarcityRewardBonuses = new bool[objectiveCount];
+                    objectiveAllowAbundanceRewardReductions = new bool[objectiveCount];
+                    objectiveMaxRewardModifierOverrides = new double[objectiveCount];
                 }
                 if (progressUnits.Length != objectiveCount || contributionLabels.Length != objectiveCount || contributorCounts.Length != objectiveCount || contributors.Length != objectiveCount)
                 {
@@ -330,6 +368,10 @@ namespace DarkMultiPlayer
                             metricContributionMax = metricContributionMaxes[i],
                             economyResourceId = objectiveEconomyResourceIds[i],
                             economyResourceDelta = objectiveEconomyResourceDeltas[i],
+                            rewardModifierResourceId = objectiveRewardModifierResourceIds[i],
+                            allowScarcityRewardBonus = objectiveAllowScarcityRewardBonuses[i],
+                            allowAbundanceRewardReduction = objectiveAllowAbundanceRewardReductions[i],
+                            maxRewardModifierOverride = objectiveMaxRewardModifierOverrides[i],
                             progressUnit = progressUnits[i],
                             contributionLabel = contributionLabels[i],
                             contributorCount = contributorCounts[i],
@@ -728,6 +770,10 @@ namespace DarkMultiPlayer
         public double metricContributionMax;
         public string economyResourceId;
         public double economyResourceDelta;
+        public string rewardModifierResourceId;
+        public bool allowScarcityRewardBonus;
+        public bool allowAbundanceRewardReduction;
+        public double maxRewardModifierOverride;
         public string progressUnit;
         public string contributionLabel;
         public int contributorCount;
