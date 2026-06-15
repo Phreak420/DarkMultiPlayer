@@ -127,6 +127,7 @@ namespace DarkMultiPlayerServer
                         prerequisiteObjectiveIds = CleanPrerequisites(objective.prerequisiteObjectiveIds),
                         prerequisiteMode = CleanPrerequisiteMode(objective.prerequisiteMode),
                         requiredCampaignPhaseId = CleanText(objective.requiredCampaignPhaseId, string.Empty),
+                        requiredCampaignEventId = CleanText(objective.requiredCampaignEventId, string.Empty),
                         requiredMetricId = CleanText(objective.requiredMetricId, string.Empty),
                         requiredMetricMinimum = objective.requiredMetricMinimum,
                         metricContributionId = CleanText(objective.metricContributionId, string.Empty),
@@ -366,6 +367,15 @@ namespace DarkMultiPlayerServer
             return removed;
         }
 
+        public static bool IsServerObjectiveComplete(string objectiveId)
+        {
+            if (!SafeFile.IsNameSafe(objectiveId))
+            {
+                return false;
+            }
+            return GetCompletion(objectiveId, string.Empty) != null;
+        }
+
         public static bool ReplayReward(string playerName, string objectiveId)
         {
             if (!IsAdminTargetSafe(playerName, objectiveId))
@@ -473,6 +483,7 @@ namespace DarkMultiPlayerServer
             if (completedAny)
             {
                 SaveCompletions();
+                CampaignState.EvaluateAutomation("objective");
             }
             if (changedAny)
             {
@@ -711,6 +722,7 @@ namespace DarkMultiPlayerServer
                     prerequisiteObjectiveIds = objective.prerequisiteObjectiveIds,
                     prerequisiteMode = objective.prerequisiteMode,
                     requiredCampaignPhaseId = objective.requiredCampaignPhaseId,
+                    requiredCampaignEventId = objective.requiredCampaignEventId,
                     requiredMetricId = objective.requiredMetricId,
                     requiredMetricMinimum = objective.requiredMetricMinimum,
                     metricContributionId = objective.metricContributionId,
@@ -824,6 +836,10 @@ namespace DarkMultiPlayerServer
             {
                 return false;
             }
+            if (!string.IsNullOrEmpty(objective.requiredCampaignEventId) && !CampaignState.IsEventActiveOrComplete(objective.requiredCampaignEventId))
+            {
+                return false;
+            }
             if (!string.IsNullOrEmpty(objective.requiredMetricId))
             {
                 double metricValue;
@@ -841,7 +857,7 @@ namespace DarkMultiPlayerServer
 
         private static bool HasUnlockConditions(AgencyObjective objective)
         {
-            return (objective.prerequisiteObjectiveIds != null && objective.prerequisiteObjectiveIds.Length > 0) || !string.IsNullOrEmpty(objective.requiredCampaignPhaseId) || !string.IsNullOrEmpty(objective.requiredMetricId);
+            return (objective.prerequisiteObjectiveIds != null && objective.prerequisiteObjectiveIds.Length > 0) || !string.IsNullOrEmpty(objective.requiredCampaignPhaseId) || !string.IsNullOrEmpty(objective.requiredCampaignEventId) || !string.IsNullOrEmpty(objective.requiredMetricId);
         }
 
         private static double AddProgress(AgencyObjective objective, string completionPlayer, AgencyEvidenceRecord evidenceRecord, out bool addedContribution)
@@ -1270,6 +1286,9 @@ namespace DarkMultiPlayerServer
 
         [DataMember]
         public string requiredCampaignPhaseId;
+
+        [DataMember]
+        public string requiredCampaignEventId;
 
         [DataMember]
         public string requiredMetricId;

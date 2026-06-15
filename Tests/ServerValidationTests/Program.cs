@@ -40,6 +40,8 @@ namespace ServerValidationTests
             Run("Campaign state loads defaults", CampaignStateLoadsDefaults);
             Run("Campaign state updates metrics and phases", CampaignStateUpdatesMetricsAndPhases);
             Run("Campaign state resets with backup", CampaignStateResetsWithBackup);
+            Run("Campaign phase auto-advances from metric", CampaignPhaseAutoAdvancesFromMetric);
+            Run("Campaign events become available and can be completed", CampaignEventsBecomeAvailableAndCanBeCompleted);
             Run("Agency progression skips invalid objective IDs", AgencyProgressionSkipsInvalidObjectiveIds);
             Run("Agency objective contract metadata loads", AgencyObjectiveContractMetadataLoads);
             Run("Agency evidence disabled is ignored", AgencyEvidenceDisabledIsIgnored);
@@ -57,6 +59,7 @@ namespace ServerValidationTests
             Run("Agency hidden objectives appear after unlock", AgencyHiddenObjectivesAppearAfterUnlock);
             Run("Agency campaign phase unlocks objectives", AgencyCampaignPhaseUnlocksObjectives);
             Run("Agency campaign metric unlocks objectives", AgencyCampaignMetricUnlocksObjectives);
+            Run("Agency campaign event unlocks objectives", AgencyCampaignEventUnlocksObjectives);
             Run("Agency hidden campaign objectives appear after unlock", AgencyHiddenCampaignObjectivesAppearAfterUnlock);
             Run("Agency objective completion contributes campaign metric", AgencyObjectiveCompletionContributesCampaignMetric);
             Run("Agency completed objective does not repeat metric contribution", AgencyCompletedObjectiveDoesNotRepeatMetricContribution);
@@ -644,6 +647,44 @@ namespace ServerValidationTests
             Assert(surveyProgress != null && surveyProgress.value == 0, "campaign reset did not restore configured metric default");
         }
 
+        private static void CampaignPhaseAutoAdvancesFromMetric()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-campaign-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "CampaignState.json"),
+                "{\"campaignName\":\"Test Campaign\",\"currentPhaseId\":\"phase-one\",\"phases\":[{\"id\":\"phase-one\",\"title\":\"Phase One\",\"description\":\"Start.\",\"autoAdvanceToPhaseId\":\"phase-two\",\"requiredMetricId\":\"readiness\",\"requiredMetricMinimum\":10},{\"id\":\"phase-two\",\"title\":\"Phase Two\",\"description\":\"Next.\"}],\"metrics\":[{\"id\":\"readiness\",\"title\":\"Readiness\",\"category\":\"Test\",\"value\":0,\"target\":10,\"unit\":\"\"}]}");
+
+            CampaignState.Load(true);
+            Assert(CampaignState.CurrentPhaseId == "phase-one", "campaign started in wrong phase");
+            Assert(CampaignState.SetMetric("readiness", 10, "test"), "campaign readiness metric update failed");
+
+            Assert(CampaignState.CurrentPhaseId == "phase-two", "campaign phase did not auto-advance after metric threshold");
+            string audit = File.ReadAllText(Path.Combine(Server.universeDirectory, "CampaignState", "CampaignAudit.log"));
+            Assert(audit.Contains("phase-auto-advanced"), "campaign audit did not include auto phase advance");
+        }
+
+        private static void CampaignEventsBecomeAvailableAndCanBeCompleted()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-campaign-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "CampaignState.json"),
+                "{\"campaignName\":\"Test Campaign\",\"currentPhaseId\":\"phase-one\",\"phases\":[{\"id\":\"phase-one\",\"title\":\"Phase One\",\"description\":\"Start.\"}],\"metrics\":[{\"id\":\"readiness\",\"title\":\"Readiness\",\"category\":\"Test\",\"value\":0,\"target\":10,\"unit\":\"\"}],\"events\":[{\"id\":\"readiness-event\",\"title\":\"Readiness Event\",\"description\":\"Unlocked by readiness.\",\"startsAtPhase\":\"phase-one\",\"requiredMetricId\":\"readiness\",\"requiredMetricMinimum\":10}]}");
+
+            CampaignState.Load(true);
+            Assert(CampaignState.Events.Length == 1, "campaign event did not load");
+            Assert(CampaignState.Events[0].status == "Locked", "campaign event started available before conditions");
+            Assert(CampaignState.SetMetric("readiness", 10, "test"), "campaign readiness metric update failed");
+            Assert(CampaignState.Events[0].status == "Available", "campaign event did not become available after conditions");
+            Assert(CampaignState.ActivateEvent("readiness-event", "test"), "campaign event activation failed");
+            Assert(CampaignState.Events[0].status == "Active", "campaign event did not activate");
+            Assert(CampaignState.CompleteEvent("readiness-event", "test"), "campaign event completion failed");
+            Assert(CampaignState.Events[0].status == "Complete", "campaign event did not complete");
+        }
+
         private static void AgencyProgressionSkipsInvalidObjectiveIds()
         {
             Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-agency-" + Guid.NewGuid().ToString("N"));
@@ -989,6 +1030,28 @@ namespace ServerValidationTests
             Assert(CampaignState.SetMetric("survey-progress", 25, "test"), "campaign metric update failed");
             objectives = AgencyProgression.Objectives;
             Assert(objectives.Length == 1 && objectives[0].status == "Available", "campaign metric objective did not unlock at threshold");
+        }
+
+        private static void AgencyCampaignEventUnlocksObjectives()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-campaign-unlock-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "CampaignState.json"),
+                "{\"campaignName\":\"Test Campaign\",\"currentPhaseId\":\"kerbin-foundation\",\"phases\":[{\"id\":\"kerbin-foundation\",\"title\":\"Kerbin\",\"description\":\"Start.\"}],\"metrics\":[],\"events\":[{\"id\":\"relay-event\",\"title\":\"Relay Event\",\"description\":\"Active event.\",\"status\":\"Active\"}]}");
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"event-objective\",\"title\":\"Event Objective\",\"description\":\"Unlocked by campaign event.\",\"status\":\"Locked\",\"scope\":\"Server\",\"evidenceType\":\"ADMIN_CONFIRMED\",\"evidenceId\":\"event-objective\",\"requiredCampaignEventId\":\"relay-event\"}]}");
+
+            CampaignState.Load(true);
+            AgencyProgression.Load(true);
+
+            AgencyObjective[] objectives = AgencyProgression.Objectives;
+            Assert(objectives.Length == 1 && objectives[0].status == "Available", "campaign event objective did not unlock for active event");
+            Assert(CampaignState.CompleteEvent("relay-event", "test"), "campaign event completion failed");
+            objectives = AgencyProgression.Objectives;
+            Assert(objectives.Length == 1 && objectives[0].status == "Available", "campaign event objective did not stay unlocked for completed event");
         }
 
         private static void AgencyHiddenCampaignObjectivesAppearAfterUnlock()

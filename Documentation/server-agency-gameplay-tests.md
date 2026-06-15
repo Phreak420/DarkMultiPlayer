@@ -214,11 +214,52 @@ Expected:
 
 - `Universe/CampaignState/WorldState.txt` is created.
 - `/campaign status` lists the current phase and configured metrics.
-- `/campaign set survey-progress 25` updates the stored metric.
-- `/campaign advance mun-expansion` changes the current phase.
+- `/campaign set survey-progress 25` updates the stored metric and may auto-advance to
+  `mun-expansion` when the default sample phase automation is present.
+- `/campaign advance mun-expansion` manually changes the current phase.
 - `Universe/CampaignState/CampaignAudit.log` records metric and phase changes.
 - The Space Agency window updates for connected clients after metric/phase changes.
 - `/campaign reset confirm` writes a `WorldState.reset-*.bak` backup before reloading defaults.
+
+## Campaign Event Smoke Test
+
+Use campaign event fields such as:
+
+```json
+{
+  "id": "relay-buildout",
+  "title": "Kerbin Relay Buildout",
+  "description": "Mission Control is prioritizing communications infrastructure around Kerbin.",
+  "startsAtPhase": "kerbin-foundation",
+  "requiredMetricId": "communications-strength",
+  "requiredMetricMinimum": 10,
+  "objectiveIds": ["reach-orbit"]
+}
+```
+
+Optionally gate an objective with:
+
+```json
+{
+  "id": "relay-followup",
+  "title": "Relay Follow-up",
+  "description": "Unlocked by the relay buildout event.",
+  "status": "Locked",
+  "scope": "Server",
+  "evidenceType": "ADMIN_CONFIRMED",
+  "evidenceId": "relay-followup",
+  "requiredCampaignEventId": "relay-buildout"
+}
+```
+
+Expected:
+
+- `/campaign events` lists configured events and their status.
+- When the phase, metric, and objective requirements are met, the event becomes `Available`.
+- `/campaign activate relay-buildout` changes the event to `Active`.
+- `/campaign complete relay-buildout` changes the event to `Complete`.
+- Objectives with `requiredCampaignEventId` unlock when the event is `Active` or `Complete`.
+- Event changes are written to `Universe/CampaignState/CampaignAudit.log`.
 
 ## Campaign Unlock Condition Smoke Test
 
@@ -628,11 +669,11 @@ Expected:
 - Objective prerequisites currently use completed objective IDs; richer boolean conditions and
   objective chains are future work.
 - Shared progress objectives currently use one configured evidence type/id and numeric progress
-  target; richer contribution rules are future work.
+  target, with optional progress units, contribution labels, and unique-contributor rules.
 - `uniqueContributors` can prevent one player from advancing the same progress objective more than
   once, but team/faction contribution rules are future work.
 - Rewards are personal to the player whose evidence completed the objective unless an admin
   intentionally replays or revokes a reward.
 - Generated stock KSP contracts are not implemented yet.
-- Campaign phases and global metrics can be configured and changed by admins; automatic phase
-  unlock rules and campaign events are future work.
+- Campaign phases, global metrics, optional phase auto-advance rules, and campaign events can be
+  configured and changed by admins.

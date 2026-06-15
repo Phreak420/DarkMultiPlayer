@@ -11,8 +11,10 @@ namespace DarkMultiPlayerServer
     {
         private const int MaxMetrics = 50;
         private const int MaxPhases = 20;
+        private const int MaxEvents = 50;
         private static readonly List<CampaignMetric> metrics = new List<CampaignMetric>();
         private static readonly List<CampaignPhase> phases = new List<CampaignPhase>();
+        private static readonly List<CampaignEvent> events = new List<CampaignEvent>();
         private static readonly object stateLock = new object();
 
         public static string CampaignName { get; private set; }
@@ -40,6 +42,17 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        public static CampaignEvent[] Events
+        {
+            get
+            {
+                lock (stateLock)
+                {
+                    return BuildEventView();
+                }
+            }
+        }
+
         public static CampaignPhase CurrentPhase
         {
             get
@@ -57,6 +70,7 @@ namespace DarkMultiPlayerServer
             {
                 metrics.Clear();
                 phases.Clear();
+                events.Clear();
                 CampaignName = string.Empty;
                 CurrentPhaseId = string.Empty;
             }
@@ -102,7 +116,11 @@ namespace DarkMultiPlayerServer
                         {
                             id = phase.id,
                             title = CleanText(phase.title, phase.id),
-                            description = CleanText(phase.description, string.Empty)
+                            description = CleanText(phase.description, string.Empty),
+                            autoAdvanceToPhaseId = CleanText(phase.autoAdvanceToPhaseId, string.Empty),
+                            requiredObjectiveIds = CleanIds(phase.requiredObjectiveIds),
+                            requiredMetricId = CleanText(phase.requiredMetricId, string.Empty),
+                            requiredMetricMinimum = phase.requiredMetricMinimum
                         });
                     }
                 }
@@ -148,10 +166,41 @@ namespace DarkMultiPlayerServer
                         });
                     }
                 }
+
+                if (campaignFile.events != null)
+                {
+                    foreach (CampaignEvent campaignEvent in campaignFile.events)
+                    {
+                        if (events.Count >= MaxEvents)
+                        {
+                            DarkLog.Error("Campaign event limit reached. Extra events were ignored.");
+                            break;
+                        }
+                        if (campaignEvent == null || string.IsNullOrEmpty(campaignEvent.id) || !SafeFile.IsNameSafe(campaignEvent.id))
+                        {
+                            DarkLog.Error("Skipped campaign event with an empty or unsafe id.");
+                            continue;
+                        }
+                        string persistedStatus;
+                        string status = persistedState.TryGetValue("event." + campaignEvent.id, out persistedStatus) ? persistedStatus : CleanEventStatus(campaignEvent.status);
+                        events.Add(new CampaignEvent
+                        {
+                            id = campaignEvent.id,
+                            title = CleanText(campaignEvent.title, campaignEvent.id),
+                            description = CleanText(campaignEvent.description, string.Empty),
+                            status = status,
+                            startsAtPhase = CleanText(campaignEvent.startsAtPhase, string.Empty),
+                            requiredMetricId = CleanText(campaignEvent.requiredMetricId, string.Empty),
+                            requiredMetricMinimum = campaignEvent.requiredMetricMinimum,
+                            objectiveIds = CleanIds(campaignEvent.objectiveIds)
+                        });
+                    }
+                }
             }
 
             SaveState();
-            DarkLog.Normal("Loaded campaign state '" + CampaignName + "' with " + Metrics.Length + " metrics and " + Phases.Length + " phases.");
+            EvaluateAutomation("load");
+            DarkLog.Normal("Loaded campaign state '" + CampaignName + "' with " + Metrics.Length + " metrics, " + Phases.Length + " phases, and " + Events.Length + " events.");
         }
 
         public static bool SetMetric(string metricId, double value, string actor)
@@ -171,6 +220,7 @@ namespace DarkMultiPlayerServer
                 metric.value = value;
                 SaveState();
                 RecordAudit("metric-set", actor, metricId, "previous=" + previousValue.ToString("R") + ";value=" + value.ToString("R"));
+                EvaluateAutomationLocked(actor);
                 return true;
             }
         }
@@ -211,7 +261,44 @@ namespace DarkMultiPlayerServer
                 CurrentPhaseId = phase.id;
                 SaveState();
                 RecordAudit("phase-advanced", actor, phase.id, "previousPhaseId=" + previousPhaseId);
+                EvaluateAutomationLocked(actor);
                 return true;
+            }
+        }
+
+        public static bool ActivateEvent(string eventId, string actor)
+        {
+            return SetEventStatus(eventId, "Active", actor, "event-activated");
+        }
+
+        public static bool CompleteEvent(string eventId, string actor)
+        {
+            return SetEventStatus(eventId, "Complete", actor, "event-completed");
+        }
+
+        public static bool IsEventActiveOrComplete(string eventId)
+        {
+            if (!IsMetricIdSafe(eventId))
+            {
+                return false;
+            }
+            lock (stateLock)
+            {
+                CampaignEvent campaignEvent = FindEvent(eventId);
+                if (campaignEvent == null)
+                {
+                    return false;
+                }
+                string status = GetEventStatus(campaignEvent);
+                return string.Equals(status, "Active", StringComparison.OrdinalIgnoreCase) || string.Equals(status, "Complete", StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        public static bool EvaluateAutomation(string actor)
+        {
+            lock (stateLock)
+            {
+                return EvaluateAutomationLocked(actor);
             }
         }
 
@@ -240,7 +327,101 @@ namespace DarkMultiPlayerServer
         {
             CampaignPhase phase = CurrentPhase;
             string phaseTitle = phase == null ? "(none)" : phase.title;
-            return CampaignName + " phase=" + CurrentPhaseId + " " + phaseTitle + " metrics=" + Metrics.Length;
+            return CampaignName + " phase=" + CurrentPhaseId + " " + phaseTitle + " metrics=" + Metrics.Length + " events=" + Events.Length;
+        }
+
+        private static bool SetEventStatus(string eventId, string status, string actor, string auditAction)
+        {
+            if (!IsMetricIdSafe(eventId))
+            {
+                return false;
+            }
+            lock (stateLock)
+            {
+                CampaignEvent campaignEvent = FindEvent(eventId);
+                if (campaignEvent == null)
+                {
+                    return false;
+                }
+                string previousStatus = campaignEvent.status;
+                campaignEvent.status = CleanEventStatus(status);
+                SaveState();
+                RecordAudit(auditAction, actor, eventId, "previousStatus=" + previousStatus + ";status=" + campaignEvent.status);
+                return true;
+            }
+        }
+
+        private static bool EvaluateAutomationLocked(string actor)
+        {
+            bool changed = false;
+            CampaignPhase phase = FindPhase(CurrentPhaseId);
+            if (phase != null && !string.IsNullOrEmpty(phase.autoAdvanceToPhaseId) && PhaseAutomationConditionsMet(phase))
+            {
+                CampaignPhase nextPhase = FindPhase(phase.autoAdvanceToPhaseId);
+                if (nextPhase != null && !string.Equals(CurrentPhaseId, nextPhase.id, StringComparison.OrdinalIgnoreCase))
+                {
+                    string previousPhaseId = CurrentPhaseId;
+                    CurrentPhaseId = nextPhase.id;
+                    RecordAudit("phase-auto-advanced", actor, nextPhase.id, "previousPhaseId=" + previousPhaseId);
+                    changed = true;
+                }
+            }
+
+            foreach (CampaignEvent campaignEvent in events)
+            {
+                if (string.IsNullOrEmpty(campaignEvent.status) && EventConditionsMet(campaignEvent))
+                {
+                    campaignEvent.status = "Available";
+                    RecordAudit("event-available", actor, campaignEvent.id, "phase=" + CurrentPhaseId);
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                SaveState();
+            }
+            return changed;
+        }
+
+        private static bool PhaseAutomationConditionsMet(CampaignPhase phase)
+        {
+            return MetricConditionMet(phase.requiredMetricId, phase.requiredMetricMinimum) && ObjectivesComplete(phase.requiredObjectiveIds);
+        }
+
+        private static bool EventConditionsMet(CampaignEvent campaignEvent)
+        {
+            if (!string.IsNullOrEmpty(campaignEvent.startsAtPhase) && !string.Equals(CurrentPhaseId, campaignEvent.startsAtPhase, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+            return MetricConditionMet(campaignEvent.requiredMetricId, campaignEvent.requiredMetricMinimum) && ObjectivesComplete(campaignEvent.objectiveIds);
+        }
+
+        private static bool MetricConditionMet(string metricId, double minimum)
+        {
+            if (string.IsNullOrEmpty(metricId))
+            {
+                return true;
+            }
+            CampaignMetric metric = FindMetric(metricId);
+            return metric != null && metric.value >= minimum;
+        }
+
+        private static bool ObjectivesComplete(string[] objectiveIds)
+        {
+            if (objectiveIds == null || objectiveIds.Length == 0)
+            {
+                return true;
+            }
+            foreach (string objectiveId in objectiveIds)
+            {
+                if (!AgencyProgression.IsServerObjectiveComplete(objectiveId))
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         private static bool IsMetricIdSafe(string value)
@@ -272,6 +453,48 @@ namespace DarkMultiPlayerServer
             return null;
         }
 
+        private static CampaignEvent FindEvent(string eventId)
+        {
+            foreach (CampaignEvent campaignEvent in events)
+            {
+                if (string.Equals(campaignEvent.id, eventId, StringComparison.OrdinalIgnoreCase))
+                {
+                    return campaignEvent;
+                }
+            }
+            return null;
+        }
+
+        private static CampaignEvent[] BuildEventView()
+        {
+            List<CampaignEvent> view = new List<CampaignEvent>();
+            foreach (CampaignEvent campaignEvent in events)
+            {
+                view.Add(new CampaignEvent
+                {
+                    id = campaignEvent.id,
+                    title = campaignEvent.title,
+                    description = campaignEvent.description,
+                    status = GetEventStatus(campaignEvent),
+                    startsAtPhase = campaignEvent.startsAtPhase,
+                    requiredMetricId = campaignEvent.requiredMetricId,
+                    requiredMetricMinimum = campaignEvent.requiredMetricMinimum,
+                    objectiveIds = campaignEvent.objectiveIds
+                });
+            }
+            return view.ToArray();
+        }
+
+        private static string GetEventStatus(CampaignEvent campaignEvent)
+        {
+            string status = CleanEventStatus(campaignEvent.status);
+            if (!string.IsNullOrEmpty(status))
+            {
+                return status;
+            }
+            return EventConditionsMet(campaignEvent) ? "Available" : "Locked";
+        }
+
         private static void SaveState()
         {
             Directory.CreateDirectory(GetStateDirectory());
@@ -280,6 +503,10 @@ namespace DarkMultiPlayerServer
             foreach (CampaignMetric metric in metrics)
             {
                 lines.Add("metric." + metric.id + "=" + metric.value.ToString("R"));
+            }
+            foreach (CampaignEvent campaignEvent in events)
+            {
+                lines.Add("event." + campaignEvent.id + "=" + CleanEventStatus(campaignEvent.status));
             }
             File.WriteAllLines(GetStateFile(), lines.ToArray());
         }
@@ -350,7 +577,10 @@ namespace DarkMultiPlayerServer
                     {
                         id = "kerbin-foundation",
                         title = "Kerbin Foundation",
-                        description = "Build early agency capability and orbital infrastructure."
+                        description = "Build early agency capability and orbital infrastructure.",
+                        autoAdvanceToPhaseId = "mun-expansion",
+                        requiredMetricId = "survey-progress",
+                        requiredMetricMinimum = 25
                     },
                     new CampaignPhase
                     {
@@ -378,6 +608,19 @@ namespace DarkMultiPlayerServer
                         value = 0,
                         target = 100,
                         unit = "%"
+                    }
+                },
+                events = new CampaignEvent[]
+                {
+                    new CampaignEvent
+                    {
+                        id = "relay-buildout",
+                        title = "Kerbin Relay Buildout",
+                        description = "Mission Control is prioritizing communications infrastructure around Kerbin.",
+                        startsAtPhase = "kerbin-foundation",
+                        requiredMetricId = "communications-strength",
+                        requiredMetricMinimum = 10,
+                        objectiveIds = new string[] { "reach-orbit" }
                     }
                 }
             };
@@ -414,6 +657,44 @@ namespace DarkMultiPlayerServer
             return value.Replace("\r", " ").Replace("\n", " ").Trim();
         }
 
+        private static string CleanEventStatus(string status)
+        {
+            if (string.Equals(status, "Active", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Active";
+            }
+            if (string.Equals(status, "Complete", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Complete";
+            }
+            if (string.Equals(status, "Available", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Available";
+            }
+            return string.Empty;
+        }
+
+        private static string[] CleanIds(string[] ids)
+        {
+            if (ids == null || ids.Length == 0)
+            {
+                return new string[0];
+            }
+            List<string> cleanIds = new List<string>();
+            foreach (string id in ids)
+            {
+                if (SafeFile.IsNameSafe(id))
+                {
+                    cleanIds.Add(id);
+                }
+                else
+                {
+                    DarkLog.Error("Skipped unsafe campaign objective id '" + id + "'.");
+                }
+            }
+            return cleanIds.ToArray();
+        }
+
         private static string CleanAudit(string value)
         {
             if (string.IsNullOrEmpty(value))
@@ -438,6 +719,9 @@ namespace DarkMultiPlayerServer
 
         [DataMember]
         public CampaignMetric[] metrics;
+
+        [DataMember]
+        public CampaignEvent[] events;
     }
 
     [DataContract]
@@ -451,6 +735,18 @@ namespace DarkMultiPlayerServer
 
         [DataMember]
         public string description;
+
+        [DataMember]
+        public string autoAdvanceToPhaseId;
+
+        [DataMember]
+        public string[] requiredObjectiveIds;
+
+        [DataMember]
+        public string requiredMetricId;
+
+        [DataMember]
+        public double requiredMetricMinimum;
     }
 
     [DataContract]
@@ -473,5 +769,33 @@ namespace DarkMultiPlayerServer
 
         [DataMember]
         public string unit;
+    }
+
+    [DataContract]
+    public class CampaignEvent
+    {
+        [DataMember]
+        public string id;
+
+        [DataMember]
+        public string title;
+
+        [DataMember]
+        public string description;
+
+        [DataMember]
+        public string status;
+
+        [DataMember]
+        public string startsAtPhase;
+
+        [DataMember]
+        public string requiredMetricId;
+
+        [DataMember]
+        public double requiredMetricMinimum;
+
+        [DataMember]
+        public string[] objectiveIds;
     }
 }

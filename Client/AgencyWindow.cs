@@ -221,6 +221,23 @@ namespace DarkMultiPlayer
             {
                 GUILayout.Label(BuildMetricSummary(metrics[i]), noteStyle, GUILayout.Height(18));
             }
+            DrawCampaignEvents();
+        }
+
+        private void DrawCampaignEvents()
+        {
+            CampaignEventSummary[] events = dmpGame.agencyProgressionWorker.CampaignEvents;
+            int shownEvents = 0;
+            for (int i = 0; i < events.Length && shownEvents < 2; i++)
+            {
+                if (!MatchesText(events[i].status, "active") && !MatchesText(events[i].status, "available"))
+                {
+                    continue;
+                }
+                string title = string.IsNullOrEmpty(events[i].title) ? events[i].id : events[i].title;
+                GUILayout.Label("Event: [" + events[i].status + "] " + title, noteStyle, GUILayout.Height(18));
+                shownEvents++;
+            }
         }
 
         private void DrawFilterButton(AgencyObjectiveFilter filter, string label)

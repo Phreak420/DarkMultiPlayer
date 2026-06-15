@@ -43,6 +43,11 @@ namespace DarkMultiPlayerServer.Messages
             string[] metricUnits = new string[campaignMetrics.Length];
             double[] metricValues = new double[campaignMetrics.Length];
             double[] metricTargets = new double[campaignMetrics.Length];
+            CampaignEvent[] campaignEvents = DarkMultiPlayerServer.CampaignState.Events;
+            string[] eventIds = new string[campaignEvents.Length];
+            string[] eventTitles = new string[campaignEvents.Length];
+            string[] eventDescriptions = new string[campaignEvents.Length];
+            string[] eventStatuses = new string[campaignEvents.Length];
 
             for (int i = 0; i < objectives.Length; i++)
             {
@@ -77,6 +82,13 @@ namespace DarkMultiPlayerServer.Messages
                 metricUnits[i] = campaignMetrics[i].unit;
                 metricValues[i] = campaignMetrics[i].value;
                 metricTargets[i] = campaignMetrics[i].target;
+            }
+            for (int i = 0; i < campaignEvents.Length; i++)
+            {
+                eventIds[i] = campaignEvents[i].id;
+                eventTitles[i] = campaignEvents[i].title;
+                eventDescriptions[i] = campaignEvents[i].description;
+                eventStatuses[i] = campaignEvents[i].status;
             }
 
             ServerMessage newMessage = new ServerMessage();
@@ -117,6 +129,10 @@ namespace DarkMultiPlayerServer.Messages
                 mw.Write<string[]>(objectiveContributors);
                 mw.Write<double[]>(objectiveProgressPerEvidence);
                 mw.Write<bool[]>(objectiveUniqueContributors);
+                mw.Write<string[]>(eventIds);
+                mw.Write<string[]>(eventTitles);
+                mw.Write<string[]>(eventDescriptions);
+                mw.Write<string[]>(eventStatuses);
                 newMessage.data = mw.GetMessageBytes();
             }
             ClientHandler.SendToClient(client, newMessage, true);

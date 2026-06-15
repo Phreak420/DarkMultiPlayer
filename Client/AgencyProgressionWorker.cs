@@ -11,6 +11,7 @@ namespace DarkMultiPlayer
         private const int MaxEvidenceIdLength = 128;
         private readonly List<AgencyObjectiveSummary> objectives = new List<AgencyObjectiveSummary>();
         private readonly List<CampaignMetricSummary> campaignMetrics = new List<CampaignMetricSummary>();
+        private readonly List<CampaignEventSummary> campaignEvents = new List<CampaignEventSummary>();
         private readonly HashSet<string> sentEvidenceIds = new HashSet<string>();
         private readonly Dictionary<Guid, string> vesselBodies = new Dictionary<Guid, string>();
         private readonly Queue<AgencyRewardSummary> pendingRewards = new Queue<AgencyRewardSummary>();
@@ -60,6 +61,17 @@ namespace DarkMultiPlayer
             }
         }
 
+        public CampaignEventSummary[] CampaignEvents
+        {
+            get
+            {
+                lock (campaignEvents)
+                {
+                    return campaignEvents.ToArray();
+                }
+            }
+        }
+
         public void HandleAgencyProgression(ByteArray messageData)
         {
             using (MessageReader mr = new MessageReader(messageData.data))
@@ -99,6 +111,10 @@ namespace DarkMultiPlayer
                 string[] contributors = new string[objectiveCount];
                 double[] progressPerEvidence = new double[objectiveCount];
                 bool[] uniqueContributors = new bool[objectiveCount];
+                string[] eventIds = new string[0];
+                string[] eventTitles = new string[0];
+                string[] eventDescriptions = new string[0];
+                string[] eventStatuses = new string[0];
                 try
                 {
                     categories = mr.Read<string[]>();
@@ -126,6 +142,20 @@ namespace DarkMultiPlayer
                             contributors = mr.Read<string[]>();
                             progressPerEvidence = mr.Read<double[]>();
                             uniqueContributors = mr.Read<bool[]>();
+                            try
+                            {
+                                eventIds = mr.Read<string[]>();
+                                eventTitles = mr.Read<string[]>();
+                                eventDescriptions = mr.Read<string[]>();
+                                eventStatuses = mr.Read<string[]>();
+                            }
+                            catch (Exception)
+                            {
+                                eventIds = new string[0];
+                                eventTitles = new string[0];
+                                eventDescriptions = new string[0];
+                                eventStatuses = new string[0];
+                            }
                         }
                         catch (Exception)
                         {
@@ -192,6 +222,14 @@ namespace DarkMultiPlayer
                     progressPerEvidence = new double[objectiveCount];
                     uniqueContributors = new bool[objectiveCount];
                 }
+                if (eventTitles.Length != eventIds.Length || eventDescriptions.Length != eventIds.Length || eventStatuses.Length != eventIds.Length)
+                {
+                    DarkLog.Debug("Received invalid campaign event data from server.");
+                    eventIds = new string[0];
+                    eventTitles = new string[0];
+                    eventDescriptions = new string[0];
+                    eventStatuses = new string[0];
+                }
 
                 lock (objectives)
                 {
@@ -243,6 +281,20 @@ namespace DarkMultiPlayer
                             unit = metricUnits[i],
                             value = metricValues[i],
                             target = metricTargets[i]
+                        });
+                    }
+                }
+                lock (campaignEvents)
+                {
+                    campaignEvents.Clear();
+                    for (int i = 0; i < eventIds.Length; i++)
+                    {
+                        campaignEvents.Add(new CampaignEventSummary
+                        {
+                            id = eventIds[i],
+                            title = eventTitles[i],
+                            description = eventDescriptions[i],
+                            status = eventStatuses[i]
                         });
                     }
                 }
@@ -298,6 +350,10 @@ namespace DarkMultiPlayer
                 CampaignPhaseId = null;
                 CampaignPhaseTitle = null;
                 CampaignPhaseDescription = null;
+            }
+            lock (campaignEvents)
+            {
+                campaignEvents.Clear();
             }
             sentEvidenceIds.Clear();
             vesselBodies.Clear();
@@ -595,5 +651,13 @@ namespace DarkMultiPlayer
         public string unit;
         public double value;
         public double target;
+    }
+
+    public class CampaignEventSummary
+    {
+        public string id;
+        public string title;
+        public string description;
+        public string status;
     }
 }

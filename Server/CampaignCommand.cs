@@ -25,11 +25,20 @@ namespace DarkMultiPlayerServer
                 case "advance":
                     AdvancePhase(argument);
                     break;
+                case "events":
+                    ShowEvents();
+                    break;
+                case "activate":
+                    ActivateEvent(argument);
+                    break;
+                case "complete":
+                    CompleteEvent(argument);
+                    break;
                 case "reset":
                     Reset(argument);
                     break;
                 default:
-                    DarkLog.Normal("Usage: /campaign [status|set <metric> <value>|advance <phase>|reset confirm]");
+                    DarkLog.Normal("Usage: /campaign [status|set <metric> <value>|advance <phase>|events|activate <event>|complete <event>|reset confirm]");
                     break;
             }
         }
@@ -53,6 +62,7 @@ namespace DarkMultiPlayerServer
                 string target = metric.target > 0 ? "/" + metric.target.ToString("0.##") : "";
                 DarkLog.Normal(metric.id + " [" + metric.category + "] " + metric.title + " = " + metric.value.ToString("0.##") + target + metric.unit);
             }
+            ShowEvents();
         }
 
         private static void SetMetric(string argument)
@@ -92,6 +102,52 @@ namespace DarkMultiPlayerServer
             else
             {
                 DarkLog.Normal("Campaign phase advance failed. Check that the phase id is valid.");
+            }
+        }
+
+        private static void ShowEvents()
+        {
+            CampaignEvent[] events = CampaignState.Events;
+            DarkLog.Normal("Campaign events: " + events.Length);
+            foreach (CampaignEvent campaignEvent in events)
+            {
+                DarkLog.Normal(campaignEvent.id + " [" + campaignEvent.status + "] " + campaignEvent.title);
+            }
+        }
+
+        private static void ActivateEvent(string eventId)
+        {
+            if (string.IsNullOrEmpty(eventId))
+            {
+                DarkLog.Normal("Usage: /campaign activate <event>");
+                return;
+            }
+            if (CampaignState.ActivateEvent(eventId, "server"))
+            {
+                DarkLog.Normal("Campaign event '" + eventId + "' activated.");
+                DarkMultiPlayerServer.Messages.AgencyProgression.SendAgencyProgressionToAll();
+            }
+            else
+            {
+                DarkLog.Normal("Campaign event activation failed. Check that the event id is valid.");
+            }
+        }
+
+        private static void CompleteEvent(string eventId)
+        {
+            if (string.IsNullOrEmpty(eventId))
+            {
+                DarkLog.Normal("Usage: /campaign complete <event>");
+                return;
+            }
+            if (CampaignState.CompleteEvent(eventId, "server"))
+            {
+                DarkLog.Normal("Campaign event '" + eventId + "' completed.");
+                DarkMultiPlayerServer.Messages.AgencyProgression.SendAgencyProgressionToAll();
+            }
+            else
+            {
+                DarkLog.Normal("Campaign event completion failed. Check that the event id is valid.");
             }
         }
 

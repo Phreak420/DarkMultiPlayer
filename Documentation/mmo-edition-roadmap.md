@@ -52,6 +52,7 @@ prominently and preserve original license and copyright notices.
 - [x] ~~Add richer global community objectives that one or many players can contribute toward.~~
 - [x] ~~Add server-owned campaign/world-state foundations with phases, metrics, admin tools, and
   read-only client display.~~
+- [x] ~~Add configurable campaign phase automation and campaign event state.~~
 - [ ] Add shared economy and resource pressure with strong safety limits.
 - [ ] Add story/event-driven campaigns with configurable phases.
 - [ ] Add seasonal campaign archives, historical statistics, and Hall of Fame records.
@@ -302,6 +303,10 @@ Implemented foundation:
 - Shared progress objectives expose contribution labels, progress units, unique contributor
   settings, contributor counts, and admin contribution inspection while preserving solo-friendly
   server play.
+- Campaign phases can optionally auto-advance when configured objective and metric requirements
+  are met.
+- Campaign events can be configured, audited, shown to clients, and controlled with
+  `/campaign events`, `/campaign activate <event>`, and `/campaign complete <event>`.
 
 ## Server Telemetry And External Dashboard Support
 

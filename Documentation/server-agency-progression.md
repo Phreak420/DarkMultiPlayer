@@ -192,9 +192,9 @@ Implemented scopes: `Personal` and `Server`.
 
 Objective definitions can now optionally include `prerequisiteObjectiveIds`, `prerequisiteMode`,
 `requiredCampaignPhaseId`, `requiredMetricId`, `requiredMetricMinimum`, `hiddenUntilAvailable`,
-`progressTarget`, `progressPerEvidence`, `progressUnit`, `contributionLabel`,
-`uniqueContributors`, `metricContributionId`, `metricContributionAmount`, and
-`metricContributionMax`.
+`requiredCampaignEventId`, `progressTarget`, `progressPerEvidence`, `progressUnit`,
+`contributionLabel`, `uniqueContributors`, `metricContributionId`, `metricContributionAmount`,
+and `metricContributionMax`.
 `prerequisiteMode` defaults to `All`; set it to `Any` when completing any one listed prerequisite
 should unlock the objective. `hiddenUntilAvailable` keeps locked objectives out of the
 client-facing objective list until their prerequisites are met while preserving the full objective
@@ -443,15 +443,16 @@ Phases should be data-driven. A campaign file should be able to express phase or
 prerequisites, optional side objectives, hidden future objectives, and server-wide unlocks without
 requiring a new DMP build.
 
-Implemented foundation: `Config/CampaignState.json` can define a campaign name, phases, and global
-metrics. Mutable values are stored in `Universe/CampaignState/WorldState.txt`, admin changes are
-audited in `Universe/CampaignState/CampaignAudit.log`, and players can view the current phase plus
-global metrics in the Space Agency window. This does not yet implement automatic phase unlocks,
-events, economy effects, or mod integration hooks.
+Implemented foundation: `Config/CampaignState.json` can define a campaign name, phases, global
+metrics, optional phase auto-advance rules, and optional campaign events. Mutable values are stored
+in `Universe/CampaignState/WorldState.txt`, admin changes are audited in
+`Universe/CampaignState/CampaignAudit.log`, and players can view the current phase, global
+metrics, and active or available events in the Space Agency window. This does not yet implement
+economy effects, seasonal archives, or mod integration hooks.
 
 ### Event System
 
-A future campaign director may support temporary server events. Events should be optional,
+The campaign director now has a first optional event-state foundation. Events should be optional,
 configurable, auditable, and bounded. They should add urgency or variety without destabilizing a
 server's long-term progression.
 
@@ -466,6 +467,12 @@ Examples:
 Events should have explicit start conditions, duration, effects, objective hooks, and recovery
 paths. They should be able to trigger new objectives or modify existing objective rewards, but
 they should not bypass the same validation and audit rules used by normal agency progression.
+
+Implemented foundation: campaign events support `id`, `title`, `description`, `status`,
+`startsAtPhase`, `requiredMetricId`, `requiredMetricMinimum`, and `objectiveIds`. Server admins can
+inspect and control them with `/campaign events`, `/campaign activate <event>`, and
+`/campaign complete <event>`. Agency objectives can optionally require
+`requiredCampaignEventId`, which unlocks when the event is active or complete.
 
 ### Persistent Server Progression
 
