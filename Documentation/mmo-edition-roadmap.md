@@ -40,6 +40,7 @@ prominently and preserve original license and copyright notices.
 - [x] ~~Add admin progress inspection/reset and clearer progress display.~~
 - [x] ~~Add optional unique-contributor tracking for shared objectives.~~
 - [x] ~~Start DMP-owned contract-like objective presentation.~~
+- [x] ~~Add optional Agency objective acceptance and active mission state.~~
 - [x] ~~Expand vessel objective evidence to cover more progression milestones.~~
 - [x] ~~Add any/all prerequisite modes for branching objective chains.~~
 - [x] ~~Add hidden-until-unlocked objectives for spoiler-free campaign chains.~~
@@ -80,6 +81,8 @@ keeping the current evidence/objective/reward architecture intact.
 - [x] ~~Add a dedicated Server Space Agency window instead of relying only on the current hidden tab.~~
 - [x] ~~Add objective filtering for available, active, completed, locked, and shared objectives.~~
 - [x] ~~Add clearer reward and progress presentation before a player accepts or pursues an objective.~~
+- [x] ~~Add an optional Accept action so configured objectives can become active before evidence
+  completion is allowed.~~
 - [x] ~~Add optional server-authored objective categories such as exploration, construction,
   logistics, rescue, infrastructure, science, and community goals.~~
 - [x] ~~Add lightweight objective notification messages that are queued on the Unity main thread.~~

@@ -36,6 +36,9 @@ namespace DarkMultiPlayerServer.Messages
             bool[] objectiveAllowScarcityRewardBonuses = new bool[objectives.Length];
             bool[] objectiveAllowAbundanceRewardReductions = new bool[objectives.Length];
             double[] objectiveMaxRewardModifierOverrides = new double[objectives.Length];
+            bool[] objectiveRequiresAcceptances = new bool[objectives.Length];
+            string[] objectiveAcceptedBy = new string[objectives.Length];
+            string[] objectiveAcceptedAtUtc = new string[objectives.Length];
             string[] objectiveProgressUnits = new string[objectives.Length];
             string[] objectiveContributionLabels = new string[objectives.Length];
             int[] objectiveContributorCounts = new int[objectives.Length];
@@ -89,6 +92,9 @@ namespace DarkMultiPlayerServer.Messages
                 objectiveAllowScarcityRewardBonuses[i] = objectives[i].allowScarcityRewardBonus;
                 objectiveAllowAbundanceRewardReductions[i] = objectives[i].allowAbundanceRewardReduction;
                 objectiveMaxRewardModifierOverrides[i] = objectives[i].maxRewardModifierOverride;
+                objectiveRequiresAcceptances[i] = objectives[i].requiresAcceptance;
+                objectiveAcceptedBy[i] = objectives[i].acceptedBy;
+                objectiveAcceptedAtUtc[i] = objectives[i].acceptedAtUtc;
                 objectiveProgressUnits[i] = objectives[i].progressUnit;
                 objectiveContributionLabels[i] = objectives[i].contributionLabel;
                 objectiveContributorCounts[i] = objectives[i].contributorCount;
@@ -180,6 +186,9 @@ namespace DarkMultiPlayerServer.Messages
                 mw.Write<bool[]>(objectiveAllowScarcityRewardBonuses);
                 mw.Write<bool[]>(objectiveAllowAbundanceRewardReductions);
                 mw.Write<double[]>(objectiveMaxRewardModifierOverrides);
+                mw.Write<bool[]>(objectiveRequiresAcceptances);
+                mw.Write<string[]>(objectiveAcceptedBy);
+                mw.Write<string[]>(objectiveAcceptedAtUtc);
                 newMessage.data = mw.GetMessageBytes();
             }
             ClientHandler.SendToClient(client, newMessage, true);

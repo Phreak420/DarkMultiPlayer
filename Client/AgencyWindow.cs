@@ -350,6 +350,7 @@ namespace DarkMultiPlayer
             GUILayout.Space(6);
             GUILayout.Label(objective.description, noteStyle);
             GUILayout.Space(8);
+            DrawObjectiveActions(objective);
             DrawDetailLine("Progress", BuildProgressSummary(objective));
             DrawDetailLine("Contributors", BuildContributorSummary(objective));
             DrawDetailLine("Contribution", BuildContributionSummary(objective));
@@ -357,10 +358,28 @@ namespace DarkMultiPlayer
             DrawDetailLine("Reward Mod", BuildRewardModifierSummary(objective));
             DrawDetailLine("World State", BuildWorldStateSummary(objective));
             DrawDetailLine("Economy", BuildObjectiveEconomySummary(objective));
+            DrawDetailLine("Accepted", BuildAcceptanceSummary(objective));
             DrawDetailLine("Category", string.IsNullOrEmpty(objective.category) ? "General" : objective.category);
             DrawDetailLine("Scope", string.IsNullOrEmpty(objective.scope) ? "Server" : objective.scope);
             DrawDetailLine("Status", string.IsNullOrEmpty(objective.status) ? "Available" : objective.status);
             GUILayout.EndScrollView();
+        }
+
+        private void DrawObjectiveActions(AgencyObjectiveSummary objective)
+        {
+            if (!objective.requiresAcceptance || !MatchesText(objective.status, "available"))
+            {
+                return;
+            }
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Accept", buttonStyle, GUILayout.Width(90)))
+            {
+                dmpGame.networkWorker.SendAgencyObjectiveAction("accept", objective.id);
+            }
+            GUILayout.Label("Accept to make this an active agency mission.", noteStyle, GUILayout.ExpandWidth(true));
+            GUILayout.EndHorizontal();
+            GUILayout.Space(4);
         }
 
         private void DrawDetailLine(string label, string value)
@@ -555,6 +574,19 @@ namespace DarkMultiPlayer
 
             string amount = objective.economyResourceDelta > 0 ? "+" + objective.economyResourceDelta.ToString("0.##") : objective.economyResourceDelta.ToString("0.##");
             return amount + " " + GetEconomyResourceTitle(objective.economyResourceId);
+        }
+
+        private string BuildAcceptanceSummary(AgencyObjectiveSummary objective)
+        {
+            if (!objective.requiresAcceptance)
+            {
+                return string.Empty;
+            }
+            if (string.IsNullOrEmpty(objective.acceptedBy))
+            {
+                return "Required before evidence can complete this objective.";
+            }
+            return string.IsNullOrEmpty(objective.acceptedAtUtc) ? objective.acceptedBy : objective.acceptedBy + " at " + objective.acceptedAtUtc;
         }
 
         private string BuildRewardModifierSummary(AgencyObjectiveSummary objective)

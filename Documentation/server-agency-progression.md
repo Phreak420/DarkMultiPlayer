@@ -172,8 +172,10 @@ Reward modifier safety rules:
 
 Implemented console commands: `/agency status`, `/agency reload`, `/agency objectives`,
 `/agency evidence [player]`, `/agency rewards [player]`, `/agency progress [player]`,
-`/agency contributions <objective>`, `/agency resetprogress <player|server> <objective>`,
+`/agency accepted [player]`, `/agency contributions <objective>`,
+`/agency resetprogress <player|server> <objective>`,
 `/agency record <player|server> <evidenceType> <evidenceId>`,
+`/agency accept <player|server> <objective>`,
 `/agency replay <player> <objective>`, and `/agency revoke <player> <objective>`.
 
 ### Phase 5: Shared Storyline Progression
@@ -207,7 +209,7 @@ Objective definitions can now optionally include `prerequisiteObjectiveIds`, `pr
 `contributionLabel`, `uniqueContributors`, `metricContributionId`, `metricContributionAmount`,
 `metricContributionMax`, `economyResourceId`, `economyResourceDelta`,
 `rewardModifierResourceId`, `allowScarcityRewardBonus`, `allowAbundanceRewardReduction`, and
-`maxRewardModifierOverride`.
+`maxRewardModifierOverride`, and `requiresAcceptance`.
 `prerequisiteMode` defaults to `All`; set it to `Any` when completing any one listed prerequisite
 should unlock the objective. `hiddenUntilAvailable` keeps locked objectives out of the
 client-facing objective list until their prerequisites are met while preserving the full objective
@@ -241,11 +243,21 @@ state audit log.
   view inside the gated Agency tab.
 - [x] Add mission-board counts, compact progress summaries, and objective world-state effect
   details to make server-authored missions easier to scan.
+- [x] Add optional `requiresAcceptance` lifecycle gating so configured objectives must be accepted
+  before evidence can complete them.
+- [x] Persist accepted objectives and expose active mission state to admins and the Space Agency UI.
 - Avoid hard dependency on Contract Configurator in the core mod.
 - Treat stock KSP contract state as client UI/experience, not as authoritative server truth.
 
 Phase 6 implementation bias: mirror server-authored objectives in the DMP Agency UI first. Real
 stock contracts and Contract Configurator support remain future optional integrations.
+
+Objective definitions can optionally include `requiresAcceptance`. When this is `true`, an
+unlocked objective appears as `Available` until the player, server scope, or an admin accepts it.
+After acceptance it appears as `Active`, and only then can matching evidence complete it. Existing
+objectives without `requiresAcceptance` keep the previous auto-completion behavior.
+
+Implemented acceptance log: `Universe/AgencyProgression/Accepted.log`.
 
 ## Open Questions
 

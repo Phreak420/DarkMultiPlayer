@@ -2501,6 +2501,26 @@ namespace DarkMultiPlayer
             QueueOutgoingMessage(newMessage, false);
         }
 
+        public void SendAgencyObjectiveAction(string action, string objectiveId)
+        {
+            if (!dmpGame.serverAgencyProgressionEnabled)
+            {
+                return;
+            }
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.AGENCY_OBJECTIVE_ACTION;
+            int newMessageLength = 0;
+            using (MessageWriter mw = new MessageWriter(messageWriterBuffer))
+            {
+                mw.Write<string>(action);
+                mw.Write<string>(objectiveId);
+                newMessageLength = (int)mw.GetMessageLength();
+            }
+            newMessage.data = ByteRecycler.GetObject(newMessageLength);
+            Array.Copy(messageWriterBuffer, 0, newMessage.data.data, 0, newMessageLength);
+            QueueOutgoingMessage(newMessage, false);
+        }
+
         public void SendKerbalProtoMessage(string kerbalName, ByteArray kerbalBytes)
         {
             bool dataOK = false;

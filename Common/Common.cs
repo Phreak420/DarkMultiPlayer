@@ -772,6 +772,7 @@ namespace DarkMultiPlayerCommon
         CONNECTION_END,
         MODPACK_DATA,
         AGENCY_EVIDENCE,
+        AGENCY_OBJECTIVE_ACTION,
     }
 
     public enum AgencyEvidenceType

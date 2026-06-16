@@ -35,6 +35,9 @@ namespace DarkMultiPlayerServer
                 case "progress":
                     ShowProgress(argument);
                     break;
+                case "accepted":
+                    ShowAccepted(argument);
+                    break;
                 case "contributions":
                     ShowContributions(argument);
                     break;
@@ -44,6 +47,9 @@ namespace DarkMultiPlayerServer
                 case "record":
                     RecordEvidence(argument);
                     break;
+                case "accept":
+                    AcceptObjective(argument);
+                    break;
                 case "replay":
                     ReplayReward(argument);
                     break;
@@ -51,7 +57,7 @@ namespace DarkMultiPlayerServer
                     RevokeReward(argument);
                     break;
                 default:
-                    DarkLog.Normal("Usage: /agency [status|reload|objectives|evidence [player]|rewards [player]|progress [player]|contributions <objective>|resetprogress <player|server> <objective>|record <player|server> <evidenceType> <evidenceId>|replay <player> <objective>|revoke <player> <objective>]");
+                    DarkLog.Normal("Usage: /agency [status|reload|objectives|evidence [player]|rewards [player]|progress [player]|accepted [player]|contributions <objective>|resetprogress <player|server> <objective>|record <player|server> <evidenceType> <evidenceId>|accept <player|server> <objective>|replay <player> <objective>|revoke <player> <objective>]");
                     break;
             }
         }
@@ -76,6 +82,7 @@ namespace DarkMultiPlayerServer
             DarkLog.Normal("Agency pack: " + AgencyProgression.PackName);
             DarkLog.Normal("Objectives: " + complete + "/" + objectives.Length + " complete");
             DarkLog.Normal("Evidence records: " + AgencyProgression.GetEvidenceRecords().Length);
+            DarkLog.Normal("Accepted records: " + AgencyProgression.GetAcceptanceRecords().Length);
             DarkLog.Normal("Progress records: " + AgencyProgression.GetProgressRecords().Length);
             DarkLog.Normal("Reward records: " + AgencyProgression.GetRewardRecords().Length);
         }
@@ -158,6 +165,23 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        private static void ShowAccepted(string playerName)
+        {
+            if (string.Equals(playerName, "server", StringComparison.OrdinalIgnoreCase))
+            {
+                playerName = string.Empty;
+            }
+            AgencyObjectiveAcceptance[] records = string.IsNullOrEmpty(playerName) ? AgencyProgression.GetAcceptanceRecords() : AgencyProgression.GetAcceptanceRecords(playerName);
+            DarkLog.Normal("Agency accepted objective records: " + records.Length);
+            int start = Math.Max(0, records.Length - 10);
+            for (int i = start; i < records.Length; i++)
+            {
+                AgencyObjectiveAcceptance record = records[i];
+                string owner = string.IsNullOrEmpty(record.playerName) ? "server" : record.playerName;
+                DarkLog.Normal(record.acceptedAtUtc + " owner=" + owner + " objective=" + record.objectiveId + " acceptedBy=" + record.acceptedBy);
+            }
+        }
+
         private static void ResetProgress(string argument)
         {
             string playerName;
@@ -207,6 +231,26 @@ namespace DarkMultiPlayerServer
             else
             {
                 DarkLog.Normal("Agency evidence record failed. Check that agency progression is enabled and player/evidence IDs are safe.");
+            }
+        }
+
+        private static void AcceptObjective(string argument)
+        {
+            string playerName;
+            string objectiveId;
+            if (!TryReadPlayerObjective(argument, out playerName, out objectiveId))
+            {
+                DarkLog.Normal("Usage: /agency accept <player|server> <objective>");
+                return;
+            }
+
+            if (AgencyProgression.AcceptObjective(playerName, objectiveId))
+            {
+                DarkLog.Normal("Accepted agency objective " + objectiveId + " for " + playerName + ".");
+            }
+            else
+            {
+                DarkLog.Normal("Agency objective accept failed. Check that agency progression is enabled, the objective exists, is unlocked, requires acceptance, and is not already accepted or complete.");
             }
         }
 

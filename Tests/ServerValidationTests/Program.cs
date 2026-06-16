@@ -57,6 +57,7 @@ namespace ServerValidationTests
             Run("Agency contract evidence completes matching objective", AgencyContractEvidenceCompletesMatchingObjective);
             Run("Agency evidence query returns records", AgencyEvidenceQueryReturnsRecords);
             Run("Agency evidence completes matching objective", AgencyEvidenceCompletesMatchingObjective);
+            Run("Agency objective acceptance gates completion", AgencyObjectiveAcceptanceGatesCompletion);
             Run("Agency prerequisites unlock objectives", AgencyPrerequisitesUnlockObjectives);
             Run("Agency any prerequisite mode unlocks objectives", AgencyAnyPrerequisiteModeUnlocksObjectives);
             Run("Agency hidden objectives appear after unlock", AgencyHiddenObjectivesAppearAfterUnlock);
@@ -975,6 +976,41 @@ namespace ServerValidationTests
                 }
             }
             Assert(rewardQueued, "agency reward message was not queued for completing player");
+        }
+
+        private static void AgencyObjectiveAcceptanceGatesCompletion()
+        {
+            string universe = CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-agency-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"accepted-orbit\",\"title\":\"Accepted Orbit\",\"description\":\"Accept before orbit evidence counts.\",\"status\":\"Available\",\"scope\":\"Personal\",\"evidenceType\":\"VESSEL_ORBITED\",\"evidenceId\":\"orbit-Kerbin\",\"requiresAcceptance\":true,\"rewardFunds\":100}]}");
+            Settings.settingsStore.agencyProgressionEnabled = true;
+            ClientObject client = CreateClient("Grace");
+
+            AgencyProgression.Load(true);
+            SendAgencyEvidence(client, AgencyEvidenceType.VESSEL_ORBITED, "orbit-Kerbin");
+
+            AgencyObjective[] objectives = AgencyProgression.GetObjectivesForPlayer("Grace");
+            Assert(objectives[0].status == "Available", "unaccepted objective did not remain available");
+            Assert(!File.Exists(Path.Combine(universe, "AgencyProgression", "Objectives.log")), "unaccepted objective completed from evidence");
+            Assert(!File.Exists(Path.Combine(universe, "AgencyRewards", "Grace.log")), "unaccepted objective granted reward");
+
+            Assert(AgencyProgression.AcceptObjective("Grace", "accepted-orbit"), "objective acceptance failed");
+            objectives = AgencyProgression.GetObjectivesForPlayer("Grace");
+            Assert(objectives[0].status == "Active", "accepted objective did not become active");
+            Assert(objectives[0].acceptedBy == "Grace", "accepted objective did not record acceptedBy");
+            Assert(File.Exists(Path.Combine(universe, "AgencyProgression", "Accepted.log")), "objective acceptance log was not written");
+
+            AgencyProgression.Load(true);
+            objectives = AgencyProgression.GetObjectivesForPlayer("Grace");
+            Assert(objectives[0].status == "Active", "accepted objective did not reload as active");
+
+            SendAgencyEvidence(client, AgencyEvidenceType.VESSEL_ORBITED, "orbit-Kerbin");
+            objectives = AgencyProgression.GetObjectivesForPlayer("Grace");
+            Assert(objectives[0].status == "Complete", "accepted objective did not complete after evidence");
+            Assert(File.Exists(Path.Combine(universe, "AgencyRewards", "Grace.log")), "accepted objective did not grant reward");
         }
 
         private static void AgencyPrerequisitesUnlockObjectives()

@@ -15,12 +15,14 @@ namespace DarkMultiPlayerServer
         private const string CompleteStatus = "Complete";
         private const string LockedStatus = "Locked";
         private const string AvailableStatus = "Available";
+        private const string ActiveStatus = "Active";
         private const string PrerequisiteModeAll = "All";
         private const string PrerequisiteModeAny = "Any";
         private static readonly TimeSpan EvidenceRateLimit = TimeSpan.FromSeconds(1);
         private static readonly List<AgencyObjective> objectives = new List<AgencyObjective>();
         private static readonly Dictionary<string, AgencyObjectiveCompletion> completions = new Dictionary<string, AgencyObjectiveCompletion>();
         private static readonly Dictionary<string, AgencyObjectiveProgress> progress = new Dictionary<string, AgencyObjectiveProgress>();
+        private static readonly Dictionary<string, AgencyObjectiveAcceptance> acceptances = new Dictionary<string, AgencyObjectiveAcceptance>();
         private static readonly Dictionary<string, long> lastEvidenceReceiveTicks = new Dictionary<string, long>();
 
         public static string PackName { get; private set; }
@@ -61,6 +63,10 @@ namespace DarkMultiPlayerServer
             {
                 progress.Clear();
             }
+            lock (acceptances)
+            {
+                acceptances.Clear();
+            }
             lock (lastEvidenceReceiveTicks)
             {
                 lastEvidenceReceiveTicks.Clear();
@@ -87,6 +93,7 @@ namespace DarkMultiPlayerServer
 
             LoadCompletions();
             LoadProgress();
+            LoadAcceptances();
 
             PackName = CleanText(agencyFileData.packName, "Server Agency");
             OnboardingText = CleanText(agencyFileData.onboardingText, "Review server-authored objectives, shared progress, and agency rewards.");
@@ -139,6 +146,7 @@ namespace DarkMultiPlayerServer
                         allowScarcityRewardBonus = objective.allowScarcityRewardBonus,
                         allowAbundanceRewardReduction = objective.allowAbundanceRewardReduction,
                         maxRewardModifierOverride = Math.Max(0, objective.maxRewardModifierOverride),
+                        requiresAcceptance = objective.requiresAcceptance,
                         hiddenUntilAvailable = objective.hiddenUntilAvailable,
                         progressTarget = Math.Max(0, objective.progressTarget),
                         progressPerEvidence = objective.progressPerEvidence <= 0 ? 1 : objective.progressPerEvidence,
@@ -148,6 +156,8 @@ namespace DarkMultiPlayerServer
                         rewardFunds = objective.rewardFunds,
                         rewardScience = objective.rewardScience,
                         rewardReputation = objective.rewardReputation,
+                        acceptedBy = string.Empty,
+                        acceptedAtUtc = string.Empty,
                         completedBy = completion == null ? string.Empty : completion.completedBy,
                         completedAtUtc = completion == null ? string.Empty : completion.completedAtUtc
                     });
@@ -346,6 +356,81 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        public static AgencyObjectiveAcceptance[] GetAcceptanceRecords()
+        {
+            lock (acceptances)
+            {
+                List<AgencyObjectiveAcceptance> records = new List<AgencyObjectiveAcceptance>();
+                foreach (AgencyObjectiveAcceptance acceptance in acceptances.Values)
+                {
+                    records.Add(CloneAcceptance(acceptance));
+                }
+                return records.ToArray();
+            }
+        }
+
+        public static AgencyObjectiveAcceptance[] GetAcceptanceRecords(string playerName)
+        {
+            if (!SafeFile.IsNameSafe(playerName))
+            {
+                return new AgencyObjectiveAcceptance[0];
+            }
+
+            lock (acceptances)
+            {
+                List<AgencyObjectiveAcceptance> records = new List<AgencyObjectiveAcceptance>();
+                foreach (AgencyObjectiveAcceptance acceptance in acceptances.Values)
+                {
+                    if (acceptance.playerName == playerName)
+                    {
+                        records.Add(CloneAcceptance(acceptance));
+                    }
+                }
+                return records.ToArray();
+            }
+        }
+
+        public static bool AcceptObjective(string playerName, string objectiveId)
+        {
+            if (!Settings.IsAgencyProgressionActive() || !IsAdminTargetSafe(playerName, objectiveId))
+            {
+                return false;
+            }
+
+            AgencyObjective objective = FindObjective(objectiveId);
+            if (objective == null || !objective.requiresAcceptance)
+            {
+                return false;
+            }
+            if (GetObjectiveStatus(objective, playerName) == LockedStatus || HasCompletion(objective, playerName))
+            {
+                return false;
+            }
+
+            string acceptancePlayer = IsServerObjective(objective.scope) ? string.Empty : playerName;
+            if (GetAcceptance(objective.id, acceptancePlayer) != null)
+            {
+                return false;
+            }
+
+            string acceptedAt = DateTime.UtcNow.ToString("o");
+            lock (acceptances)
+            {
+                acceptances[BuildCompletionKey(objective.id, acceptancePlayer)] = new AgencyObjectiveAcceptance
+                {
+                    objectiveId = objective.id,
+                    scope = objective.scope,
+                    playerName = acceptancePlayer,
+                    acceptedBy = playerName,
+                    acceptedAtUtc = acceptedAt
+                };
+            }
+            SaveAcceptances();
+            DarkLog.Normal("Agency objective accepted: " + objective.id + " by " + playerName);
+            DarkMultiPlayerServer.Messages.AgencyProgression.SendAgencyProgressionToAll();
+            return true;
+        }
+
         public static bool ResetProgress(string playerName, string objectiveId)
         {
             if (!IsProgressResetTargetSafe(playerName, objectiveId))
@@ -432,6 +517,10 @@ namespace DarkMultiPlayerServer
                         continue;
                     }
                     if (objectiveStatus == LockedStatus)
+                    {
+                        continue;
+                    }
+                    if (objective.requiresAcceptance && !HasAcceptance(objective, evidenceRecord.playerName))
                     {
                         continue;
                     }
@@ -678,9 +767,30 @@ namespace DarkMultiPlayerServer
             return GetCompletion(objective.id, completionPlayer) != null;
         }
 
+        private static AgencyObjectiveAcceptance GetAcceptance(string objectiveId, string playerName)
+        {
+            lock (acceptances)
+            {
+                AgencyObjectiveAcceptance acceptance;
+                acceptances.TryGetValue(BuildCompletionKey(objectiveId, playerName), out acceptance);
+                return acceptance;
+            }
+        }
+
+        private static bool HasAcceptance(AgencyObjective objective, string playerName)
+        {
+            string acceptancePlayer = IsServerObjective(objective.scope) ? string.Empty : playerName;
+            return GetAcceptance(objective.id, acceptancePlayer) != null;
+        }
+
         private static string GetCompletionFile()
         {
             return Path.Combine(Server.universeDirectory, "AgencyProgression", "Objectives.log");
+        }
+
+        private static string GetAcceptanceFile()
+        {
+            return Path.Combine(Server.universeDirectory, "AgencyProgression", "Accepted.log");
         }
 
         private static void LoadCompletions()
@@ -757,6 +867,39 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        private static void LoadAcceptances()
+        {
+            string acceptanceFile = GetAcceptanceFile();
+            if (!File.Exists(acceptanceFile))
+            {
+                return;
+            }
+
+            foreach (string line in File.ReadAllLines(acceptanceFile))
+            {
+                if (string.IsNullOrEmpty(line))
+                {
+                    continue;
+                }
+                string[] parts = line.Split('\t');
+                if (parts.Length != 5 || string.IsNullOrEmpty(parts[0]))
+                {
+                    continue;
+                }
+                lock (acceptances)
+                {
+                    acceptances[BuildCompletionKey(parts[0], parts[2])] = new AgencyObjectiveAcceptance
+                    {
+                        objectiveId = parts[0],
+                        scope = parts[1],
+                        playerName = parts[2],
+                        acceptedBy = parts[3],
+                        acceptedAtUtc = parts[4]
+                    };
+                }
+            }
+        }
+
         private static void SaveCompletions()
         {
             string completionFile = GetCompletionFile();
@@ -787,6 +930,21 @@ namespace DarkMultiPlayerServer
             File.WriteAllLines(progressFile, lines.ToArray());
         }
 
+        private static void SaveAcceptances()
+        {
+            string acceptanceFile = GetAcceptanceFile();
+            Directory.CreateDirectory(Path.GetDirectoryName(acceptanceFile));
+            List<string> lines = new List<string>();
+            lock (acceptances)
+            {
+                foreach (AgencyObjectiveAcceptance acceptance in acceptances.Values)
+                {
+                    lines.Add(acceptance.objectiveId + "\t" + acceptance.scope + "\t" + acceptance.playerName + "\t" + acceptance.acceptedBy + "\t" + acceptance.acceptedAtUtc);
+                }
+            }
+            File.WriteAllLines(acceptanceFile, lines.ToArray());
+        }
+
         private static AgencyObjective[] BuildObjectiveView(string playerName, bool hideLockedHiddenObjectives)
         {
             List<AgencyObjective> view = new List<AgencyObjective>();
@@ -794,6 +952,7 @@ namespace DarkMultiPlayerServer
             {
                 string completionPlayer = IsServerObjective(objective.scope) ? string.Empty : playerName;
                 AgencyObjectiveCompletion completion = GetCompletion(objective.id, completionPlayer);
+                AgencyObjectiveAcceptance acceptance = GetAcceptance(objective.id, completionPlayer);
                 string status = GetObjectiveStatus(objective, playerName);
                 if (hideLockedHiddenObjectives && objective.hiddenUntilAvailable && status == LockedStatus)
                 {
@@ -826,6 +985,7 @@ namespace DarkMultiPlayerServer
                     allowScarcityRewardBonus = objective.allowScarcityRewardBonus,
                     allowAbundanceRewardReduction = objective.allowAbundanceRewardReduction,
                     maxRewardModifierOverride = objective.maxRewardModifierOverride,
+                    requiresAcceptance = objective.requiresAcceptance,
                     hiddenUntilAvailable = objective.hiddenUntilAvailable,
                     progressTarget = objective.progressTarget,
                     progressPerEvidence = objective.progressPerEvidence,
@@ -838,6 +998,8 @@ namespace DarkMultiPlayerServer
                     rewardFunds = objective.rewardFunds,
                     rewardScience = objective.rewardScience,
                     rewardReputation = objective.rewardReputation,
+                    acceptedBy = acceptance == null ? string.Empty : acceptance.acceptedBy,
+                    acceptedAtUtc = acceptance == null ? string.Empty : acceptance.acceptedAtUtc,
                     completedBy = completion == null ? string.Empty : completion.completedBy,
                     completedAtUtc = completion == null ? string.Empty : completion.completedAtUtc
                 });
@@ -884,7 +1046,15 @@ namespace DarkMultiPlayerServer
                     return "In Progress " + progressValue.ToString("R") + "/" + objective.progressTarget.ToString("R");
                 }
             }
+            if (objective.requiresAcceptance && HasAcceptance(objective, playerName))
+            {
+                return ActiveStatus;
+            }
             if (HasUnlockConditions(objective) && string.Equals(objective.status, LockedStatus, StringComparison.OrdinalIgnoreCase))
+            {
+                return AvailableStatus;
+            }
+            if (objective.requiresAcceptance)
             {
                 return AvailableStatus;
             }
@@ -1093,6 +1263,18 @@ namespace DarkMultiPlayerServer
                 lastContributedBy = progressRecord.lastContributedBy,
                 updatedAtUtc = progressRecord.updatedAtUtc,
                 contributedBy = progressRecord.contributedBy
+            };
+        }
+
+        private static AgencyObjectiveAcceptance CloneAcceptance(AgencyObjectiveAcceptance acceptance)
+        {
+            return new AgencyObjectiveAcceptance
+            {
+                objectiveId = acceptance.objectiveId,
+                scope = acceptance.scope,
+                playerName = acceptance.playerName,
+                acceptedBy = acceptance.acceptedBy,
+                acceptedAtUtc = acceptance.acceptedAtUtc
             };
         }
 
@@ -1442,6 +1624,9 @@ namespace DarkMultiPlayerServer
         public double maxRewardModifierOverride;
 
         [DataMember]
+        public bool requiresAcceptance;
+
+        [DataMember]
         public bool hiddenUntilAvailable;
 
         [DataMember]
@@ -1472,6 +1657,8 @@ namespace DarkMultiPlayerServer
         [DataMember]
         public float rewardReputation;
 
+        public string acceptedBy;
+        public string acceptedAtUtc;
         public string completedBy;
         public string completedAtUtc;
     }
@@ -1492,6 +1679,15 @@ namespace DarkMultiPlayerServer
         public string playerName;
         public string completedBy;
         public string completedAtUtc;
+    }
+
+    public class AgencyObjectiveAcceptance
+    {
+        public string objectiveId;
+        public string scope;
+        public string playerName;
+        public string acceptedBy;
+        public string acceptedAtUtc;
     }
 
     public class AgencyRewardRecord

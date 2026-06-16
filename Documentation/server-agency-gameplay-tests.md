@@ -200,6 +200,50 @@ Expected:
 - Completing a rewarded objective posts a concise Agency completion notification; UI notification
   failures should be logged without crashing KSP.
 
+## Objective Acceptance Lifecycle Smoke Test
+
+Use an objective with `requiresAcceptance` enabled:
+
+```json
+{
+  "id": "accepted-orbit",
+  "title": "Accepted Orbit",
+  "description": "Accept this mission before Kerbin orbit evidence can complete it.",
+  "status": "Available",
+  "scope": "Personal",
+  "contractType": "Milestone",
+  "issuer": "Server Agency",
+  "category": "Exploration",
+  "evidenceType": "VESSEL_ORBITED",
+  "evidenceId": "orbit-Kerbin",
+  "requiresAcceptance": true,
+  "rewardFunds": 5000,
+  "rewardScience": 5,
+  "rewardReputation": 2
+}
+```
+
+Steps:
+
+1. Connect to the Agency-enabled server.
+2. Open the standalone Space Agency window.
+3. Select the objective and confirm it shows as `Available`.
+4. Enter Kerbin orbit before accepting the objective.
+5. Confirm the objective does not complete.
+6. Click `Accept`.
+7. Confirm the objective moves to the `Active` filter.
+8. Enter Kerbin orbit again or run `/agency record <player> VESSEL_ORBITED orbit-Kerbin`.
+9. Run `/agency accepted <player>`.
+
+Expected:
+
+- The objective shows an `Accept` button only while it requires acceptance and is available.
+- `Universe/AgencyProgression/Accepted.log` is written after acceptance.
+- `/agency accepted <player>` shows the accepted objective.
+- Evidence before acceptance is audited but does not complete the objective or grant rewards.
+- Evidence after acceptance completes the objective and grants configured rewards once.
+- Objectives without `requiresAcceptance` keep the existing auto-completion behavior.
+
 ## Campaign State Smoke Test
 
 1. Enable Agency systems on the server.

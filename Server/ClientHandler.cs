@@ -657,6 +657,9 @@ namespace DarkMultiPlayerServer
                 case ClientMessageType.AGENCY_EVIDENCE:
                     Messages.AgencyEvidence.HandleAgencyEvidence(client, message.data);
                     break;
+                case ClientMessageType.AGENCY_OBJECTIVE_ACTION:
+                    Messages.AgencyObjectiveAction.HandleAgencyObjectiveAction(client, message.data);
+                    break;
                 default:
                     DarkLog.Debug("Unhandled message type " + message.type);
                     Messages.ConnectionEnd.SendConnectionEnd(client, "Unhandled message type " + message.type);

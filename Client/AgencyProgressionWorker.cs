@@ -124,6 +124,9 @@ namespace DarkMultiPlayer
                 bool[] objectiveAllowScarcityRewardBonuses = new bool[objectiveCount];
                 bool[] objectiveAllowAbundanceRewardReductions = new bool[objectiveCount];
                 double[] objectiveMaxRewardModifierOverrides = new double[objectiveCount];
+                bool[] objectiveRequiresAcceptances = new bool[objectiveCount];
+                string[] objectiveAcceptedBy = new string[objectiveCount];
+                string[] objectiveAcceptedAtUtc = new string[objectiveCount];
                 string[] progressUnits = new string[objectiveCount];
                 string[] contributionLabels = new string[objectiveCount];
                 int[] contributorCounts = new int[objectiveCount];
@@ -195,6 +198,18 @@ namespace DarkMultiPlayer
                                         objectiveAllowScarcityRewardBonuses = mr.Read<bool[]>();
                                         objectiveAllowAbundanceRewardReductions = mr.Read<bool[]>();
                                         objectiveMaxRewardModifierOverrides = mr.Read<double[]>();
+                                        try
+                                        {
+                                            objectiveRequiresAcceptances = mr.Read<bool[]>();
+                                            objectiveAcceptedBy = mr.Read<string[]>();
+                                            objectiveAcceptedAtUtc = mr.Read<string[]>();
+                                        }
+                                        catch (Exception)
+                                        {
+                                            objectiveRequiresAcceptances = new bool[objectiveCount];
+                                            objectiveAcceptedBy = new string[objectiveCount];
+                                            objectiveAcceptedAtUtc = new string[objectiveCount];
+                                        }
                                     }
                                     catch (Exception)
                                     {
@@ -202,6 +217,9 @@ namespace DarkMultiPlayer
                                         objectiveAllowScarcityRewardBonuses = new bool[objectiveCount];
                                         objectiveAllowAbundanceRewardReductions = new bool[objectiveCount];
                                         objectiveMaxRewardModifierOverrides = new double[objectiveCount];
+                                        objectiveRequiresAcceptances = new bool[objectiveCount];
+                                        objectiveAcceptedBy = new string[objectiveCount];
+                                        objectiveAcceptedAtUtc = new string[objectiveCount];
                                     }
                                 }
                                 catch (Exception)
@@ -219,6 +237,9 @@ namespace DarkMultiPlayer
                                     objectiveAllowScarcityRewardBonuses = new bool[objectiveCount];
                                     objectiveAllowAbundanceRewardReductions = new bool[objectiveCount];
                                     objectiveMaxRewardModifierOverrides = new double[objectiveCount];
+                                    objectiveRequiresAcceptances = new bool[objectiveCount];
+                                    objectiveAcceptedBy = new string[objectiveCount];
+                                    objectiveAcceptedAtUtc = new string[objectiveCount];
                                 }
                             }
                             catch (Exception)
@@ -237,6 +258,9 @@ namespace DarkMultiPlayer
                             objectiveAllowScarcityRewardBonuses = new bool[objectiveCount];
                             objectiveAllowAbundanceRewardReductions = new bool[objectiveCount];
                             objectiveMaxRewardModifierOverrides = new double[objectiveCount];
+                            objectiveRequiresAcceptances = new bool[objectiveCount];
+                            objectiveAcceptedBy = new string[objectiveCount];
+                            objectiveAcceptedAtUtc = new string[objectiveCount];
                             progressUnits = new string[objectiveCount];
                             contributionLabels = new string[objectiveCount];
                             contributorCounts = new int[objectiveCount];
@@ -256,6 +280,9 @@ namespace DarkMultiPlayer
                         objectiveAllowScarcityRewardBonuses = new bool[objectiveCount];
                         objectiveAllowAbundanceRewardReductions = new bool[objectiveCount];
                         objectiveMaxRewardModifierOverrides = new double[objectiveCount];
+                        objectiveRequiresAcceptances = new bool[objectiveCount];
+                        objectiveAcceptedBy = new string[objectiveCount];
+                        objectiveAcceptedAtUtc = new string[objectiveCount];
                         progressUnits = new string[objectiveCount];
                         contributionLabels = new string[objectiveCount];
                         contributorCounts = new int[objectiveCount];
@@ -305,6 +332,13 @@ namespace DarkMultiPlayer
                     objectiveAllowScarcityRewardBonuses = new bool[objectiveCount];
                     objectiveAllowAbundanceRewardReductions = new bool[objectiveCount];
                     objectiveMaxRewardModifierOverrides = new double[objectiveCount];
+                }
+                if (objectiveRequiresAcceptances.Length != objectiveCount || objectiveAcceptedBy.Length != objectiveCount || objectiveAcceptedAtUtc.Length != objectiveCount)
+                {
+                    DarkLog.Debug("Received invalid agency objective lifecycle data from server.");
+                    objectiveRequiresAcceptances = new bool[objectiveCount];
+                    objectiveAcceptedBy = new string[objectiveCount];
+                    objectiveAcceptedAtUtc = new string[objectiveCount];
                 }
                 if (progressUnits.Length != objectiveCount || contributionLabels.Length != objectiveCount || contributorCounts.Length != objectiveCount || contributors.Length != objectiveCount)
                 {
@@ -372,6 +406,9 @@ namespace DarkMultiPlayer
                             allowScarcityRewardBonus = objectiveAllowScarcityRewardBonuses[i],
                             allowAbundanceRewardReduction = objectiveAllowAbundanceRewardReductions[i],
                             maxRewardModifierOverride = objectiveMaxRewardModifierOverrides[i],
+                            requiresAcceptance = objectiveRequiresAcceptances[i],
+                            acceptedBy = objectiveAcceptedBy[i],
+                            acceptedAtUtc = objectiveAcceptedAtUtc[i],
                             progressUnit = progressUnits[i],
                             contributionLabel = contributionLabels[i],
                             contributorCount = contributorCounts[i],
@@ -774,6 +811,9 @@ namespace DarkMultiPlayer
         public bool allowScarcityRewardBonus;
         public bool allowAbundanceRewardReduction;
         public double maxRewardModifierOverride;
+        public bool requiresAcceptance;
+        public string acceptedBy;
+        public string acceptedAtUtc;
         public string progressUnit;
         public string contributionLabel;
         public int contributorCount;
