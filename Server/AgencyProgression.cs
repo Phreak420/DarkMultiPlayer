@@ -431,6 +431,40 @@ namespace DarkMultiPlayerServer
             return true;
         }
 
+        public static bool UnacceptObjective(string playerName, string objectiveId, bool allowServerObjective)
+        {
+            if (!Settings.IsAgencyProgressionActive() || !IsAdminTargetSafe(playerName, objectiveId))
+            {
+                return false;
+            }
+
+            AgencyObjective objective = FindObjective(objectiveId);
+            if (objective == null || !objective.requiresAcceptance || HasCompletion(objective, playerName))
+            {
+                return false;
+            }
+            if (IsServerObjective(objective.scope) && !allowServerObjective)
+            {
+                return false;
+            }
+
+            string acceptancePlayer = IsServerObjective(objective.scope) ? string.Empty : playerName;
+            bool removed;
+            lock (acceptances)
+            {
+                removed = acceptances.Remove(BuildCompletionKey(objective.id, acceptancePlayer));
+            }
+            if (!removed)
+            {
+                return false;
+            }
+
+            SaveAcceptances();
+            DarkLog.Normal("Agency objective acceptance cleared: " + objective.id + " by " + playerName);
+            DarkMultiPlayerServer.Messages.AgencyProgression.SendAgencyProgressionToAll();
+            return true;
+        }
+
         public static bool ResetProgress(string playerName, string objectiveId)
         {
             if (!IsProgressResetTargetSafe(playerName, objectiveId))

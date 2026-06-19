@@ -14,6 +14,10 @@ namespace DarkMultiPlayerServer.Messages
                 {
                     DarkMultiPlayerServer.AgencyProgression.AcceptObjective(client.playerName, objectiveId);
                 }
+                else if (action == "abandon")
+                {
+                    DarkMultiPlayerServer.AgencyProgression.UnacceptObjective(client.playerName, objectiveId, false);
+                }
             }
         }
     }

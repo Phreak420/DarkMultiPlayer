@@ -41,6 +41,7 @@ prominently and preserve original license and copyright notices.
 - [x] ~~Add optional unique-contributor tracking for shared objectives.~~
 - [x] ~~Start DMP-owned contract-like objective presentation.~~
 - [x] ~~Add optional Agency objective acceptance and active mission state.~~
+- [x] ~~Add mission abandon/admin unaccept support for accepted Agency objectives.~~
 - [x] ~~Expand vessel objective evidence to cover more progression milestones.~~
 - [x] ~~Add any/all prerequisite modes for branching objective chains.~~
 - [x] ~~Add hidden-until-unlocked objectives for spoiler-free campaign chains.~~
@@ -83,6 +84,8 @@ keeping the current evidence/objective/reward architecture intact.
 - [x] ~~Add clearer reward and progress presentation before a player accepts or pursues an objective.~~
 - [x] ~~Add an optional Accept action so configured objectives can become active before evidence
   completion is allowed.~~
+- [x] ~~Add an Abandon action and admin unaccept command for recoverable mission lifecycle
+  management.~~
 - [x] ~~Add optional server-authored objective categories such as exploration, construction,
   logistics, rescue, infrastructure, science, and community goals.~~
 - [x] ~~Add lightweight objective notification messages that are queued on the Unity main thread.~~

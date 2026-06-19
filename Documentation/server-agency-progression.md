@@ -176,6 +176,7 @@ Implemented console commands: `/agency status`, `/agency reload`, `/agency objec
 `/agency resetprogress <player|server> <objective>`,
 `/agency record <player|server> <evidenceType> <evidenceId>`,
 `/agency accept <player|server> <objective>`,
+`/agency unaccept <player|server> <objective>`,
 `/agency replay <player> <objective>`, and `/agency revoke <player> <objective>`.
 
 ### Phase 5: Shared Storyline Progression
@@ -246,6 +247,8 @@ state audit log.
 - [x] Add optional `requiresAcceptance` lifecycle gating so configured objectives must be accepted
   before evidence can complete them.
 - [x] Persist accepted objectives and expose active mission state to admins and the Space Agency UI.
+- [x] Allow accepted personal objectives to be abandoned, and allow admins to clear accepted
+  personal or server-scoped objective state.
 - Avoid hard dependency on Contract Configurator in the core mod.
 - Treat stock KSP contract state as client UI/experience, not as authoritative server truth.
 
@@ -258,6 +261,11 @@ After acceptance it appears as `Active`, and only then can matching evidence com
 objectives without `requiresAcceptance` keep the previous auto-completion behavior.
 
 Implemented acceptance log: `Universe/AgencyProgression/Accepted.log`.
+
+Abandoning or unaccepting an objective removes only the accepted mission state. Evidence history,
+objective completion history, and reward audit records are not deleted. Completed objectives cannot
+be abandoned or unaccepted. Players can abandon accepted personal objectives from the Space Agency
+window; server-scoped accepted objectives are cleared through admin commands.
 
 ## Open Questions
 

@@ -367,19 +367,33 @@ namespace DarkMultiPlayer
 
         private void DrawObjectiveActions(AgencyObjectiveSummary objective)
         {
-            if (!objective.requiresAcceptance || !MatchesText(objective.status, "available"))
+            if (!objective.requiresAcceptance)
             {
                 return;
             }
 
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Accept", buttonStyle, GUILayout.Width(90)))
+            if (MatchesText(objective.status, "available"))
             {
-                dmpGame.networkWorker.SendAgencyObjectiveAction("accept", objective.id);
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Accept", buttonStyle, GUILayout.Width(90)))
+                {
+                    dmpGame.networkWorker.SendAgencyObjectiveAction("accept", objective.id);
+                }
+                GUILayout.Label("Accept to make this an active agency mission.", noteStyle, GUILayout.ExpandWidth(true));
+                GUILayout.EndHorizontal();
+                GUILayout.Space(4);
             }
-            GUILayout.Label("Accept to make this an active agency mission.", noteStyle, GUILayout.ExpandWidth(true));
-            GUILayout.EndHorizontal();
-            GUILayout.Space(4);
+            else if (MatchesText(objective.status, "active") && !MatchesText(objective.scope, "server"))
+            {
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Abandon", buttonStyle, GUILayout.Width(90)))
+                {
+                    dmpGame.networkWorker.SendAgencyObjectiveAction("abandon", objective.id);
+                }
+                GUILayout.Label("Remove this from your active agency missions.", noteStyle, GUILayout.ExpandWidth(true));
+                GUILayout.EndHorizontal();
+                GUILayout.Space(4);
+            }
         }
 
         private void DrawDetailLine(string label, string value)

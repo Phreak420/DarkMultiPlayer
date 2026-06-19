@@ -232,16 +232,25 @@ Steps:
 5. Confirm the objective does not complete.
 6. Click `Accept`.
 7. Confirm the objective moves to the `Active` filter.
-8. Enter Kerbin orbit again or run `/agency record <player> VESSEL_ORBITED orbit-Kerbin`.
-9. Run `/agency accepted <player>`.
+8. Click `Abandon`.
+9. Confirm the objective returns to `Available`.
+10. Run `/agency accepted <player>`.
+11. Click `Accept` again.
+12. Enter Kerbin orbit again or run `/agency record <player> VESSEL_ORBITED orbit-Kerbin`.
+13. Run `/agency unaccept <player> accepted-orbit` after completion.
 
 Expected:
 
 - The objective shows an `Accept` button only while it requires acceptance and is available.
+- Accepted personal objectives show an `Abandon` button while active.
 - `Universe/AgencyProgression/Accepted.log` is written after acceptance.
 - `/agency accepted <player>` shows the accepted objective.
 - Evidence before acceptance is audited but does not complete the objective or grant rewards.
+- Abandoning removes only accepted mission state; evidence history remains on disk.
+- After abandon, matching evidence still does not complete the objective until it is accepted again.
 - Evidence after acceptance completes the objective and grants configured rewards once.
+- `/agency unaccept <player> accepted-orbit` fails after completion because completed objectives
+  cannot be unaccepted.
 - Objectives without `requiresAcceptance` keep the existing auto-completion behavior.
 
 ## Campaign State Smoke Test
