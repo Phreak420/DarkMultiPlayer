@@ -51,6 +51,7 @@ Current and planned MMO Edition work:
 - [x] ~~Add Agency mission history/journal records for lifecycle and reward events.~~
 - [x] ~~Improve the Space Agency mission board with mission counts, progress summaries, and
   world-state effects.~~
+- [x] ~~Improve Agency mission guidance, selected-mission history, and focused admin inspection.~~
 - [x] ~~Expand vessel evidence types for more mission milestones.~~
 - [x] ~~Add any/all prerequisite modes for branching objective chains.~~
 - [x] ~~Add hidden-until-unlocked objectives for spoiler-free campaign chains.~~

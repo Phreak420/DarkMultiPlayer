@@ -171,6 +171,7 @@ Reward modifier safety rules:
   and original base reward values when a modifier applies.
 
 Implemented console commands: `/agency status`, `/agency reload`, `/agency objectives`,
+`/agency objective <id>`,
 `/agency evidence [player]`, `/agency rewards [player]`, `/agency progress [player]`,
 `/agency accepted [player]`, `/agency contributions <objective>`,
 `/agency resetprogress <player|server> <objective>`,
@@ -252,6 +253,8 @@ state audit log.
   personal or server-scoped objective state.
 - [x] Record lifecycle and reward events in an append-only Agency journal.
 - [x] Show recent Agency activity in the Space Agency UI.
+- [x] Show selected-mission status guidance and recent mission history in the Space Agency UI.
+- [x] Add `/agency objective <id>` for focused admin inspection of one mission.
 - Avoid hard dependency on Contract Configurator in the core mod.
 - Treat stock KSP contract state as client UI/experience, not as authoritative server truth.
 

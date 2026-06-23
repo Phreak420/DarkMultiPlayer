@@ -195,6 +195,9 @@ Expected:
 - Empty filters show `No objectives match this filter.` without throwing errors.
 - Objective details show category, type, scope, issuer, description, rewards, and progress.
 - Objectives with progress targets show `Progress: current / target`, including completed progress.
+- Objective details show a short status guidance line explaining whether the mission is available,
+  active, locked, or complete.
+- Selecting an objective with journal records shows compact mission history in the details panel.
 - If `CampaignState.json` exists, the window shows current campaign phase and read-only global
   metrics above the objective filters.
 - Completing a rewarded objective posts a concise Agency completion notification; UI notification
@@ -239,6 +242,7 @@ Steps:
 12. Enter Kerbin orbit again or run `/agency record <player> VESSEL_ORBITED orbit-Kerbin`.
 13. Run `/agency unaccept <player> accepted-orbit` after completion.
 14. Run `/agency journal <player>`.
+15. Run `/agency objective accepted-orbit`.
 
 Expected:
 
@@ -256,6 +260,9 @@ Expected:
   reward-granted events.
 - `/agency journal <player>` shows recent lifecycle and reward events.
 - The Space Agency window shows compact recent activity after the server sends journal records.
+- The selected mission detail panel shows recent history for `accepted-orbit`.
+- `/agency objective accepted-orbit` shows status, evidence, reward, acceptance, and recent journal
+  context for the mission.
 - Objectives without `requiresAcceptance` keep the existing auto-completion behavior.
 
 ## Campaign State Smoke Test
@@ -559,6 +566,7 @@ Server console checks:
 
 - Run `/agency status`.
 - Run `/agency objectives`.
+- Run `/agency objective orbit-kerbin`.
 - Run `/agency evidence <player>`.
 - Run `/agency rewards <player>`.
 - Run `/agency progress`.

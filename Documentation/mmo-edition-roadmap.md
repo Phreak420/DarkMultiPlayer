@@ -43,6 +43,7 @@ prominently and preserve original license and copyright notices.
 - [x] ~~Add optional Agency objective acceptance and active mission state.~~
 - [x] ~~Add mission abandon/admin unaccept support for accepted Agency objectives.~~
 - [x] ~~Add Agency mission history/journal records for lifecycle and reward events.~~
+- [x] ~~Improve Agency mission guidance, selected-mission history, and focused admin inspection.~~
 - [x] ~~Expand vessel objective evidence to cover more progression milestones.~~
 - [x] ~~Add any/all prerequisite modes for branching objective chains.~~
 - [x] ~~Add hidden-until-unlocked objectives for spoiler-free campaign chains.~~
@@ -93,6 +94,8 @@ keeping the current evidence/objective/reward architecture intact.
 - [x] ~~Add server-configurable onboarding text for Agency Mode without turning it into a landing page.~~
 - [x] ~~Add safer in-game error handling around agency reward and notification UI calls.~~
 - [x] ~~Add read-only recent Agency activity in the Space Agency window.~~
+- [x] ~~Add selected-mission status guidance and recent mission history in the Space Agency window.~~
+- [x] ~~Add `/agency objective <id>` for focused admin gameplay diagnostics.~~
 
 ## Gameplay Profiles
 

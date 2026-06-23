@@ -7,7 +7,7 @@ namespace DarkMultiPlayer
     public class AgencyWindow
     {
         private const float WindowWidth = 560;
-        private const float WindowHeight = 420;
+        private const float WindowHeight = 460;
         private const int ObjectivesPerPage = 7;
         private readonly DMPGame dmpGame;
         private readonly NamedAction updateAction;
@@ -270,7 +270,7 @@ namespace DarkMultiPlayer
             int start = Math.Max(0, records.Length - 2);
             for (int i = start; i < records.Length; i++)
             {
-                GUILayout.Label(BuildJournalSummary(records[i]), noteStyle, GUILayout.Height(18));
+                GUILayout.Label(BuildJournalSummary(records[i]), noteStyle);
             }
         }
 
@@ -365,6 +365,7 @@ namespace DarkMultiPlayer
             detailScroll = GUILayout.BeginScrollView(detailScroll, false, true);
             GUILayout.Label(BuildObjectiveTitle(objective), headerStyle);
             GUILayout.Label(BuildObjectiveMetadata(objective), noteStyle);
+            GUILayout.Label(BuildStatusGuidance(objective), noteStyle);
             GUILayout.Space(6);
             GUILayout.Label(objective.description, noteStyle);
             GUILayout.Space(8);
@@ -380,6 +381,7 @@ namespace DarkMultiPlayer
             DrawDetailLine("Category", string.IsNullOrEmpty(objective.category) ? "General" : objective.category);
             DrawDetailLine("Scope", string.IsNullOrEmpty(objective.scope) ? "Server" : objective.scope);
             DrawDetailLine("Status", string.IsNullOrEmpty(objective.status) ? "Available" : objective.status);
+            DrawObjectiveJournal(objective);
             GUILayout.EndScrollView();
         }
 
@@ -424,6 +426,26 @@ namespace DarkMultiPlayer
             GUILayout.Label(label + ":", subHeaderStyle, GUILayout.Width(88));
             GUILayout.Label(value, noteStyle, GUILayout.ExpandWidth(true));
             GUILayout.EndHorizontal();
+        }
+
+        private void DrawObjectiveJournal(AgencyObjectiveSummary objective)
+        {
+            AgencyJournalSummary[] records = dmpGame.agencyProgressionWorker.JournalRecords;
+            int shown = 0;
+            for (int i = records.Length - 1; i >= 0 && shown < 3; i--)
+            {
+                if (records[i].objectiveId != objective.id)
+                {
+                    continue;
+                }
+                if (shown == 0)
+                {
+                    GUILayout.Space(6);
+                    GUILayout.Label("Mission History", subHeaderStyle);
+                }
+                GUILayout.Label(BuildJournalSummary(records[i]), noteStyle);
+                shown++;
+            }
         }
 
         private AgencyObjectiveSummary GetSelectedObjective(AgencyObjectiveSummary[] objectives)
@@ -621,6 +643,53 @@ namespace DarkMultiPlayer
             return string.IsNullOrEmpty(objective.acceptedAtUtc) ? objective.acceptedBy : objective.acceptedBy + " at " + objective.acceptedAtUtc;
         }
 
+        private string BuildStatusGuidance(AgencyObjectiveSummary objective)
+        {
+            if (MatchesText(objective.status, "complete"))
+            {
+                return "Completed by the server-authoritative Agency record.";
+            }
+            if (MatchesText(objective.status, "active") || MatchesText(objective.status, "in progress"))
+            {
+                if (objective.progressTarget > 0)
+                {
+                    return "Active mission. Matching evidence contributes progress until the target is reached.";
+                }
+                return "Active mission. Matching evidence can complete it.";
+            }
+            if (MatchesText(objective.status, "locked") || MatchesText(objective.status, "hidden"))
+            {
+                return BuildLockedGuidance(objective);
+            }
+            if (objective.requiresAcceptance)
+            {
+                return "Available mission. Accept it before matching evidence can complete it.";
+            }
+            return "Available mission. Matching evidence can complete it.";
+        }
+
+        private string BuildLockedGuidance(AgencyObjectiveSummary objective)
+        {
+            string reason = string.Empty;
+            if (!string.IsNullOrEmpty(objective.acceptedBy))
+            {
+                reason = AppendGuidance(reason, "accepted by " + objective.acceptedBy);
+            }
+            if (objective.progressTarget > 0)
+            {
+                reason = AppendGuidance(reason, "progress " + objective.progressValue.ToString("0.##") + "/" + objective.progressTarget.ToString("0.##"));
+            }
+            if (!string.IsNullOrEmpty(objective.metricContributionId))
+            {
+                reason = AppendGuidance(reason, "world-state objective");
+            }
+            if (string.IsNullOrEmpty(reason))
+            {
+                return "Locked mission. Complete its prerequisites or wait for server campaign state to unlock it.";
+            }
+            return "Locked mission. Current context: " + reason + ".";
+        }
+
         private string BuildRewardModifierSummary(AgencyObjectiveSummary objective)
         {
             if (string.IsNullOrEmpty(objective.rewardModifierResourceId))
@@ -696,9 +765,35 @@ namespace DarkMultiPlayer
             string owner = string.IsNullOrEmpty(record.playerName) ? "server" : record.playerName;
             string actor = string.IsNullOrEmpty(record.actor) ? owner : record.actor;
             string objective = string.IsNullOrEmpty(record.objectiveId) ? "objective" : record.objectiveId;
-            string action = string.IsNullOrEmpty(record.action) ? "updated" : record.action;
-            string details = string.IsNullOrEmpty(record.details) ? string.Empty : " (" + record.details + ")";
+            string action = BuildJournalActionLabel(record.action);
+            string details = BuildJournalDetails(record.details);
             return action + ": " + objective + " by " + actor + " for " + owner + details;
+        }
+
+        private string BuildJournalActionLabel(string action)
+        {
+            if (string.IsNullOrEmpty(action))
+            {
+                return "Updated";
+            }
+            if (action == "reward-granted")
+            {
+                return "Reward granted";
+            }
+            if (action == "unaccepted")
+            {
+                return "Acceptance cleared";
+            }
+            return char.ToUpper(action[0]) + action.Substring(1);
+        }
+
+        private string BuildJournalDetails(string details)
+        {
+            if (string.IsNullOrEmpty(details))
+            {
+                return string.Empty;
+            }
+            return " (" + details.Replace(",", ", ") + ")";
         }
 
         private string GetMetricTitle(string metricId)
@@ -744,6 +839,15 @@ namespace DarkMultiPlayer
                 return reward;
             }
             return rewardSummary + ", " + reward;
+        }
+
+        private string AppendGuidance(string guidance, string value)
+        {
+            if (string.IsNullOrEmpty(guidance))
+            {
+                return value;
+            }
+            return guidance + "; " + value;
         }
 
         private void RemoveWindowLock()

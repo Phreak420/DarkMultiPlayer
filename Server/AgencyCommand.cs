@@ -26,6 +26,9 @@ namespace DarkMultiPlayerServer
                 case "objectives":
                     ShowObjectives();
                     break;
+                case "objective":
+                    ShowObjective(argument);
+                    break;
                 case "evidence":
                     ShowEvidence(argument);
                     break;
@@ -63,7 +66,7 @@ namespace DarkMultiPlayerServer
                     RevokeReward(argument);
                     break;
                 default:
-                    DarkLog.Normal("Usage: /agency [status|reload|objectives|evidence [player]|rewards [player]|progress [player]|accepted [player]|journal [player|server|objective]|contributions <objective>|resetprogress <player|server> <objective>|record <player|server> <evidenceType> <evidenceId>|accept <player|server> <objective>|unaccept <player|server> <objective>|replay <player> <objective>|revoke <player> <objective>]");
+                    DarkLog.Normal("Usage: /agency [status|reload|objectives|objective <id>|evidence [player]|rewards [player]|progress [player]|accepted [player]|journal [player|server|objective]|contributions <objective>|resetprogress <player|server> <objective>|record <player|server> <evidenceType> <evidenceId>|accept <player|server> <objective>|unaccept <player|server> <objective>|replay <player> <objective>|revoke <player> <objective>]");
                     break;
             }
         }
@@ -114,6 +117,62 @@ namespace DarkMultiPlayerServer
             foreach (AgencyObjective objective in AgencyProgression.Objectives)
             {
                 DarkLog.Normal(objective.id + " [" + objective.status + "] " + objective.title);
+            }
+        }
+
+        private static void ShowObjective(string objectiveId)
+        {
+            if (string.IsNullOrEmpty(objectiveId) || !SafeFile.IsNameSafe(objectiveId))
+            {
+                DarkLog.Normal("Usage: /agency objective <id>");
+                return;
+            }
+
+            AgencyObjective objective = null;
+            foreach (AgencyObjective candidate in AgencyProgression.Objectives)
+            {
+                if (candidate.id == objectiveId)
+                {
+                    objective = candidate;
+                    break;
+                }
+            }
+            if (objective == null)
+            {
+                DarkLog.Normal("Agency objective not found: " + objectiveId);
+                return;
+            }
+
+            DarkLog.Normal("Agency objective: " + objective.id);
+            DarkLog.Normal("Title: " + objective.title);
+            DarkLog.Normal("Status: " + objective.status + " scope=" + objective.scope + " category=" + objective.category + " type=" + objective.contractType);
+            DarkLog.Normal("Issuer: " + objective.issuer);
+            DarkLog.Normal("Evidence: " + objective.evidenceType + ":" + objective.evidenceId);
+            if (objective.progressTarget > 0)
+            {
+                DarkLog.Normal("Progress: " + objective.progressValue + "/" + objective.progressTarget + " +" + objective.progressPerEvidence + " per evidence, contributors=" + objective.contributorCount + " [" + objective.contributors + "]");
+            }
+            if (objective.rewardFunds != 0 || objective.rewardScience != 0 || objective.rewardReputation != 0)
+            {
+                DarkLog.Normal("Rewards: funds=" + objective.rewardFunds + " science=" + objective.rewardScience + " reputation=" + objective.rewardReputation);
+            }
+            if (!string.IsNullOrEmpty(objective.metricContributionId) || !string.IsNullOrEmpty(objective.economyResourceId))
+            {
+                DarkLog.Normal("Effects: metric=" + objective.metricContributionId + " amount=" + objective.metricContributionAmount + " economy=" + objective.economyResourceId + " delta=" + objective.economyResourceDelta);
+            }
+            if (objective.requiresAcceptance)
+            {
+                DarkLog.Normal("Acceptance: required acceptedBy=" + objective.acceptedBy + " acceptedAt=" + objective.acceptedAtUtc);
+            }
+            AgencyJournalRecord[] journalRecords = AgencyProgression.GetJournalRecords(objective.id);
+            DarkLog.Normal("Journal records for objective: " + journalRecords.Length);
+            int start = Math.Max(0, journalRecords.Length - 5);
+            for (int i = start; i < journalRecords.Length; i++)
+            {
+                AgencyJournalRecord record = journalRecords[i];
+                string owner = string.IsNullOrEmpty(record.playerName) ? "server" : record.playerName;
+                string details = string.IsNullOrEmpty(record.details) ? string.Empty : " " + record.details;
+                DarkLog.Normal(record.occurredAtUtc.ToString("u") + " " + record.action + " owner=" + owner + " actor=" + record.actor + details);
             }
         }
 
