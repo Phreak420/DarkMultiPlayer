@@ -177,7 +177,8 @@ Implemented console commands: `/agency status`, `/agency reload`, `/agency objec
 `/agency record <player|server> <evidenceType> <evidenceId>`,
 `/agency accept <player|server> <objective>`,
 `/agency unaccept <player|server> <objective>`,
-`/agency replay <player> <objective>`, and `/agency revoke <player> <objective>`.
+`/agency replay <player> <objective>`, `/agency revoke <player> <objective>`, and
+`/agency journal [player|server|objective]`.
 
 ### Phase 5: Shared Storyline Progression
 
@@ -249,6 +250,8 @@ state audit log.
 - [x] Persist accepted objectives and expose active mission state to admins and the Space Agency UI.
 - [x] Allow accepted personal objectives to be abandoned, and allow admins to clear accepted
   personal or server-scoped objective state.
+- [x] Record lifecycle and reward events in an append-only Agency journal.
+- [x] Show recent Agency activity in the Space Agency UI.
 - Avoid hard dependency on Contract Configurator in the core mod.
 - Treat stock KSP contract state as client UI/experience, not as authoritative server truth.
 
@@ -266,6 +269,14 @@ Abandoning or unaccepting an objective removes only the accepted mission state. 
 objective completion history, and reward audit records are not deleted. Completed objectives cannot
 be abandoned or unaccepted. Players can abandon accepted personal objectives from the Space Agency
 window; server-scoped accepted objectives are cleared through admin commands.
+
+Implemented mission journal: `Universe/AgencyProgression/Journal.log`.
+
+The journal records acceptance, abandon/unaccept, progress contribution, completion, and
+reward-granted events. It is append-only and complements the evidence, objective completion, reward,
+and acceptance logs rather than replacing them. Admins can inspect recent records with
+`/agency journal`, optionally filtered by player, `server`, or objective ID. Clients receive a small
+recent-activity summary for display in the Space Agency UI.
 
 ## Open Questions
 

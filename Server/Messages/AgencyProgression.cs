@@ -66,6 +66,13 @@ namespace DarkMultiPlayerServer.Messages
             double[] economyResourceValues = new double[economyResources.Length];
             double[] economyResourceMaxValues = new double[economyResources.Length];
             double[] economyResourceModifiers = new double[economyResources.Length];
+            AgencyJournalRecord[] journalRecords = DarkMultiPlayerServer.AgencyProgression.GetRecentJournalRecords(client.playerName, 8);
+            string[] journalTimes = new string[journalRecords.Length];
+            string[] journalActions = new string[journalRecords.Length];
+            string[] journalObjectiveIds = new string[journalRecords.Length];
+            string[] journalPlayerNames = new string[journalRecords.Length];
+            string[] journalActors = new string[journalRecords.Length];
+            string[] journalDetails = new string[journalRecords.Length];
 
             for (int i = 0; i < objectives.Length; i++)
             {
@@ -128,6 +135,15 @@ namespace DarkMultiPlayerServer.Messages
                 economyResourceMaxValues[i] = economyResources[i].maxValue;
                 economyResourceModifiers[i] = economyResources[i].boundedModifier;
             }
+            for (int i = 0; i < journalRecords.Length; i++)
+            {
+                journalTimes[i] = journalRecords[i].occurredAtUtc.ToString("u");
+                journalActions[i] = journalRecords[i].action;
+                journalObjectiveIds[i] = journalRecords[i].objectiveId;
+                journalPlayerNames[i] = journalRecords[i].playerName;
+                journalActors[i] = journalRecords[i].actor;
+                journalDetails[i] = journalRecords[i].details;
+            }
 
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.AGENCY_PROGRESS;
@@ -189,6 +205,12 @@ namespace DarkMultiPlayerServer.Messages
                 mw.Write<bool[]>(objectiveRequiresAcceptances);
                 mw.Write<string[]>(objectiveAcceptedBy);
                 mw.Write<string[]>(objectiveAcceptedAtUtc);
+                mw.Write<string[]>(journalTimes);
+                mw.Write<string[]>(journalActions);
+                mw.Write<string[]>(journalObjectiveIds);
+                mw.Write<string[]>(journalPlayerNames);
+                mw.Write<string[]>(journalActors);
+                mw.Write<string[]>(journalDetails);
                 newMessage.data = mw.GetMessageBytes();
             }
             ClientHandler.SendToClient(client, newMessage, true);

@@ -38,6 +38,9 @@ namespace DarkMultiPlayerServer
                 case "accepted":
                     ShowAccepted(argument);
                     break;
+                case "journal":
+                    ShowJournal(argument);
+                    break;
                 case "contributions":
                     ShowContributions(argument);
                     break;
@@ -60,7 +63,7 @@ namespace DarkMultiPlayerServer
                     RevokeReward(argument);
                     break;
                 default:
-                    DarkLog.Normal("Usage: /agency [status|reload|objectives|evidence [player]|rewards [player]|progress [player]|accepted [player]|contributions <objective>|resetprogress <player|server> <objective>|record <player|server> <evidenceType> <evidenceId>|accept <player|server> <objective>|unaccept <player|server> <objective>|replay <player> <objective>|revoke <player> <objective>]");
+                    DarkLog.Normal("Usage: /agency [status|reload|objectives|evidence [player]|rewards [player]|progress [player]|accepted [player]|journal [player|server|objective]|contributions <objective>|resetprogress <player|server> <objective>|record <player|server> <evidenceType> <evidenceId>|accept <player|server> <objective>|unaccept <player|server> <objective>|replay <player> <objective>|revoke <player> <objective>]");
                     break;
             }
         }
@@ -93,6 +96,7 @@ namespace DarkMultiPlayerServer
             DarkLog.Normal("Evidence records: " + AgencyProgression.GetEvidenceRecords().Length);
             DarkLog.Normal("Accepted records: " + AgencyProgression.GetAcceptanceRecords().Length);
             DarkLog.Normal("Progress records: " + AgencyProgression.GetProgressRecords().Length);
+            DarkLog.Normal("Journal records: " + AgencyProgression.GetJournalRecords().Length);
             DarkLog.Normal("Reward records: " + AgencyProgression.GetRewardRecords().Length);
         }
 
@@ -188,6 +192,20 @@ namespace DarkMultiPlayerServer
                 AgencyObjectiveAcceptance record = records[i];
                 string owner = string.IsNullOrEmpty(record.playerName) ? "server" : record.playerName;
                 DarkLog.Normal(record.acceptedAtUtc + " owner=" + owner + " objective=" + record.objectiveId + " acceptedBy=" + record.acceptedBy);
+            }
+        }
+
+        private static void ShowJournal(string filter)
+        {
+            AgencyJournalRecord[] records = string.IsNullOrEmpty(filter) ? AgencyProgression.GetJournalRecords() : AgencyProgression.GetJournalRecords(filter);
+            DarkLog.Normal("Agency journal records: " + records.Length);
+            int start = Math.Max(0, records.Length - 10);
+            for (int i = start; i < records.Length; i++)
+            {
+                AgencyJournalRecord record = records[i];
+                string owner = string.IsNullOrEmpty(record.playerName) ? "server" : record.playerName;
+                string details = string.IsNullOrEmpty(record.details) ? string.Empty : " " + record.details;
+                DarkLog.Normal(record.occurredAtUtc.ToString("u") + " " + record.action + " objective=" + record.objectiveId + " owner=" + owner + " actor=" + record.actor + details);
             }
         }
 

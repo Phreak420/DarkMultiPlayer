@@ -113,6 +113,8 @@ namespace DarkMultiPlayer
             GUILayout.Space(6);
             DrawCampaignState();
             GUILayout.Space(6);
+            DrawRecentActivity();
+            GUILayout.Space(4);
             DrawMissionSummary();
             GUILayout.Space(4);
             DrawFilters();
@@ -253,6 +255,22 @@ namespace DarkMultiPlayer
                 string title = string.IsNullOrEmpty(events[i].title) ? events[i].id : events[i].title;
                 GUILayout.Label("Event: [" + events[i].status + "] " + title, noteStyle, GUILayout.Height(18));
                 shownEvents++;
+            }
+        }
+
+        private void DrawRecentActivity()
+        {
+            AgencyJournalSummary[] records = dmpGame.agencyProgressionWorker.JournalRecords;
+            if (records.Length == 0)
+            {
+                return;
+            }
+
+            GUILayout.Label("Recent Activity", subHeaderStyle);
+            int start = Math.Max(0, records.Length - 2);
+            for (int i = start; i < records.Length; i++)
+            {
+                GUILayout.Label(BuildJournalSummary(records[i]), noteStyle, GUILayout.Height(18));
             }
         }
 
@@ -671,6 +689,16 @@ namespace DarkMultiPlayer
             string maxValue = resource.maxValue > 0 ? " / " + resource.maxValue.ToString("0.##") : string.Empty;
             string modifier = resource.boundedModifier == 0 ? string.Empty : " (" + (resource.boundedModifier * 100).ToString("+0.##;-0.##") + "%)";
             return category + ": " + title + " " + resource.value.ToString("0.##") + maxValue + resource.unit + " " + resource.state + modifier;
+        }
+
+        private string BuildJournalSummary(AgencyJournalSummary record)
+        {
+            string owner = string.IsNullOrEmpty(record.playerName) ? "server" : record.playerName;
+            string actor = string.IsNullOrEmpty(record.actor) ? owner : record.actor;
+            string objective = string.IsNullOrEmpty(record.objectiveId) ? "objective" : record.objectiveId;
+            string action = string.IsNullOrEmpty(record.action) ? "updated" : record.action;
+            string details = string.IsNullOrEmpty(record.details) ? string.Empty : " (" + record.details + ")";
+            return action + ": " + objective + " by " + actor + " for " + owner + details;
         }
 
         private string GetMetricTitle(string metricId)

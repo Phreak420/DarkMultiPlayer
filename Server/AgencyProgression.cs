@@ -301,6 +301,59 @@ namespace DarkMultiPlayerServer
             return ReadRewardFile(rewardFile);
         }
 
+        public static AgencyJournalRecord[] GetJournalRecords()
+        {
+            return ReadJournalFile(GetJournalFile());
+        }
+
+        public static AgencyJournalRecord[] GetJournalRecords(string filter)
+        {
+            if (string.IsNullOrEmpty(filter))
+            {
+                return GetJournalRecords();
+            }
+            if (!SafeFile.IsNameSafe(filter))
+            {
+                return new AgencyJournalRecord[0];
+            }
+
+            bool serverFilter = string.Equals(filter, "server", StringComparison.OrdinalIgnoreCase);
+            List<AgencyJournalRecord> records = new List<AgencyJournalRecord>();
+            foreach (AgencyJournalRecord record in GetJournalRecords())
+            {
+                if ((serverFilter && string.IsNullOrEmpty(record.playerName)) || record.playerName == filter || record.actor == filter || record.objectiveId == filter)
+                {
+                    records.Add(record);
+                }
+            }
+            return records.ToArray();
+        }
+
+        public static AgencyJournalRecord[] GetRecentJournalRecords(string playerName, int count)
+        {
+            if (count <= 0)
+            {
+                return new AgencyJournalRecord[0];
+            }
+
+            List<AgencyJournalRecord> matchingRecords = new List<AgencyJournalRecord>();
+            foreach (AgencyJournalRecord record in GetJournalRecords())
+            {
+                if (string.IsNullOrEmpty(record.playerName) || record.playerName == playerName || record.actor == playerName)
+                {
+                    matchingRecords.Add(record);
+                }
+            }
+            int take = Math.Min(count, matchingRecords.Count);
+            AgencyJournalRecord[] recent = new AgencyJournalRecord[take];
+            int start = matchingRecords.Count - take;
+            for (int i = 0; i < take; i++)
+            {
+                recent[i] = matchingRecords[start + i];
+            }
+            return recent;
+        }
+
         public static AgencyObjectiveProgress[] GetProgressRecords()
         {
             lock (progress)
@@ -427,6 +480,7 @@ namespace DarkMultiPlayerServer
             }
             SaveAcceptances();
             DarkLog.Normal("Agency objective accepted: " + objective.id + " by " + playerName);
+            AppendJournalRecord("accepted", objective, acceptancePlayer, playerName, string.Empty);
             DarkMultiPlayerServer.Messages.AgencyProgression.SendAgencyProgressionToAll();
             return true;
         }
@@ -461,6 +515,7 @@ namespace DarkMultiPlayerServer
 
             SaveAcceptances();
             DarkLog.Normal("Agency objective acceptance cleared: " + objective.id + " by " + playerName);
+            AppendJournalRecord(allowServerObjective ? "unaccepted" : "abandoned", objective, acceptancePlayer, playerName, string.Empty);
             DarkMultiPlayerServer.Messages.AgencyProgression.SendAgencyProgressionToAll();
             return true;
         }
@@ -586,6 +641,7 @@ namespace DarkMultiPlayerServer
                         if (progressValue < objective.progressTarget)
                         {
                             DarkLog.Normal("Agency objective progress: " + objective.id + " " + progressValue.ToString("R") + "/" + objective.progressTarget.ToString("R") + " by " + evidenceRecord.playerName);
+                            AppendJournalRecord("progress", objective, completionPlayer, evidenceRecord.playerName, "progress=" + progressValue.ToString("R") + "/" + objective.progressTarget.ToString("R"));
                             continue;
                         }
                     }
@@ -605,6 +661,7 @@ namespace DarkMultiPlayerServer
                     changedAny = true;
                     completedAny = true;
                     DarkLog.Normal("Agency objective complete: " + objective.id + " by " + evidenceRecord.playerName);
+                    AppendJournalRecord("completed", objective, completionPlayer, evidenceRecord.playerName, string.Empty);
                     ApplyMetricContribution(objective, evidenceRecord.playerName);
                     ApplyEconomyContribution(objective, evidenceRecord.playerName);
                     AgencyRewardModifier rewardModifier = CalculateRewardModifier(objective);
@@ -647,6 +704,7 @@ namespace DarkMultiPlayerServer
             {
                 File.AppendAllText(rewardFile, record);
             }
+            AppendJournalRecord("reward-granted", objectiveId, string.Empty, playerName, playerName, "funds=" + effectiveFunds.ToString("R") + ",science=" + effectiveScience.ToString("R") + ",reputation=" + effectiveReputation.ToString("R"));
 
             ClientObject client = connectedClient ?? ClientHandler.GetClientByName(playerName);
             if (sendIfOnline && client != null && client.authenticated)
@@ -783,6 +841,46 @@ namespace DarkMultiPlayerServer
         private static string FormatEvidenceRecord(AgencyEvidenceRecord record)
         {
             return record.receivedAtUtc.ToString("o") + "\t" + record.playerName + "\t" + record.evidenceType.ToString() + "\t" + record.evidenceId + "\t" + record.gameTime.ToString("R");
+        }
+
+        private static void AppendJournalRecord(string action, AgencyObjective objective, string playerName, string actor, string details)
+        {
+            AppendJournalRecord(action, objective.id, objective.scope, playerName, actor, details);
+        }
+
+        private static void AppendJournalRecord(string action, string objectiveId, string scope, string playerName, string actor, string details)
+        {
+            string journalFile = GetJournalFile();
+            Directory.CreateDirectory(Path.GetDirectoryName(journalFile));
+            AgencyJournalRecord record = new AgencyJournalRecord
+            {
+                occurredAtUtc = DateTime.UtcNow,
+                action = CleanJournalField(action),
+                objectiveId = CleanJournalField(objectiveId),
+                scope = CleanJournalField(scope),
+                playerName = CleanJournalField(playerName),
+                actor = CleanJournalField(actor),
+                details = CleanJournalField(details)
+            };
+            string line = record.occurredAtUtc.ToString("o") + "\t" + record.action + "\t" + record.objectiveId + "\t" + record.scope + "\t" + record.playerName + "\t" + record.actor + "\t" + record.details + Environment.NewLine;
+            lock (Server.universeSizeLock)
+            {
+                File.AppendAllText(journalFile, line);
+            }
+        }
+
+        private static string GetJournalFile()
+        {
+            return Path.Combine(Server.universeDirectory, "AgencyProgression", "Journal.log");
+        }
+
+        private static string CleanJournalField(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return string.Empty;
+            }
+            return value.Replace("\r", " ").Replace("\n", " ").Replace("\t", " ").Trim();
         }
 
         private static AgencyObjectiveCompletion GetCompletion(string objectiveId, string playerName)
@@ -1385,6 +1483,25 @@ namespace DarkMultiPlayerServer
             return records.ToArray();
         }
 
+        private static AgencyJournalRecord[] ReadJournalFile(string journalFile)
+        {
+            if (!File.Exists(journalFile))
+            {
+                return new AgencyJournalRecord[0];
+            }
+
+            List<AgencyJournalRecord> records = new List<AgencyJournalRecord>();
+            foreach (string line in File.ReadAllLines(journalFile))
+            {
+                AgencyJournalRecord record;
+                if (TryParseJournalRecord(line, out record))
+                {
+                    records.Add(record);
+                }
+            }
+            return records.ToArray();
+        }
+
         private static bool TryParseEvidenceRecord(string line, out AgencyEvidenceRecord record)
         {
             record = null;
@@ -1481,6 +1598,39 @@ namespace DarkMultiPlayerServer
                 baseFunds = baseFunds,
                 baseScience = baseScience,
                 baseReputation = baseReputation
+            };
+            return true;
+        }
+
+        private static bool TryParseJournalRecord(string line, out AgencyJournalRecord record)
+        {
+            record = null;
+            if (string.IsNullOrEmpty(line))
+            {
+                return false;
+            }
+
+            string[] parts = line.Split('\t');
+            if (parts.Length != 7)
+            {
+                return false;
+            }
+
+            DateTime occurredAtUtc;
+            if (!DateTime.TryParse(parts[0], null, System.Globalization.DateTimeStyles.RoundtripKind, out occurredAtUtc))
+            {
+                return false;
+            }
+
+            record = new AgencyJournalRecord
+            {
+                occurredAtUtc = occurredAtUtc,
+                action = parts[1],
+                objectiveId = parts[2],
+                scope = parts[3],
+                playerName = parts[4],
+                actor = parts[5],
+                details = parts[6]
             };
             return true;
         }
@@ -1738,6 +1888,17 @@ namespace DarkMultiPlayerServer
         public double baseFunds;
         public float baseScience;
         public float baseReputation;
+    }
+
+    public class AgencyJournalRecord
+    {
+        public DateTime occurredAtUtc;
+        public string action;
+        public string objectiveId;
+        public string scope;
+        public string playerName;
+        public string actor;
+        public string details;
     }
 
     public class AgencyRewardModifier

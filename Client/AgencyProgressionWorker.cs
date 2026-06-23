@@ -13,6 +13,7 @@ namespace DarkMultiPlayer
         private readonly List<CampaignMetricSummary> campaignMetrics = new List<CampaignMetricSummary>();
         private readonly List<CampaignEventSummary> campaignEvents = new List<CampaignEventSummary>();
         private readonly List<EconomyResourceSummary> economyResources = new List<EconomyResourceSummary>();
+        private readonly List<AgencyJournalSummary> journalRecords = new List<AgencyJournalSummary>();
         private readonly HashSet<string> sentEvidenceIds = new HashSet<string>();
         private readonly Dictionary<Guid, string> vesselBodies = new Dictionary<Guid, string>();
         private readonly Queue<AgencyRewardSummary> pendingRewards = new Queue<AgencyRewardSummary>();
@@ -85,6 +86,17 @@ namespace DarkMultiPlayer
             }
         }
 
+        public AgencyJournalSummary[] JournalRecords
+        {
+            get
+            {
+                lock (journalRecords)
+                {
+                    return journalRecords.ToArray();
+                }
+            }
+        }
+
         public void HandleAgencyProgression(ByteArray messageData)
         {
             using (MessageReader mr = new MessageReader(messageData.data))
@@ -146,6 +158,12 @@ namespace DarkMultiPlayer
                 double[] economyResourceValues = new double[0];
                 double[] economyResourceMaxValues = new double[0];
                 double[] economyResourceModifiers = new double[0];
+                string[] journalTimes = new string[0];
+                string[] journalActions = new string[0];
+                string[] journalObjectiveIds = new string[0];
+                string[] journalPlayerNames = new string[0];
+                string[] journalActors = new string[0];
+                string[] journalDetails = new string[0];
                 try
                 {
                     categories = mr.Read<string[]>();
@@ -203,6 +221,24 @@ namespace DarkMultiPlayer
                                             objectiveRequiresAcceptances = mr.Read<bool[]>();
                                             objectiveAcceptedBy = mr.Read<string[]>();
                                             objectiveAcceptedAtUtc = mr.Read<string[]>();
+                                            try
+                                            {
+                                                journalTimes = mr.Read<string[]>();
+                                                journalActions = mr.Read<string[]>();
+                                                journalObjectiveIds = mr.Read<string[]>();
+                                                journalPlayerNames = mr.Read<string[]>();
+                                                journalActors = mr.Read<string[]>();
+                                                journalDetails = mr.Read<string[]>();
+                                            }
+                                            catch (Exception)
+                                            {
+                                                journalTimes = new string[0];
+                                                journalActions = new string[0];
+                                                journalObjectiveIds = new string[0];
+                                                journalPlayerNames = new string[0];
+                                                journalActors = new string[0];
+                                                journalDetails = new string[0];
+                                            }
                                         }
                                         catch (Exception)
                                         {
@@ -375,6 +411,16 @@ namespace DarkMultiPlayer
                     economyResourceMaxValues = new double[0];
                     economyResourceModifiers = new double[0];
                 }
+                if (journalActions.Length != journalTimes.Length || journalObjectiveIds.Length != journalTimes.Length || journalPlayerNames.Length != journalTimes.Length || journalActors.Length != journalTimes.Length || journalDetails.Length != journalTimes.Length)
+                {
+                    DarkLog.Debug("Received invalid agency journal data from server.");
+                    journalTimes = new string[0];
+                    journalActions = new string[0];
+                    journalObjectiveIds = new string[0];
+                    journalPlayerNames = new string[0];
+                    journalActors = new string[0];
+                    journalDetails = new string[0];
+                }
 
                 lock (objectives)
                 {
@@ -471,6 +517,22 @@ namespace DarkMultiPlayer
                         });
                     }
                 }
+                lock (journalRecords)
+                {
+                    journalRecords.Clear();
+                    for (int i = 0; i < journalTimes.Length; i++)
+                    {
+                        journalRecords.Add(new AgencyJournalSummary
+                        {
+                            occurredAtUtc = journalTimes[i],
+                            action = journalActions[i],
+                            objectiveId = journalObjectiveIds[i],
+                            playerName = journalPlayerNames[i],
+                            actor = journalActors[i],
+                            details = journalDetails[i]
+                        });
+                    }
+                }
                 DarkLog.Debug("Received " + objectiveCount + " agency progression objectives.");
             }
         }
@@ -532,6 +594,10 @@ namespace DarkMultiPlayer
             {
                 economyResources.Clear();
                 EconomyName = null;
+            }
+            lock (journalRecords)
+            {
+                journalRecords.Clear();
             }
             sentEvidenceIds.Clear();
             vesselBodies.Clear();
@@ -858,5 +924,15 @@ namespace DarkMultiPlayer
         public double value;
         public double maxValue;
         public double boundedModifier;
+    }
+
+    public class AgencyJournalSummary
+    {
+        public string occurredAtUtc;
+        public string action;
+        public string objectiveId;
+        public string playerName;
+        public string actor;
+        public string details;
     }
 }

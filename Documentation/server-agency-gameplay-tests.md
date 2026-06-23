@@ -238,6 +238,7 @@ Steps:
 11. Click `Accept` again.
 12. Enter Kerbin orbit again or run `/agency record <player> VESSEL_ORBITED orbit-Kerbin`.
 13. Run `/agency unaccept <player> accepted-orbit` after completion.
+14. Run `/agency journal <player>`.
 
 Expected:
 
@@ -251,6 +252,10 @@ Expected:
 - Evidence after acceptance completes the objective and grants configured rewards once.
 - `/agency unaccept <player> accepted-orbit` fails after completion because completed objectives
   cannot be unaccepted.
+- `Universe/AgencyProgression/Journal.log` records accepted, abandoned, completed, and
+  reward-granted events.
+- `/agency journal <player>` shows recent lifecycle and reward events.
+- The Space Agency window shows compact recent activity after the server sends journal records.
 - Objectives without `requiresAcceptance` keep the existing auto-completion behavior.
 
 ## Campaign State Smoke Test
@@ -557,6 +562,7 @@ Server console checks:
 - Run `/agency evidence <player>`.
 - Run `/agency rewards <player>`.
 - Run `/agency progress`.
+- Run `/agency journal <player>`.
 - Run `/agency replay <player> orbit-kerbin` only if you intentionally want to apply the reward
   again for recovery testing.
 - Run `/agency revoke <player> orbit-kerbin` only if you intentionally want to apply a negative
@@ -639,6 +645,8 @@ Expected:
 - Revoke writes an additional negative reward audit record.
 - If the player is online, revoke applies the negative compensation.
 - These commands do not delete evidence or objective completion history.
+- `/agency journal <player>` records reward replay/revoke as reward-granted entries with positive
+  or negative values in the details field.
 
 ### 10. Objective Prerequisites
 

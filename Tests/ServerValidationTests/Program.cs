@@ -73,6 +73,7 @@ namespace ServerValidationTests
             Run("Agency objective completion adjusts economy resource", AgencyObjectiveCompletionAdjustsEconomyResource);
             Run("Agency scarcity reward modifier applies bounded bonus", AgencyScarcityRewardModifierAppliesBoundedBonus);
             Run("Agency abundance reward reduction is opt-in", AgencyAbundanceRewardReductionIsOptIn);
+            Run("Agency journal records lifecycle events", AgencyJournalRecordsLifecycleEvents);
             Run("Agency shared progress completes objective", AgencySharedProgressCompletesObjective);
             Run("Agency shared progress reloads and resets", AgencySharedProgressReloadsAndResets);
             Run("Agency unique contributors count once", AgencyUniqueContributorsCountOnce);
@@ -1047,6 +1048,37 @@ namespace ServerValidationTests
             Assert(!AgencyProgression.UnacceptObjective("Grace", "accepted-orbit", false), "completed objective was unaccepted");
         }
 
+        private static void AgencyJournalRecordsLifecycleEvents()
+        {
+            string universe = CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-agency-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"accepted-orbit\",\"title\":\"Accepted Orbit\",\"description\":\"Accept before orbit evidence counts.\",\"status\":\"Available\",\"scope\":\"Personal\",\"evidenceType\":\"VESSEL_ORBITED\",\"evidenceId\":\"orbit-Kerbin\",\"requiresAcceptance\":true,\"rewardFunds\":100}]}");
+            Settings.settingsStore.agencyProgressionEnabled = true;
+
+            AgencyProgression.Load(true);
+            Assert(AgencyProgression.AcceptObjective("Grace", "accepted-orbit"), "journal test acceptance failed");
+            Assert(AgencyProgression.UnacceptObjective("Grace", "accepted-orbit", false), "journal test abandon failed");
+            Assert(AgencyProgression.AcceptObjective("Grace", "accepted-orbit"), "journal test reaccept failed");
+            Assert(AgencyProgression.RecordAdminEvidence("Grace", (int)AgencyEvidenceType.VESSEL_ORBITED, "orbit-Kerbin"), "journal test evidence failed");
+
+            string journalFile = Path.Combine(universe, "AgencyProgression", "Journal.log");
+            Assert(File.Exists(journalFile), "agency journal log was not written");
+            AgencyJournalRecord[] playerRecords = AgencyProgression.GetJournalRecords("Grace");
+            Assert(playerRecords.Length >= 4, "player journal query returned too few lifecycle records");
+            Assert(HasJournalAction(playerRecords, "accepted"), "journal did not record acceptance");
+            Assert(HasJournalAction(playerRecords, "abandoned"), "journal did not record abandon");
+            Assert(HasJournalAction(playerRecords, "completed"), "journal did not record completion");
+            Assert(HasJournalAction(playerRecords, "reward-granted"), "journal did not record reward");
+
+            AgencyJournalRecord[] objectiveRecords = AgencyProgression.GetJournalRecords("accepted-orbit");
+            Assert(objectiveRecords.Length >= 4, "objective journal query returned too few records");
+            AgencyJournalRecord[] recentRecords = AgencyProgression.GetRecentJournalRecords("Grace", 2);
+            Assert(recentRecords.Length == 2, "recent journal query did not respect count");
+        }
+
         private static void AgencyPrerequisitesUnlockObjectives()
         {
             CreateUniverse();
@@ -1658,6 +1690,18 @@ namespace ServerValidationTests
         private static void AssertNear(double actual, double expected, string message)
         {
             Assert(Math.Abs(actual - expected) < 0.0001, message + " (expected " + expected + ", got " + actual + ")");
+        }
+
+        private static bool HasJournalAction(AgencyJournalRecord[] records, string action)
+        {
+            for (int i = 0; i < records.Length; i++)
+            {
+                if (records[i].action == action)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static void Assert(bool condition, string message)

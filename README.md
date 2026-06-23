@@ -48,6 +48,7 @@ Current and planned MMO Edition work:
 - [x] ~~Start DMP-owned contract-like objective presentation.~~
 - [x] ~~Add optional Agency objective acceptance and active mission state.~~
 - [x] ~~Add mission abandon/admin unaccept support for accepted Agency objectives.~~
+- [x] ~~Add Agency mission history/journal records for lifecycle and reward events.~~
 - [x] ~~Improve the Space Agency mission board with mission counts, progress summaries, and
   world-state effects.~~
 - [x] ~~Expand vessel evidence types for more mission milestones.~~
