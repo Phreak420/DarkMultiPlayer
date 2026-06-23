@@ -49,6 +49,7 @@ prominently and preserve original license and copyright notices.
 - [x] ~~Add hidden-until-unlocked objectives for spoiler-free campaign chains.~~
 - [x] ~~Add admin-confirmed non-vessel objective evidence for infrastructure and campaign milestones.~~
 - [x] ~~Add stock contract completion evidence for agency objectives.~~
+- [x] ~~Add Agency config validation warnings and authoring guidance.~~
 - [ ] Add automatic non-vessel objective evidence from optional mod integrations.
 - [x] ~~Add campaign phase and world-state metric unlock rules beyond completed-objective
   prerequisites.~~

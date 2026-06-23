@@ -29,6 +29,9 @@ namespace DarkMultiPlayerServer
                 case "objective":
                     ShowObjective(argument);
                     break;
+                case "validate":
+                    ValidateConfig();
+                    break;
                 case "evidence":
                     ShowEvidence(argument);
                     break;
@@ -66,7 +69,7 @@ namespace DarkMultiPlayerServer
                     RevokeReward(argument);
                     break;
                 default:
-                    DarkLog.Normal("Usage: /agency [status|reload|objectives|objective <id>|evidence [player]|rewards [player]|progress [player]|accepted [player]|journal [player|server|objective]|contributions <objective>|resetprogress <player|server> <objective>|record <player|server> <evidenceType> <evidenceId>|accept <player|server> <objective>|unaccept <player|server> <objective>|replay <player> <objective>|revoke <player> <objective>]");
+                    DarkLog.Normal("Usage: /agency [status|reload|validate|objectives|objective <id>|evidence [player]|rewards [player]|progress [player]|accepted [player]|journal [player|server|objective]|contributions <objective>|resetprogress <player|server> <objective>|record <player|server> <evidenceType> <evidenceId>|accept <player|server> <objective>|unaccept <player|server> <objective>|replay <player> <objective>|revoke <player> <objective>]");
                     break;
             }
         }
@@ -101,6 +104,7 @@ namespace DarkMultiPlayerServer
             DarkLog.Normal("Progress records: " + AgencyProgression.GetProgressRecords().Length);
             DarkLog.Normal("Journal records: " + AgencyProgression.GetJournalRecords().Length);
             DarkLog.Normal("Reward records: " + AgencyProgression.GetRewardRecords().Length);
+            DarkLog.Normal("Config warnings: " + AgencyProgression.GetValidationWarnings().Length);
         }
 
         private static void Reload()
@@ -117,6 +121,22 @@ namespace DarkMultiPlayerServer
             foreach (AgencyObjective objective in AgencyProgression.Objectives)
             {
                 DarkLog.Normal(objective.id + " [" + objective.status + "] " + objective.title);
+            }
+        }
+
+        private static void ValidateConfig()
+        {
+            string[] warnings = AgencyProgression.GetValidationWarnings();
+            if (warnings.Length == 0)
+            {
+                DarkLog.Normal("Agency progression config validation passed with no warnings.");
+                return;
+            }
+
+            DarkLog.Normal("Agency progression config warnings: " + warnings.Length);
+            for (int i = 0; i < warnings.Length; i++)
+            {
+                DarkLog.Normal((i + 1) + ". " + warnings[i]);
             }
         }
 

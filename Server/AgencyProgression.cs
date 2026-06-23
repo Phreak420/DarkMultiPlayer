@@ -24,6 +24,7 @@ namespace DarkMultiPlayerServer
         private static readonly Dictionary<string, AgencyObjectiveProgress> progress = new Dictionary<string, AgencyObjectiveProgress>();
         private static readonly Dictionary<string, AgencyObjectiveAcceptance> acceptances = new Dictionary<string, AgencyObjectiveAcceptance>();
         private static readonly Dictionary<string, long> lastEvidenceReceiveTicks = new Dictionary<string, long>();
+        private static readonly List<string> validationWarnings = new List<string>();
 
         public static string PackName { get; private set; }
         public static string OnboardingText { get; private set; }
@@ -44,6 +45,14 @@ namespace DarkMultiPlayerServer
             lock (objectives)
             {
                 return BuildObjectiveView(playerName, true);
+            }
+        }
+
+        public static string[] GetValidationWarnings()
+        {
+            lock (validationWarnings)
+            {
+                return validationWarnings.ToArray();
             }
         }
 
@@ -70,6 +79,10 @@ namespace DarkMultiPlayerServer
             lock (lastEvidenceReceiveTicks)
             {
                 lastEvidenceReceiveTicks.Clear();
+            }
+            lock (validationWarnings)
+            {
+                validationWarnings.Clear();
             }
 
             if (!enabled)
@@ -105,24 +118,38 @@ namespace DarkMultiPlayerServer
 
             lock (objectives)
             {
+                HashSet<string> objectiveIds = new HashSet<string>();
                 foreach (AgencyObjective objective in agencyFileData.objectives)
                 {
                     if (objectives.Count >= MaxObjectives)
                     {
-                        DarkLog.Error("Agency progression objective limit reached. Extra objectives were ignored.");
+                        AddValidationWarning("Objective limit reached at " + MaxObjectives + ". Extra objectives were ignored.");
                         break;
                     }
                     if (objective == null || string.IsNullOrEmpty(objective.id))
                     {
-                        DarkLog.Error("Skipped agency progression objective with an empty id.");
+                        AddValidationWarning("Skipped agency progression objective with an empty id.");
                         continue;
                     }
+                    string cleanId = CleanText(objective.id, string.Empty);
+                    if (!SafeFile.IsNameSafe(cleanId))
+                    {
+                        AddValidationWarning("Skipped agency progression objective with unsafe id '" + cleanId + "'.");
+                        continue;
+                    }
+                    if (objectiveIds.Contains(cleanId))
+                    {
+                        AddValidationWarning("Skipped duplicate agency progression objective id '" + cleanId + "'.");
+                        continue;
+                    }
+                    objectiveIds.Add(cleanId);
                     string scope = CleanText(objective.scope, "Personal");
-                    AgencyObjectiveCompletion completion = IsServerObjective(scope) ? GetCompletion(objective.id, string.Empty) : null;
+                    AgencyObjectiveCompletion completion = IsServerObjective(scope) ? GetCompletion(cleanId, string.Empty) : null;
+                    AddLoadValueWarnings(objective, cleanId, scope);
                     objectives.Add(new AgencyObjective
                     {
-                        id = CleanText(objective.id, string.Empty),
-                        title = CleanText(objective.title, objective.id),
+                        id = cleanId,
+                        title = CleanText(objective.title, cleanId),
                         description = CleanText(objective.description, string.Empty),
                         status = completion == null ? CleanText(objective.status, AvailableStatus) : CompleteStatus,
                         scope = scope,
@@ -164,7 +191,13 @@ namespace DarkMultiPlayerServer
                 }
             }
 
+            ValidateLoadedObjectives();
+            string[] warnings = GetValidationWarnings();
             DarkLog.Normal("Loaded agency progression pack '" + PackName + "' with " + Objectives.Length + " objectives.");
+            if (warnings.Length > 0)
+            {
+                DarkLog.Error("Agency progression config has " + warnings.Length + " warning(s). Run /agency validate for details.");
+            }
         }
 
         public static bool RecordEvidence(ClientObject client, int evidenceType, string evidenceId, double gameTime)
@@ -1311,6 +1344,132 @@ namespace DarkMultiPlayerServer
             return string.Equals(scope, "Server", StringComparison.OrdinalIgnoreCase);
         }
 
+        private static void AddLoadValueWarnings(AgencyObjective objective, string objectiveId, string scope)
+        {
+            if (!IsKnownScope(scope))
+            {
+                AddValidationWarning("Objective '" + objectiveId + "' uses unknown scope '" + scope + "'. It will behave like a personal objective.");
+            }
+            string status = CleanText(objective.status, AvailableStatus);
+            if (!IsKnownStatus(status))
+            {
+                AddValidationWarning("Objective '" + objectiveId + "' uses nonstandard status '" + status + "'. Expected Available, Locked, Active, or Complete.");
+            }
+            string evidenceType = CleanText(objective.evidenceType, string.Empty);
+            string evidenceId = CleanText(objective.evidenceId, string.Empty);
+            if (string.IsNullOrEmpty(evidenceType) || string.IsNullOrEmpty(evidenceId))
+            {
+                AddValidationWarning("Objective '" + objectiveId + "' is missing evidenceType or evidenceId, so it cannot complete from player evidence.");
+            }
+            else
+            {
+                AgencyEvidenceType parsedEvidenceType;
+                if (!Enum.TryParse(evidenceType, true, out parsedEvidenceType))
+                {
+                    AddValidationWarning("Objective '" + objectiveId + "' uses unknown evidenceType '" + evidenceType + "'.");
+                }
+                if (!IsEvidenceIdSafe(evidenceId))
+                {
+                    AddValidationWarning("Objective '" + objectiveId + "' uses unsafe evidenceId '" + evidenceId + "'. Matching evidence will be rejected.");
+                }
+            }
+            if (objective.progressTarget < 0)
+            {
+                AddValidationWarning("Objective '" + objectiveId + "' has negative progressTarget. It will be clamped to 0.");
+            }
+            if (objective.progressTarget > 0 && objective.progressPerEvidence <= 0)
+            {
+                AddValidationWarning("Objective '" + objectiveId + "' has progressTarget but progressPerEvidence is not positive. It will default to 1.");
+            }
+            if (objective.uniqueContributors && objective.progressTarget <= 0)
+            {
+                AddValidationWarning("Objective '" + objectiveId + "' enables uniqueContributors without progressTarget. The contributor rule has no effect.");
+            }
+            if (objective.metricContributionMax < 0)
+            {
+                AddValidationWarning("Objective '" + objectiveId + "' has negative metricContributionMax. It will be clamped to 0.");
+            }
+            if (objective.maxRewardModifierOverride < 0)
+            {
+                AddValidationWarning("Objective '" + objectiveId + "' has negative maxRewardModifierOverride. It will be clamped to 0.");
+            }
+            if (!string.IsNullOrEmpty(objective.rewardModifierResourceId) && !objective.allowScarcityRewardBonus && !objective.allowAbundanceRewardReduction)
+            {
+                AddValidationWarning("Objective '" + objectiveId + "' has rewardModifierResourceId but no scarcity or abundance modifier flags enabled.");
+            }
+        }
+
+        private static void ValidateLoadedObjectives()
+        {
+            lock (objectives)
+            {
+                foreach (AgencyObjective objective in objectives)
+                {
+                    ValidateLoadedObjective(objective);
+                }
+            }
+        }
+
+        private static void ValidateLoadedObjective(AgencyObjective objective)
+        {
+            if (objective.prerequisiteObjectiveIds != null)
+            {
+                foreach (string prerequisiteObjectiveId in objective.prerequisiteObjectiveIds)
+                {
+                    if (prerequisiteObjectiveId == objective.id)
+                    {
+                        AddValidationWarning("Objective '" + objective.id + "' lists itself as a prerequisite.");
+                    }
+                    else if (FindObjective(prerequisiteObjectiveId) == null)
+                    {
+                        AddValidationWarning("Objective '" + objective.id + "' references missing prerequisite '" + prerequisiteObjectiveId + "'.");
+                    }
+                }
+            }
+            if (objective.hiddenUntilAvailable && !HasUnlockConditions(objective))
+            {
+                AddValidationWarning("Objective '" + objective.id + "' is hiddenUntilAvailable but has no unlock conditions.");
+            }
+            if (!string.IsNullOrEmpty(objective.requiredMetricId) && objective.requiredMetricMinimum < 0)
+            {
+                AddValidationWarning("Objective '" + objective.id + "' requires metric '" + objective.requiredMetricId + "' with a negative minimum.");
+            }
+            if (!string.IsNullOrEmpty(objective.metricContributionId) && objective.metricContributionAmount == 0)
+            {
+                AddValidationWarning("Objective '" + objective.id + "' has metricContributionId but metricContributionAmount is 0.");
+            }
+            if (string.IsNullOrEmpty(objective.economyResourceId) && objective.economyResourceDelta != 0)
+            {
+                AddValidationWarning("Objective '" + objective.id + "' has economyResourceDelta but no economyResourceId.");
+            }
+            if (!string.IsNullOrEmpty(objective.economyResourceId) && objective.economyResourceDelta == 0)
+            {
+                AddValidationWarning("Objective '" + objective.id + "' has economyResourceId but economyResourceDelta is 0.");
+            }
+            if (!string.IsNullOrEmpty(objective.rewardModifierResourceId) && !ObjectiveHasReward(objective))
+            {
+                AddValidationWarning("Objective '" + objective.id + "' has rewardModifierResourceId but no configured rewards.");
+            }
+        }
+
+        private static bool IsKnownScope(string scope)
+        {
+            return string.Equals(scope, "Personal", StringComparison.OrdinalIgnoreCase) || string.Equals(scope, "Server", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsKnownStatus(string status)
+        {
+            return string.Equals(status, AvailableStatus, StringComparison.OrdinalIgnoreCase) || string.Equals(status, LockedStatus, StringComparison.OrdinalIgnoreCase) || string.Equals(status, ActiveStatus, StringComparison.OrdinalIgnoreCase) || string.Equals(status, CompleteStatus, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static void AddValidationWarning(string warning)
+        {
+            lock (validationWarnings)
+            {
+                validationWarnings.Add(warning);
+            }
+        }
+
         private static string BuildCompletionKey(string objectiveId, string playerName)
         {
             return objectiveId + "\t" + playerName;
@@ -1430,7 +1589,7 @@ namespace DarkMultiPlayerServer
                 }
                 else
                 {
-                    DarkLog.Error("Skipped unsafe agency prerequisite objective id '" + prerequisite + "'.");
+                    AddValidationWarning("Skipped unsafe agency prerequisite objective id '" + prerequisite + "'.");
                 }
             }
             return cleanPrerequisites.ToArray();
@@ -1692,7 +1851,12 @@ namespace DarkMultiPlayerServer
                         prerequisiteObjectiveIds = new string[] { "reach-orbit" },
                         requiredCampaignPhaseId = "mun-expansion",
                         requiredMetricId = "survey-progress",
-                        requiredMetricMinimum = 25
+                        requiredMetricMinimum = 25,
+                        evidenceType = AgencyEvidenceType.VESSEL_ENCOUNTERED.ToString(),
+                        evidenceId = "encountered-Mun",
+                        rewardFunds = 7500,
+                        rewardScience = 3,
+                        rewardReputation = 1
                     }
                 }
             };

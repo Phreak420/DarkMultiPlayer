@@ -46,6 +46,7 @@ namespace ServerValidationTests
             Run("Economy state clamps and audits resources", EconomyStateClampsAndAuditsResources);
             Run("Economy state resets with backup", EconomyStateResetsWithBackup);
             Run("Agency progression skips invalid objective IDs", AgencyProgressionSkipsInvalidObjectiveIds);
+            Run("Agency config validation reports warnings", AgencyConfigValidationReportsWarnings);
             Run("Agency objective contract metadata loads", AgencyObjectiveContractMetadataLoads);
             Run("Agency evidence disabled is ignored", AgencyEvidenceDisabledIsIgnored);
             Run("Agency evidence enabled records audit log", AgencyEvidenceEnabledRecordsAuditLog);
@@ -587,6 +588,7 @@ namespace ServerValidationTests
             Assert(File.Exists(Path.Combine(Server.configDirectory, "AgencyProgression.json")), "enabled agency progression did not create a default config file");
             Assert(AgencyProgression.PackName == "Server Agency", "default agency pack name was not loaded");
             Assert(AgencyProgression.Objectives.Length == 2, "default agency objectives were not loaded");
+            Assert(AgencyProgression.GetValidationWarnings().Length == 0, "default agency config produced validation warnings");
         }
 
         private static void CampaignStateLoadsDefaults()
@@ -764,6 +766,29 @@ namespace ServerValidationTests
 
             Assert(AgencyProgression.Objectives.Length == 1, "invalid agency objective id was not skipped");
             Assert(AgencyProgression.Objectives[0].id == "valid-objective", "valid agency objective was not loaded");
+        }
+
+        private static void AgencyConfigValidationReportsWarnings()
+        {
+            CreateUniverse();
+            Server.configDirectory = Path.Combine(Path.GetTempPath(), "dmp-validation-agency-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Server.configDirectory);
+            File.WriteAllText(
+                Path.Combine(Server.configDirectory, "AgencyProgression.json"),
+                "{\"packName\":\"Test Pack\",\"objectives\":[{\"id\":\"valid-objective\",\"title\":\"Valid\",\"description\":\"Kept\",\"status\":\"Available\",\"scope\":\"Server\",\"evidenceType\":\"ADMIN_CONFIRMED\",\"evidenceId\":\"valid-objective\"},{\"id\":\"valid-objective\",\"title\":\"Duplicate\",\"description\":\"Ignored\",\"status\":\"Available\",\"scope\":\"Server\"},{\"id\":\"bad-evidence\",\"title\":\"Bad Evidence\",\"description\":\"Warns.\",\"status\":\"Available\",\"scope\":\"Personal\",\"evidenceType\":\"NOT_A_REAL_TYPE\",\"evidenceId\":\"bad:evidence\",\"prerequisiteObjectiveIds\":[\"missing-prereq\"],\"progressTarget\":2,\"progressPerEvidence\":0,\"rewardModifierResourceId\":\"fuel-reserve\"},{\"id\":\"economy-warning\",\"title\":\"Economy Warning\",\"description\":\"Warns.\",\"status\":\"Available\",\"scope\":\"Personal\",\"evidenceType\":\"ADMIN_CONFIRMED\",\"evidenceId\":\"economy-warning\",\"economyResourceDelta\":5,\"hiddenUntilAvailable\":true}]}");
+
+            AgencyProgression.Load(true);
+
+            string[] warnings = AgencyProgression.GetValidationWarnings();
+            Assert(AgencyProgression.Objectives.Length == 3, "duplicate objective was not skipped");
+            Assert(HasWarningContaining(warnings, "duplicate agency progression objective id"), "duplicate objective warning was not reported");
+            Assert(HasWarningContaining(warnings, "unknown evidenceType"), "unknown evidence warning was not reported");
+            Assert(HasWarningContaining(warnings, "unsafe evidenceId"), "unsafe evidence id warning was not reported");
+            Assert(HasWarningContaining(warnings, "missing prerequisite"), "missing prerequisite warning was not reported");
+            Assert(HasWarningContaining(warnings, "progressPerEvidence"), "progress default warning was not reported");
+            Assert(HasWarningContaining(warnings, "rewardModifierResourceId"), "reward modifier warning was not reported");
+            Assert(HasWarningContaining(warnings, "economyResourceDelta"), "economy resource warning was not reported");
+            Assert(HasWarningContaining(warnings, "hiddenUntilAvailable"), "hidden objective warning was not reported");
         }
 
         private static void AgencyObjectiveContractMetadataLoads()
@@ -1697,6 +1722,18 @@ namespace ServerValidationTests
             for (int i = 0; i < records.Length; i++)
             {
                 if (records[i].action == action)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool HasWarningContaining(string[] warnings, string text)
+        {
+            for (int i = 0; i < warnings.Length; i++)
+            {
+                if (warnings[i].IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     return true;
                 }

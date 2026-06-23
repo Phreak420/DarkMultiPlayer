@@ -19,6 +19,13 @@ These tests cover the optional MMO Edition agency progression experiment. Existi
    - `Gameplay profile: Agency; agency progression enabled.`
    - `Loaded agency progression pack 'Server Agency' with ... objectives.`
 6. Confirm `Config/AgencyProgression.json` exists after first enabled startup.
+7. Run `/agency validate`.
+
+Expected:
+
+- Default generated config validates without fatal errors.
+- If warnings are shown, each warning identifies a specific objective or skipped config item.
+- Fix config warnings before using the objective in campaign testing.
 
 ## Identity Visibility Smoke Test
 

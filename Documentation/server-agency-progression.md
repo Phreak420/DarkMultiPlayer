@@ -107,6 +107,12 @@ Implemented setting: `agencyProgressionEnabled`.
 
 Implemented config file: `Config/AgencyProgression.json`.
 
+Config authoring reference: `Documentation/agency-config-authoring.md`.
+
+Implemented validation: the server records warnings for duplicate or unsafe objective IDs, missing or
+unknown evidence settings, missing prerequisites, suspicious progress values, and incomplete
+economy/reward modifier settings. Run `/agency validate` after editing config files.
+
 ### Phase 3: Objective Evidence
 
 - [x] Add client reports for bounded evidence types, starting with:
@@ -170,7 +176,7 @@ Reward modifier safety rules:
 - Reward audit records preserve the effective reward, modifier resource/state, modifier value,
   and original base reward values when a modifier applies.
 
-Implemented console commands: `/agency status`, `/agency reload`, `/agency objectives`,
+Implemented console commands: `/agency status`, `/agency reload`, `/agency validate`, `/agency objectives`,
 `/agency objective <id>`,
 `/agency evidence [player]`, `/agency rewards [player]`, `/agency progress [player]`,
 `/agency accepted [player]`, `/agency contributions <objective>`,

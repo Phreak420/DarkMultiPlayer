@@ -57,6 +57,7 @@ Current and planned MMO Edition work:
 - [x] ~~Add hidden-until-unlocked objectives for spoiler-free campaign chains.~~
 - [x] ~~Add admin-confirmed non-vessel evidence for infrastructure and campaign milestones.~~
 - [x] ~~Add stock contract completion evidence for agency objectives.~~
+- [x] ~~Add Agency config validation warnings and authoring guidance.~~
 - [ ] Add automatic non-vessel evidence from optional mod integrations.
 - [x] ~~Add campaign phase and world-state metric unlock rules beyond completed-objective
   prerequisites.~~
